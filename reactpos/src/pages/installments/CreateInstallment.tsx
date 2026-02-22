@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { mediaUrl } from '../../services/api';
 import {
   CreateInstallmentPayload,
   calculateEMI,
@@ -364,7 +365,7 @@ const CreateInstallment: React.FC = () => {
                                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = selectedProduct?.id === product.id ? '' : '')}
                               >
                                 <div className="avatar avatar-md me-2">
-                                  <img src={product.images?.[0] || '/assets/img/products/stock-img-01.png'} alt={product.productName} />
+                                  <img src={mediaUrl(product.images?.[0])} alt={product.productName} />
                                 </div>
                                 <div className="flex-grow-1">
                                   <h6 className="mb-0 fs-13 fw-medium">{product.productName}</h6>
@@ -388,7 +389,7 @@ const CreateInstallment: React.FC = () => {
                     <div className="col-12 mb-3">
                       <div className="alert alert-primary d-flex align-items-center mb-0" role="alert">
                         <div className="avatar avatar-lg me-3">
-                          <img src={selectedProduct.images?.[0] || '/assets/img/products/stock-img-01.png'} alt={selectedProduct.productName} />
+                          <img src={mediaUrl(selectedProduct.images?.[0])} alt={selectedProduct.productName} />
                         </div>
                         <div className="flex-grow-1">
                           <h6 className="mb-1 fw-bold">{selectedProduct.productName}</h6>

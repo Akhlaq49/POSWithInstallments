@@ -339,7 +339,7 @@ function App() {
           {/* Inventory */}
           <Route path="/product-list" element={<ProductList />} />
           <Route path="/add-product" element={<AddProduct />} />
-          <Route path="/edit-product" element={<EditProduct />} />
+          <Route path="/edit-product/:id" element={<EditProduct />} />
           <Route path="/product-details" element={<ProductDetails />} />
           <Route path="/expired-products" element={<ExpiredProducts />} />
           <Route path="/low-stocks" element={<LowStocks />} />

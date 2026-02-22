@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getProducts, deleteProduct, getCategories, getBrands, ProductResponse, DropdownOption } from '../../services/productService';
+import { mediaUrl } from '../../services/api';
 
 const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
@@ -181,7 +182,7 @@ const ProductList: React.FC = () => {
                           <div className="d-flex align-items-center">
                             {p.images && p.images.length > 0 && (
                               <a href="#" className="avatar avatar-md me-2" onClick={(e) => e.preventDefault()}>
-                                <img src={p.images[0]} alt={p.productName} />
+                                <img src={mediaUrl(p.images[0])} alt={p.productName} />
                               </a>
                             )}
                             <Link to={`/product-details/${p.id}`}>{p.productName}</Link>

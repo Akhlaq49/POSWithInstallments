@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { InstallmentPlan, getInstallmentPlans, cancelInstallment } from '../../services/installmentService';
+import { mediaUrl } from '../../services/api';
 
 const InstallmentPlans: React.FC = () => {
   const [plans, setPlans] = useState<InstallmentPlan[]>([]);
@@ -200,7 +201,7 @@ const InstallmentPlans: React.FC = () => {
                       </td>
                       <td>
                         <div className="d-flex align-items-center">
-                          <a className="avatar avatar-md me-2"><img src={plan.productImage} alt="product" /></a>
+                          <a className="avatar avatar-md me-2"><img src={mediaUrl(plan.productImage)} alt="product" /></a>
                           <span>{plan.productName}</span>
                         </div>
                       </td>

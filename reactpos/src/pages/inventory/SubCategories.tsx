@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
-import api from '../../services/api';
+import api, { mediaUrl } from '../../services/api';
 
 interface SubCategory {
   id: string;
@@ -276,7 +276,7 @@ const SubCategories: React.FC = () => {
                       </td>
                       <td>
                         <a className="avatar avatar-md me-2">
-                          <img src={item.image} alt="product" />
+                          <img src={mediaUrl(item.image)} alt="product" />
                         </a>
                       </td>
                       <td>{item.subCategory}</td>

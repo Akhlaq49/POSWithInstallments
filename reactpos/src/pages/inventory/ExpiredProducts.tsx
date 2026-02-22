@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
-import api from '../../services/api';
+import api, { mediaUrl } from '../../services/api';
 
 interface ExpiredProduct {
   id: string;
@@ -253,7 +253,7 @@ const ExpiredProducts: React.FC = () => {
                       <td>
                         <div className="d-flex align-items-center">
                           <a href="#" className="avatar avatar-md me-2" onClick={(e) => e.preventDefault()}>
-                            <img src={product.image} alt="product" />
+                            <img src={mediaUrl(product.image)} alt="product" />
                           </a>
                           <a href="#" onClick={(e) => e.preventDefault()}>{product.name}</a>
                         </div>

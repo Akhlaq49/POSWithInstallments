@@ -1,6 +1,14 @@
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+export const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || 'http://localhost:3001';
+
+/** Prefix a relative image path with the media base URL */
+export const mediaUrl = (path?: string | null): string => {
+  if (!path) return '/assets/img/products/stock-img-01.png';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+  return `${MEDIA_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,

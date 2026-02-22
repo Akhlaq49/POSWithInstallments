@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { mediaUrl } from '../../services/api';
 import {
   InstallmentPlan,
   RepaymentEntry,
@@ -185,7 +186,7 @@ const InstallmentDetails: React.FC = () => {
             <div className="card-header"><h5 className="card-title mb-0"><i className="ti ti-box me-2"></i>Product</h5></div>
             <div className="card-body">
               <div className="d-flex align-items-center mb-3">
-                <a className="avatar avatar-lg me-3"><img src={plan.productImage} alt="product" /></a>
+                <a className="avatar avatar-lg me-3"><img src={mediaUrl(plan.productImage)} alt="product" /></a>
                 <div>
                   <h6 className="fw-bold mb-1">{plan.productName}</h6>
                   <span className="text-muted">Rs {fmt(plan.productPrice)}</span>
