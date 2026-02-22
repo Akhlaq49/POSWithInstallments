@@ -26,6 +26,9 @@ public class AppDbContext : DbContext
     public DbSet<InstallmentPlan> InstallmentPlans => Set<InstallmentPlan>();
     public DbSet<RepaymentEntry> RepaymentEntries => Set<RepaymentEntry>();
 
+    // Auth
+    public DbSet<User> Users => Set<User>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -105,6 +108,13 @@ public class AppDbContext : DbContext
             e.Property(r => r.Interest).HasColumnType("decimal(18,2)");
             e.Property(r => r.Balance).HasColumnType("decimal(18,2)");
             e.Property(r => r.Status).HasDefaultValue("upcoming");
+        });
+
+        // User
+        modelBuilder.Entity<User>(e =>
+        {
+            e.HasIndex(u => u.Email).IsUnique();
+            e.Property(u => u.Role).HasDefaultValue("User");
         });
     }
 }

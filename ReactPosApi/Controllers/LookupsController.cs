@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReactPosApi.Data;
@@ -5,6 +6,7 @@ using ReactPosApi.DTOs;
 
 namespace ReactPosApi.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class StoresController : ControllerBase
@@ -22,6 +24,7 @@ public class StoresController : ControllerBase
     }
 }
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class WarehousesController : ControllerBase
@@ -39,6 +42,7 @@ public class WarehousesController : ControllerBase
     }
 }
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class BrandsController : ControllerBase
@@ -56,6 +60,7 @@ public class BrandsController : ControllerBase
     }
 }
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class UnitsController : ControllerBase

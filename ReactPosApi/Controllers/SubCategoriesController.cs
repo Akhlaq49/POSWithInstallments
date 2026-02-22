@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReactPosApi.Data;
@@ -6,6 +7,7 @@ using ReactPosApi.Models;
 
 namespace ReactPosApi.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/sub-categories")]
 public class SubCategoriesController : ControllerBase

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import menuData from '../../data/menuData';
 
@@ -15,6 +15,82 @@ const Sidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // ── Menu filtering logic ──
+  const matchesSearch = useCallback(
+    (item: MenuItemType): boolean => {
+      if (!searchQuery.trim()) return true;
+      const words = searchQuery.toLowerCase().trim().split(/\s+/);
+      const titleLower = item.title.toLowerCase();
+      const directMatch = words.every((w) => titleLower.includes(w));
+      if (directMatch) return true;
+      if (item.children) return item.children.some((c) => matchesSearch(c as MenuItemType));
+      return false;
+    },
+    [searchQuery]
+  );
+
+  const filteredMenuData = useMemo(() => {
+    if (!searchQuery.trim()) return menuData;
+
+    const filterItems = (items: MenuItemType[]): MenuItemType[] => {
+      return items
+        .map((item) => {
+          if (!item.children) {
+            return matchesSearch(item) ? item : null;
+          }
+          const filteredChildren = filterItems(item.children as MenuItemType[]);
+          const words = searchQuery.toLowerCase().trim().split(/\s+/);
+          const titleMatch = words.every((w) => item.title.toLowerCase().includes(w));
+          if (titleMatch || filteredChildren.length > 0) {
+            return { ...item, children: titleMatch ? item.children : filteredChildren };
+          }
+          return null;
+        })
+        .filter(Boolean) as MenuItemType[];
+    };
+
+    return menuData
+      .map((section) => ({
+        ...section,
+        items: filterItems(section.items as MenuItemType[]),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [searchQuery, matchesSearch]);
+
+  // Auto-expand all menus when searching
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const allKeys = new Set<string>();
+      const walk = (items: MenuItemType[], prefix: string) => {
+        items.forEach((item, idx) => {
+          const key = `${prefix}-${idx}`;
+          if (item.children) {
+            allKeys.add(key);
+            walk(item.children as MenuItemType[], key);
+          }
+        });
+      };
+      filteredMenuData.forEach((section, si) => {
+        walk(section.items as MenuItemType[], `s${si}`);
+      });
+      setOpenMenus(allKeys);
+    }
+  }, [searchQuery, filteredMenuData]);
+
+  // Ctrl+K / Cmd+K shortcut to focus sidebar search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const input = document.getElementById('sidebar-search-input') as HTMLInputElement | null;
+        input?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const isActive = useCallback((path?: string) => {
     if (!path || path === '#') return false;
@@ -225,9 +301,42 @@ const Sidebar: React.FC = () => {
         scrollbarWidth: 'thin',
         scrollbarColor: '#ccc transparent',
       }}>
+        {/* Sidebar Search */}
+        <div className="px-3 pt-2 pb-1">
+          <div className="input-group input-group-sm position-relative">
+            <span className="input-group-text bg-transparent border-end-0">
+              <i className="ti ti-search fs-16"></i>
+            </span>
+            <input
+              id="sidebar-search-input"
+              type="text"
+              className="form-control border-start-0 ps-0"
+              placeholder="Search menu..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                className="btn btn-sm btn-link position-absolute end-0 top-50 translate-middle-y text-muted pe-2"
+                style={{ zIndex: 5 }}
+                onClick={() => setSearchQuery('')}
+                tabIndex={-1}
+              >
+                <i className="ti ti-x fs-16"></i>
+              </button>
+            )}
+          </div>
+        </div>
+
         <div id="sidebar-menu" className="sidebar-menu">
           <ul>
-            {menuData.map((section, sectionIdx) => (
+            {filteredMenuData.length === 0 && searchQuery.trim() !== '' ? (
+              <li className="px-3 py-4 text-center">
+                <i className="ti ti-mood-empty fs-24 d-block mb-2 text-muted"></i>
+                <span className="text-muted fs-13">No menu items match "<strong>{searchQuery}</strong>"</span>
+              </li>
+            ) : (
+            filteredMenuData.map((section, sectionIdx) => (
               <li key={sectionIdx} className="submenu-open">
                 <h6 className="submenu-hdr">{section.header}</h6>
                 <ul>
@@ -276,7 +385,8 @@ const Sidebar: React.FC = () => {
                   })}
                 </ul>
               </li>
-            ))}
+            ))
+            )}
           </ul>
         </div>
       </div>

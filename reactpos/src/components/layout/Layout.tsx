@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import ProtectedRoute from '../auth/ProtectedRoute';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -32,36 +33,42 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, [location.pathname]);
 
+  // Auth/error pages render without layout and without auth check
   if (isNoLayout) {
     return <>{children}</>;
   }
 
+  // All other pages require authentication
   if (isPOS) {
     return (
-      <div className="main-wrapper">
-        <Header />
-        <div className="page-wrapper ms-0">
-          <div className="content">
-            {children}
+      <ProtectedRoute>
+        <div className="main-wrapper">
+          <Header />
+          <div className="page-wrapper ms-0">
+            <div className="content">
+              {children}
+            </div>
           </div>
         </div>
-      </div>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <div className="main-wrapper">
-      <Header />
-      <Sidebar />
-      <div className="page-wrapper">
-        <div className="content">
-          {children}
-        </div>
-        <div className="footer">
-          <p>Copyright &copy; 2025 DreamsPOS. All rights reserved.</p>
+    <ProtectedRoute>
+      <div className="main-wrapper">
+        <Header />
+        <Sidebar />
+        <div className="page-wrapper">
+          <div className="content">
+            {children}
+          </div>
+          <div className="footer">
+            <p>Copyright &copy; 2025 DreamsPOS. All rights reserved.</p>
+          </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 };
 

@@ -1,7 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const Header: React.FC = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    logout();
+    navigate('/signin');
+  };
+
   const handleMobileToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     document.body.classList.toggle('slide-nav');
@@ -46,49 +56,6 @@ const Header: React.FC = () => {
 
         {/* Header Menu */}
         <ul className="nav user-menu">
-          {/* Search */}
-          <li className="nav-item nav-searchinputs">
-            <div className="top-nav-search">
-              <a href="#" className="responsive-search">
-                <i className="fa fa-search"></i>
-              </a>
-              <form action="#" className="dropdown">
-                <div className="searchinputs input-group dropdown-toggle" id="dropdownMenuClickable" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                  <input type="text" placeholder="Search" />
-                  <div className="search-addon">
-                    <span><i className="ti ti-search"></i></span>
-                  </div>
-                  <span className="input-group-text">
-                    <kbd className="d-flex align-items-center"><img src="/assets/img/icons/command.svg" alt="" className="me-1" />K</kbd>
-                  </span>
-                </div>
-                <div className="dropdown-menu search-dropdown" aria-labelledby="dropdownMenuClickable">
-                  <div className="search-info">
-                    <h6><span><i data-feather="search" className="feather-16"></i></span>Recent Searches</h6>
-                    <ul className="search-tags">
-                      <li><a href="#">Products</a></li>
-                      <li><a href="#">Sales</a></li>
-                      <li><a href="#">Applications</a></li>
-                    </ul>
-                  </div>
-                  <div className="search-info">
-                    <h6><span><i data-feather="help-circle" className="feather-16"></i></span>Help</h6>
-                    <p>How to Change Product Volume from 0 to 200 on Inventory management</p>
-                    <p>Change Product Name</p>
-                  </div>
-                  <div className="search-info">
-                    <h6><span><i data-feather="user" className="feather-16"></i></span>Customers</h6>
-                    <ul className="customers">
-                      <li><a href="#">Aron Varu<img src="/assets/img/profiles/avator1.jpg" alt="" className="img-fluid" /></a></li>
-                      <li><a href="#">Jonita<img src="/assets/img/profiles/avatar-01.jpg" alt="" className="img-fluid" /></a></li>
-                      <li><a href="#">Aaron<img src="/assets/img/profiles/avatar-10.jpg" alt="" className="img-fluid" /></a></li>
-                    </ul>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </li>
-
           {/* Select Store */}
           <li className="nav-item dropdown has-arrow main-drop select-store-dropdown">
             <a href="#" className="dropdown-toggle nav-link select-store" data-bs-toggle="dropdown">
@@ -330,15 +297,15 @@ const Header: React.FC = () => {
                   <img src="/assets/img/profiles/avator1.jpg" alt="" />
                 </span>
                 <div>
-                  <h6 className="fw-medium">John Smilga</h6>
-                  <p>Admin</p>
+                  <h6 className="fw-medium">{user?.fullName || 'User'}</h6>
+                  <p>{user?.role || 'User'}</p>
                 </div>
               </div>
               <Link className="dropdown-item" to="/profile"><i className="ti ti-user-circle me-2"></i>My Profile</Link>
               <Link className="dropdown-item" to="/sales-report"><i className="ti ti-file-text me-2"></i>Reports</Link>
               <Link className="dropdown-item" to="/general-settings"><i className="ti ti-settings-2 me-2"></i>Settings</Link>
               <hr className="my-2" />
-              <Link className="dropdown-item logout" to="/signin"><i className="ti ti-logout me-2"></i>Logout</Link>
+              <a className="dropdown-item logout" href="#" onClick={handleLogout}><i className="ti ti-logout me-2"></i>Logout</a>
             </div>
           </li>
         </ul>
@@ -351,7 +318,7 @@ const Header: React.FC = () => {
           <div className="dropdown-menu dropdown-menu-right">
             <Link className="dropdown-item" to="/profile">My Profile</Link>
             <Link className="dropdown-item" to="/general-settings">Settings</Link>
-            <Link className="dropdown-item" to="/signin">Logout</Link>
+            <a className="dropdown-item" href="#" onClick={handleLogout}>Logout</a>
           </div>
         </div>
       </div>
