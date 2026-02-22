@@ -19,7 +19,7 @@ const SubCategories: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectAll, setSelectAll] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<{ id: string; name: string }[]>([]);
 
   // Add modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -32,6 +32,7 @@ const SubCategories: React.FC = () => {
   // Delete modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState('');
 
   const addFileRef = useRef<HTMLInputElement>(null);
   const editFileRef = useRef<HTMLInputElement>(null);
@@ -44,7 +45,7 @@ const SubCategories: React.FC = () => {
           api.get<{ id: string; name: string }[]>('/categories'),
         ]);
         setData(subCatRes.data);
-        setCategoryOptions(catRes.data.map((c) => c.name));
+        setCategoryOptions(catRes.data);
       } catch {
         setData([]);
         setCategoryOptions([]);
@@ -94,7 +95,8 @@ const SubCategories: React.FC = () => {
     };
     try {
       const fd = new FormData();
-      fd.append('category', addForm.category);
+      const catObj = categoryOptions.find((c) => c.name === addForm.category);
+      if (catObj) fd.append('categoryId', catObj.id);
       fd.append('subCategory', addForm.subCategory);
       fd.append('categoryCode', addForm.categoryCode);
       fd.append('description', addForm.description);
@@ -134,7 +136,8 @@ const SubCategories: React.FC = () => {
     };
     try {
       const fd = new FormData();
-      fd.append('category', editForm.category);
+      const catObj = categoryOptions.find((c) => c.name === editForm.category);
+      if (catObj) fd.append('categoryId', catObj.id);
       fd.append('subCategory', editForm.subCategory);
       fd.append('categoryCode', editForm.categoryCode);
       fd.append('description', editForm.description);
@@ -147,14 +150,19 @@ const SubCategories: React.FC = () => {
   };
 
   // Delete
-  const openDeleteModal = (id: string) => { setDeleteId(id); setShowDeleteModal(true); };
+  const openDeleteModal = (id: string) => { setDeleteId(id); setDeleteError(''); setShowDeleteModal(true); };
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    try { await api.delete(`/sub-categories/${deleteId}`); } catch { /* delete locally */ }
-    setData((prev) => prev.filter((c) => c.id !== deleteId));
-    setShowDeleteModal(false);
-    setDeleteId(null);
+    try {
+      await api.delete(`/sub-categories/${deleteId}`);
+      setData((prev) => prev.filter((c) => c.id !== deleteId));
+      setShowDeleteModal(false);
+      setDeleteId(null);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to delete sub-category.';
+      setDeleteError(msg);
+    }
   };
 
   const removeEditImage = () => {
@@ -224,7 +232,7 @@ const SubCategories: React.FC = () => {
               <ul className="dropdown-menu dropdown-menu-end p-3">
                 <li><a href="#" className="dropdown-item rounded-1" onClick={(e) => { e.preventDefault(); setCategoryFilter(''); }}>All</a></li>
                 {categoryOptions.map((cat) => (
-                  <li key={cat}><a href="#" className="dropdown-item rounded-1" onClick={(e) => { e.preventDefault(); setCategoryFilter(cat); }}>{cat}</a></li>
+                  <li key={cat.id}><a href="#" className="dropdown-item rounded-1" onClick={(e) => { e.preventDefault(); setCategoryFilter(cat.name); }}>{cat.name}</a></li>
                 ))}
               </ul>
             </div>
@@ -346,7 +354,7 @@ const SubCategories: React.FC = () => {
                   <select className="form-select" value={addForm.category} onChange={(e) => setAddForm((p) => ({ ...p, category: e.target.value }))}>
                     <option value="">Select</option>
                     {categoryOptions.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
@@ -423,7 +431,7 @@ const SubCategories: React.FC = () => {
                   <select className="form-select" value={editForm.category} onChange={(e) => setEditForm((p) => ({ ...p, category: e.target.value }))}>
                     <option value="">Select</option>
                     {categoryOptions.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
@@ -468,6 +476,7 @@ const SubCategories: React.FC = () => {
                   </span>
                   <h4 className="fs-20 fw-bold mb-2 mt-1">Delete Sub Category</h4>
                   <p className="mb-0 fs-16">Are you sure you want to delete sub category?</p>
+                  {deleteError && <div className="alert alert-danger py-2 px-3 text-start">{deleteError}</div>}
                   <div className="modal-footer-btn mt-3 d-flex justify-content-center">
                     <button type="button" className="btn me-2 btn-secondary fs-13 fw-medium p-2 px-3 shadow-none" onClick={() => setShowDeleteModal(false)}>Cancel</button>
                     <button type="button" className="btn btn-primary fs-13 fw-medium p-2 px-3" onClick={handleDelete}>Yes Delete</button>

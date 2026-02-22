@@ -179,6 +179,11 @@ public class ProductsController : ControllerBase
         var entity = await _db.Products.FindAsync(id);
         if (entity == null) return NotFound();
 
+        // Check if product is referenced by any installment plan
+        var installmentCount = await _db.InstallmentPlans.CountAsync(ip => ip.ProductId == id);
+        if (installmentCount > 0)
+            return Conflict(new { message = $"Cannot delete this product. It is referenced by {installmentCount} installment plan(s)." });
+
         _db.Products.Remove(entity);
         await _db.SaveChangesAsync();
         return NoContent();

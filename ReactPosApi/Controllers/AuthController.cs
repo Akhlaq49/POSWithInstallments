@@ -128,6 +128,9 @@ public class AuthController : ControllerBase
         Id = user.Id,
         FullName = user.FullName,
         Email = user.Email,
-        Role = user.Role
+        Phone = user.Phone,
+        Role = user.Role,
+        IsActive = user.IsActive,
+        CreatedAt = user.CreatedAt
     };
 }

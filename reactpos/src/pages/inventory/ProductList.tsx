@@ -19,6 +19,7 @@ const ProductList: React.FC = () => {
   // Delete modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,14 +60,19 @@ const ProductList: React.FC = () => {
     });
   }, []);
 
-  const openDeleteModal = (id: string) => { setDeleteId(id); setShowDeleteModal(true); };
+  const openDeleteModal = (id: string) => { setDeleteId(id); setDeleteError(''); setShowDeleteModal(true); };
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    try { await deleteProduct(deleteId); } catch { /* ignore */ }
-    setProducts((prev) => prev.filter((p) => p.id !== deleteId));
-    setShowDeleteModal(false);
-    setDeleteId(null);
+    try {
+      await deleteProduct(deleteId);
+      setProducts((prev) => prev.filter((p) => p.id !== deleteId));
+      setShowDeleteModal(false);
+      setDeleteId(null);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to delete product.';
+      setDeleteError(msg);
+    }
   };
 
   const filtered = useMemo(() => products.filter((p) => {
@@ -227,6 +233,7 @@ const ProductList: React.FC = () => {
                 </div>
                 <h4>Delete Product</h4>
                 <p className="text-muted">Are you sure you want to delete this product?</p>
+                {deleteError && <div className="alert alert-danger py-2 px-3 text-start">{deleteError}</div>}
                 <div className="d-flex justify-content-center gap-2 mt-3">
                   <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>Cancel</button>
                   <button className="btn btn-danger" onClick={handleDelete}>Delete</button>

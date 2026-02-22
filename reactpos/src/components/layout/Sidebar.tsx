@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import menuData from '../../data/menuData';
+import { usePermissions } from '../../context/PermissionContext';
+import { filterMenuDataByKeys } from '../../utils/menuKeys';
 
 interface MenuItemType {
   title: string;
@@ -16,6 +17,10 @@ const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const { allowedKeys, isLoading: permLoading } = usePermissions();
+
+  // ── Permission-filtered menu data ──
+  const permittedMenuData = useMemo(() => filterMenuDataByKeys(allowedKeys), [allowedKeys]);
 
   // ── Menu filtering logic ──
   const matchesSearch = useCallback(
@@ -32,7 +37,7 @@ const Sidebar: React.FC = () => {
   );
 
   const filteredMenuData = useMemo(() => {
-    if (!searchQuery.trim()) return menuData;
+    if (!searchQuery.trim()) return permittedMenuData;
 
     const filterItems = (items: MenuItemType[]): MenuItemType[] => {
       return items
@@ -51,13 +56,13 @@ const Sidebar: React.FC = () => {
         .filter(Boolean) as MenuItemType[];
     };
 
-    return menuData
+    return permittedMenuData
       .map((section) => ({
         ...section,
         items: filterItems(section.items as MenuItemType[]),
       }))
       .filter((section) => section.items.length > 0);
-  }, [searchQuery, matchesSearch]);
+  }, [searchQuery, matchesSearch, permittedMenuData]);
 
   // Auto-expand all menus when searching
   useEffect(() => {
@@ -119,11 +124,11 @@ const Sidebar: React.FC = () => {
         }
       });
     };
-    menuData.forEach((section, si) => {
+    permittedMenuData.forEach((section, si) => {
       findOpen(section.items as MenuItemType[], `s${si}`);
     });
     setOpenMenus(newOpen);
-  }, [location.pathname, isMenuActive]);
+  }, [location.pathname, isMenuActive, permittedMenuData]);
 
   const toggleMenu = (key: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -334,6 +339,11 @@ const Sidebar: React.FC = () => {
               <li className="px-3 py-4 text-center">
                 <i className="ti ti-mood-empty fs-24 d-block mb-2 text-muted"></i>
                 <span className="text-muted fs-13">No menu items match "<strong>{searchQuery}</strong>"</span>
+              </li>
+            ) : filteredMenuData.length === 0 && !permLoading ? (
+              <li className="px-3 py-4 text-center">
+                <i className="ti ti-lock fs-24 d-block mb-2 text-muted"></i>
+                <span className="text-muted fs-13">No menu access assigned to your role.</span>
               </li>
             ) : (
             filteredMenuData.map((section, sectionIdx) => (

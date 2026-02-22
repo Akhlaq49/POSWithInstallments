@@ -139,6 +139,11 @@ public class SubCategoriesController : ControllerBase
         var entity = await _db.SubCategories.FindAsync(id);
         if (entity == null) return NotFound();
 
+        // Check if any products reference this sub-category by name
+        var productCount = await _db.Products.CountAsync(p => p.SubCategory == entity.SubCategoryName);
+        if (productCount > 0)
+            return Conflict(new { message = $"Cannot delete this sub-category. It is used by {productCount} product(s)." });
+
         _db.SubCategories.Remove(entity);
         await _db.SaveChangesAsync();
         return NoContent();

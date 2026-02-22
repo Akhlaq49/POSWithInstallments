@@ -29,6 +29,9 @@ public class AppDbContext : DbContext
     // Auth
     public DbSet<User> Users => Set<User>();
 
+    // Role Permissions
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -115,6 +118,12 @@ public class AppDbContext : DbContext
         {
             e.HasIndex(u => u.Email).IsUnique();
             e.Property(u => u.Role).HasDefaultValue("User");
+        });
+
+        // RolePermission
+        modelBuilder.Entity<RolePermission>(e =>
+        {
+            e.HasIndex(rp => new { rp.Role, rp.MenuKey }).IsUnique();
         });
     }
 }

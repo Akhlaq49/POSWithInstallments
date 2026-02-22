@@ -28,6 +28,7 @@ const CategoryList: React.FC = () => {
   // Delete modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -100,14 +101,19 @@ const CategoryList: React.FC = () => {
   };
 
   // Delete
-  const openDeleteModal = (id: string) => { setDeleteId(id); setShowDeleteModal(true); };
+  const openDeleteModal = (id: string) => { setDeleteId(id); setDeleteError(''); setShowDeleteModal(true); };
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    try { await api.delete(`/categories/${deleteId}`); } catch { /* delete locally */ }
-    setCategories((prev) => prev.filter((c) => c.id !== deleteId));
-    setShowDeleteModal(false);
-    setDeleteId(null);
+    try {
+      await api.delete(`/categories/${deleteId}`);
+      setCategories((prev) => prev.filter((c) => c.id !== deleteId));
+      setShowDeleteModal(false);
+      setDeleteId(null);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to delete category.';
+      setDeleteError(msg);
+    }
   };
 
   const filtered = categories.filter((c) => {
@@ -326,6 +332,7 @@ const CategoryList: React.FC = () => {
                   </span>
                   <h4 className="fs-20 fw-bold mb-2 mt-1">Delete Category</h4>
                   <p className="fs-14 text-muted">Are you sure you want to delete this category?</p>
+                  {deleteError && <div className="alert alert-danger py-2 px-3 text-start">{deleteError}</div>}
                   <div className="d-flex justify-content-center gap-2">
                     <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>Cancel</button>
                     <button type="button" className="btn btn-danger" onClick={handleDelete}>Delete</button>
