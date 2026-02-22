@@ -5,15 +5,7 @@ import {
   RepaymentEntry,
   getInstallmentById,
   markInstallmentPaid,
-  buildInstallmentPlan,
 } from '../../services/installmentService';
-
-// Build a sample plan for demo/fallback
-const buildSample = () =>
-  buildInstallmentPlan(
-    { customerName: 'Ahmed Khan', customerPhone: '0300-1234567', customerAddress: '123 Main St, Karachi', productId: '1', productName: 'Dell Laptop Inspiron 15', productPrice: 120000, downPayment: 20000, interestRate: 12, tenure: 12, startDate: '2025-01-15' },
-    '/assets/img/products/stock-img-01.png'
-  );
 
 const InstallmentDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,16 +20,9 @@ const InstallmentDetails: React.FC = () => {
     const fetchPlan = async () => {
       try {
         const result = await getInstallmentById(id || '');
-        if (result) {
-          setPlan(result);
-        } else {
-          // Try sessionStorage fallback
-          const stored = JSON.parse(sessionStorage.getItem('installmentPlans') || '[]') as InstallmentPlan[];
-          const found = stored.find((p) => p.id === id);
-          setPlan(found || buildSample());
-        }
+        setPlan(result);
       } catch {
-        setPlan(buildSample());
+        setPlan(null);
       } finally {
         setLoading(false);
       }

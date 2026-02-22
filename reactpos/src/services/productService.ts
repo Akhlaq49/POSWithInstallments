@@ -127,105 +127,31 @@ export const deleteProduct = async (id: string): Promise<void> => {
 
 // Dropdown data fetchers
 export const getStores = async (): Promise<DropdownOption[]> => {
-  try {
-    const response = await api.get<DropdownOption[]>('/stores');
-    return response.data;
-  } catch {
-    // Fallback defaults if API not available
-    return [
-      { value: 'electro-mart', label: 'Electro Mart' },
-      { value: 'quantum-gadgets', label: 'Quantum Gadgets' },
-      { value: 'gadget-world', label: 'Gadget World' },
-      { value: 'volt-vault', label: 'Volt Vault' },
-      { value: 'elite-retail', label: 'Elite Retail' },
-      { value: 'prime-mart', label: 'Prime Mart' },
-      { value: 'neotech-store', label: 'NeoTech Store' },
-    ];
-  }
+  const response = await api.get<DropdownOption[]>('/stores');
+  return response.data;
 };
 
 export const getWarehouses = async (): Promise<DropdownOption[]> => {
-  try {
-    const response = await api.get<DropdownOption[]>('/warehouses');
-    return response.data;
-  } catch {
-    return [
-      { value: 'lavish', label: 'Lavish Warehouse' },
-      { value: 'quaint', label: 'Quaint Warehouse' },
-      { value: 'traditional', label: 'Traditional Warehouse' },
-      { value: 'cool', label: 'Cool Warehouse' },
-      { value: 'overflow', label: 'Overflow Warehouse' },
-      { value: 'nova', label: 'Nova Storage Hub' },
-      { value: 'retail', label: 'Retail Supply Hub' },
-      { value: 'edgeware', label: 'EdgeWare Solutions' },
-    ];
-  }
+  const response = await api.get<DropdownOption[]>('/warehouses');
+  return response.data;
 };
 
 export const getCategories = async (): Promise<DropdownOption[]> => {
-  try {
-    const response = await api.get<DropdownOption[]>('/categories');
-    return response.data;
-  } catch {
-    return [
-      { value: 'computers', label: 'Computers' },
-      { value: 'electronics', label: 'Electronics' },
-      { value: 'shoe', label: 'Shoe' },
-      { value: 'cosmetics', label: 'Cosmetics' },
-      { value: 'groceries', label: 'Groceries' },
-      { value: 'furniture', label: 'Furniture' },
-      { value: 'bags', label: 'Bags' },
-      { value: 'phone', label: 'Phone' },
-    ];
-  }
+  const response = await api.get<{ id: number; name: string }[]>('/categories');
+  return response.data.map((c) => ({ value: c.name, label: c.name }));
 };
 
 export const getSubCategories = async (): Promise<DropdownOption[]> => {
-  try {
-    const response = await api.get<DropdownOption[]>('/sub-categories');
-    return response.data;
-  } catch {
-    return [
-      { value: 'laptop', label: 'Laptop' },
-      { value: 'desktop', label: 'Desktop' },
-      { value: 'sneakers', label: 'Sneakers' },
-      { value: 'formals', label: 'Formals' },
-      { value: 'wearables', label: 'Wearables' },
-      { value: 'speakers', label: 'Speakers' },
-      { value: 'handbags', label: 'Handbags' },
-      { value: 'travel', label: 'Travel' },
-      { value: 'sofa', label: 'Sofa' },
-    ];
-  }
+  const response = await api.get<{ id: number; subCategory: string }[]>('/sub-categories');
+  return response.data.map((sc) => ({ value: sc.subCategory, label: sc.subCategory }));
 };
 
 export const getBrands = async (): Promise<DropdownOption[]> => {
-  try {
-    const response = await api.get<DropdownOption[]>('/brands');
-    return response.data;
-  } catch {
-    return [
-      { value: 'lenovo', label: 'Lenevo' },
-      { value: 'beats', label: 'Beats' },
-      { value: 'nike', label: 'Nike' },
-      { value: 'apple', label: 'Apple' },
-      { value: 'amazon', label: 'Amazon' },
-      { value: 'woodmart', label: 'Woodmart' },
-    ];
-  }
+  const response = await api.get<DropdownOption[]>('/brands');
+  return response.data;
 };
 
 export const getUnits = async (): Promise<DropdownOption[]> => {
-  try {
-    const response = await api.get<DropdownOption[]>('/units');
-    return response.data;
-  } catch {
-    return [
-      { value: 'kg', label: 'Kg' },
-      { value: 'pcs', label: 'Pcs' },
-      { value: 'l', label: 'L' },
-      { value: 'dz', label: 'dz' },
-      { value: 'bx', label: 'bx' },
-    ];
-  }
+  const response = await api.get<DropdownOption[]>('/units');
+  return response.data;
 };

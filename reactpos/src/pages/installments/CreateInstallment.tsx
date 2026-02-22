@@ -4,7 +4,6 @@ import {
   CreateInstallmentPayload,
   calculateEMI,
   generateRepaymentSchedule,
-  buildInstallmentPlan,
   createInstallment,
   RepaymentEntry,
 } from '../../services/installmentService';
@@ -33,12 +32,8 @@ const CreateInstallment: React.FC = () => {
   const productSearchRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<CreateInstallmentPayload>({
-    customerName: '',
-    customerPhone: '',
-    customerAddress: '',
-    productId: '',
-    productName: '',
-    productPrice: 0,
+    customerId: 0,
+    productId: 0,
     downPayment: 0,
     interestRate: 0,
     tenure: 12,
@@ -46,13 +41,14 @@ const CreateInstallment: React.FC = () => {
   });
 
   // Preview data
-  const financedAmount = form.productPrice - form.downPayment;
+  const productPrice = selectedProduct?.price ?? 0;
+  const financedAmount = productPrice - form.downPayment;
   const emi = useMemo(
     () => (financedAmount > 0 && form.tenure > 0 ? calculateEMI(financedAmount, form.interestRate, form.tenure) : 0),
     [financedAmount, form.interestRate, form.tenure]
   );
   const totalPayable = form.downPayment + emi * form.tenure;
-  const totalInterest = totalPayable - form.productPrice;
+  const totalInterest = totalPayable - productPrice;
   const schedule: RepaymentEntry[] = useMemo(
     () => (financedAmount > 0 && form.tenure > 0 ? generateRepaymentSchedule(financedAmount, form.interestRate, form.tenure, form.startDate) : []),
     [financedAmount, form.interestRate, form.tenure, form.startDate]
@@ -93,17 +89,7 @@ const CreateInstallment: React.FC = () => {
         const data = await getProducts();
         setProducts(data);
       } catch {
-        // fallback sample products for demo
-        setProducts([
-          { id: '1', productName: 'Dell Laptop Inspiron 15', price: 120000, images: ['/assets/img/products/stock-img-01.png'], sku: 'SKU-001', category: 'Computers', brand: 'Dell' } as ProductResponse,
-          { id: '2', productName: 'Samsung Galaxy S24', price: 85000, images: ['/assets/img/products/stock-img-02.png'], sku: 'SKU-002', category: 'Phone', brand: 'Samsung' } as ProductResponse,
-          { id: '3', productName: 'Sony 55" Smart TV', price: 200000, images: ['/assets/img/products/stock-img-06.png'], sku: 'SKU-003', category: 'Electronics', brand: 'Sony' } as ProductResponse,
-          { id: '4', productName: 'HP Desktop Pro', price: 150000, images: ['/assets/img/products/stock-img-07.png'], sku: 'SKU-004', category: 'Computers', brand: 'HP' } as ProductResponse,
-          { id: '5', productName: 'Apple MacBook Air M2', price: 320000, images: ['/assets/img/products/stock-img-04.png'], sku: 'SKU-005', category: 'Computers', brand: 'Apple' } as ProductResponse,
-          { id: '6', productName: 'LG Washing Machine 8kg', price: 95000, images: ['/assets/img/products/stock-img-05.png'], sku: 'SKU-006', category: 'Electronics', brand: 'LG' } as ProductResponse,
-          { id: '7', productName: 'Nike Air Max Sneakers', price: 25000, images: ['/assets/img/products/stock-img-08.png'], sku: 'SKU-007', category: 'Shoe', brand: 'Nike' } as ProductResponse,
-          { id: '8', productName: 'Samsung Refrigerator 350L', price: 175000, images: ['/assets/img/products/expire-product-01.png'], sku: 'SKU-008', category: 'Electronics', brand: 'Samsung' } as ProductResponse,
-        ]);
+        setProducts([]);
       } finally {
         setProductsLoading(false);
       }
@@ -142,9 +128,7 @@ const CreateInstallment: React.FC = () => {
     setShowCustomerDropdown(false);
     setForm((prev) => ({
       ...prev,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      customerAddress: customer.address,
+      customerId: Number(customer.id),
     }));
   }, []);
 
@@ -153,9 +137,7 @@ const CreateInstallment: React.FC = () => {
     setCustomerSearch('');
     setForm((prev) => ({
       ...prev,
-      customerName: '',
-      customerPhone: '',
-      customerAddress: '',
+      customerId: 0,
     }));
   }, []);
 
@@ -176,9 +158,7 @@ const CreateInstallment: React.FC = () => {
     setShowProductDropdown(false);
     setForm((prev) => ({
       ...prev,
-      productId: product.id,
-      productName: product.productName,
-      productPrice: product.price,
+      productId: Number(product.id),
     }));
   }, []);
 
@@ -187,13 +167,11 @@ const CreateInstallment: React.FC = () => {
     setProductSearch('');
     setForm((prev) => ({
       ...prev,
-      productId: '',
-      productName: '',
-      productPrice: 0,
+      productId: 0,
     }));
   }, []);
 
-  const isValid = form.customerName.trim() && form.productName.trim() && form.productPrice > 0 && form.downPayment >= 0 && form.downPayment < form.productPrice && form.tenure > 0 && form.startDate;
+  const isValid = form.customerId > 0 && form.productId > 0 && productPrice > 0 && form.downPayment >= 0 && form.downPayment < productPrice && form.tenure > 0 && form.startDate;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,15 +180,7 @@ const CreateInstallment: React.FC = () => {
     setError('');
 
     try {
-      const result = await createInstallment(form);
-      if (!result) {
-        // fallback: save locally via parent or state
-        const plan = buildInstallmentPlan(form);
-        // Store in sessionStorage so the listing page can pick it up
-        const existing = JSON.parse(sessionStorage.getItem('installmentPlans') || '[]');
-        existing.unshift(plan);
-        sessionStorage.setItem('installmentPlans', JSON.stringify(existing));
-      }
+      await createInstallment(form);
       navigate('/installment-plans');
     } catch {
       setError('Failed to create installment plan. Please try again.');
@@ -264,7 +234,7 @@ const CreateInstallment: React.FC = () => {
                             setShowCustomerDropdown(true);
                             if (selectedCustomer && e.target.value !== selectedCustomer.name) {
                               setSelectedCustomer(null);
-                              setForm((prev) => ({ ...prev, customerName: '', customerPhone: '', customerAddress: '' }));
+                              setForm((prev) => ({ ...prev, customerId: 0 }));
                             }
                           }}
                           onFocus={() => setShowCustomerDropdown(true)}
@@ -330,15 +300,15 @@ const CreateInstallment: React.FC = () => {
 
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Customer Name<span className="text-danger ms-1">*</span></label>
-                    <input type="text" className="form-control" value={form.customerName} onChange={(e) => set('customerName', e.target.value)} placeholder="Auto-filled from search or enter manually" readOnly={!!selectedCustomer} />
+                    <input type="text" className="form-control" value={selectedCustomer?.name ?? ''} readOnly placeholder="Select a customer from search above" />
                   </div>
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Phone Number<span className="text-danger ms-1">*</span></label>
-                    <input type="text" className="form-control" value={form.customerPhone} onChange={(e) => set('customerPhone', e.target.value)} placeholder="0300-1234567" readOnly={!!selectedCustomer} />
+                    <input type="text" className="form-control" value={selectedCustomer?.phone ?? ''} readOnly placeholder="Auto-filled from customer" />
                   </div>
                   <div className="col-12 mb-0">
                     <label className="form-label">Address</label>
-                    <textarea className="form-control" rows={2} value={form.customerAddress} onChange={(e) => set('customerAddress', e.target.value)} placeholder="Enter address" />
+                    <textarea className="form-control" rows={2} value={selectedCustomer?.address ?? ''} readOnly placeholder="Auto-filled from customer" />
                   </div>
                 </div>
               </div>
@@ -366,7 +336,7 @@ const CreateInstallment: React.FC = () => {
                             setShowProductDropdown(true);
                             if (selectedProduct && e.target.value !== selectedProduct.productName) {
                               setSelectedProduct(null);
-                              setForm((prev) => ({ ...prev, productId: '', productName: '', productPrice: 0 }));
+                              setForm((prev) => ({ ...prev, productId: 0 }));
                             }
                           }}
                           onFocus={() => setShowProductDropdown(true)}
@@ -435,11 +405,11 @@ const CreateInstallment: React.FC = () => {
 
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Product Name<span className="text-danger ms-1">*</span></label>
-                    <input type="text" className="form-control" value={form.productName} onChange={(e) => set('productName', e.target.value)} placeholder="Auto-filled from search or enter manually" readOnly={!!selectedProduct} />
+                    <input type="text" className="form-control" value={selectedProduct?.productName ?? ''} readOnly placeholder="Select a product from search above" />
                   </div>
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Product Price (Rs)<span className="text-danger ms-1">*</span></label>
-                    <input type="number" className="form-control" min={0} step="0.01" value={form.productPrice || ''} onChange={(e) => set('productPrice', parseFloat(e.target.value) || 0)} placeholder="0.00" />
+                    <input type="number" className="form-control" value={productPrice || ''} readOnly placeholder="Auto-filled from product" />
                   </div>
                 </div>
               </div>
@@ -455,7 +425,7 @@ const CreateInstallment: React.FC = () => {
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Down Payment (Rs)<span className="text-danger ms-1">*</span></label>
                     <input type="number" className="form-control" min={0} step="0.01" value={form.downPayment || ''} onChange={(e) => set('downPayment', parseFloat(e.target.value) || 0)} placeholder="0.00" />
-                    {form.productPrice > 0 && <small className="text-muted">{((form.downPayment / form.productPrice) * 100).toFixed(1)}% of product price</small>}
+                    {productPrice > 0 && <small className="text-muted">{((form.downPayment / productPrice) * 100).toFixed(1)}% of product price</small>}
                   </div>
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Interest Rate (% per annum)</label>
@@ -489,7 +459,7 @@ const CreateInstallment: React.FC = () => {
               <div className="card-body">
                 <table className="table table-borderless mb-0">
                   <tbody>
-                    <tr><td className="text-muted">Product Price</td><td className="text-end fw-medium">Rs {fmt(form.productPrice)}</td></tr>
+                    <tr><td className="text-muted">Product Price</td><td className="text-end fw-medium">Rs {fmt(productPrice)}</td></tr>
                     <tr><td className="text-muted">Down Payment</td><td className="text-end fw-medium text-success">- Rs {fmt(form.downPayment)}</td></tr>
                     <tr className="border-top"><td className="text-muted">Financed Amount</td><td className="text-end fw-bold">Rs {fmt(financedAmount)}</td></tr>
                     <tr><td className="text-muted">Interest Rate</td><td className="text-end">{form.interestRate}% p.a.</td></tr>

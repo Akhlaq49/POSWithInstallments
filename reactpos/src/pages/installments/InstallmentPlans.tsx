@@ -1,14 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { InstallmentPlan, getInstallmentPlans, cancelInstallment, buildInstallmentPlan } from '../../services/installmentService';
-
-const samplePlans: InstallmentPlan[] = [
-  buildInstallmentPlan({ customerName: 'Ahmed Khan', customerPhone: '0300-1234567', customerAddress: '123 Main St, Karachi', productId: '1', productName: 'Dell Laptop Inspiron 15', productPrice: 120000, downPayment: 20000, interestRate: 12, tenure: 12, startDate: '2025-01-15' }, '/assets/img/products/stock-img-01.png'),
-  buildInstallmentPlan({ customerName: 'Sara Ali', customerPhone: '0321-9876543', customerAddress: '45 Garden Ave, Lahore', productId: '2', productName: 'Samsung Galaxy S24', productPrice: 85000, downPayment: 15000, interestRate: 10, tenure: 6, startDate: '2025-06-01' }, '/assets/img/products/stock-img-02.png'),
-  buildInstallmentPlan({ customerName: 'Bilal Ahmed', customerPhone: '0333-5551234', customerAddress: '78 City Rd, Islamabad', productId: '3', productName: 'Sony 55" Smart TV', productPrice: 200000, downPayment: 40000, interestRate: 15, tenure: 18, startDate: '2025-03-10' }, '/assets/img/products/stock-img-06.png'),
-  buildInstallmentPlan({ customerName: 'Fatima Noor', customerPhone: '0345-7778899', customerAddress: '12 Lake View, Faisalabad', productId: '4', productName: 'HP Desktop Pro', productPrice: 150000, downPayment: 30000, interestRate: 8, tenure: 24, startDate: '2025-02-20' }, '/assets/img/products/stock-img-07.png'),
-  buildInstallmentPlan({ customerName: 'Usman Tariq', customerPhone: '0312-4445566', customerAddress: '90 Block B, Multan', productId: '5', productName: 'Apple MacBook Air M2', productPrice: 320000, downPayment: 80000, interestRate: 0, tenure: 12, startDate: '2025-08-01' }, '/assets/img/products/stock-img-04.png'),
-];
+import { InstallmentPlan, getInstallmentPlans, cancelInstallment } from '../../services/installmentService';
 
 const InstallmentPlans: React.FC = () => {
   const [plans, setPlans] = useState<InstallmentPlan[]>([]);
@@ -24,9 +16,9 @@ const InstallmentPlans: React.FC = () => {
     const fetchPlans = async () => {
       try {
         const data = await getInstallmentPlans();
-        setPlans(data.length > 0 ? data : samplePlans);
+        setPlans(data);
       } catch {
-        setPlans(samplePlans);
+        setPlans([]);
       } finally {
         setLoading(false);
       }

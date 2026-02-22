@@ -11,28 +11,6 @@ interface SubCategory {
   status: 'active' | 'inactive';
 }
 
-const categoryOptions = ['Computers', 'Shoe', 'Electronics', 'Bags', 'Furniture', 'Fruits', 'Accessories', 'Health Care'];
-
-const fallbackData: SubCategory[] = [
-  { id: '1', image: '/assets/img/products/stock-img-01.png', subCategory: 'Laptop', category: 'Computers', categoryCode: 'CT001', description: 'Efficient Productivity', status: 'active' },
-  { id: '2', image: '/assets/img/products/stock-img-07.png', subCategory: 'Desktop', category: 'Computers', categoryCode: 'CT002', description: 'Compact Design', status: 'active' },
-  { id: '3', image: '/assets/img/products/stock-img-02.png', subCategory: 'Sneakers', category: 'Shoe', categoryCode: 'CT003', description: 'Dynamic Grip', status: 'active' },
-  { id: '4', image: '/assets/img/products/stock-img-08.png', subCategory: 'Formals', category: 'Shoe', categoryCode: 'CT004', description: 'Stylish Comfort', status: 'active' },
-  { id: '5', image: '/assets/img/products/stock-img-06.png', subCategory: 'Wearables', category: 'Electronics', categoryCode: 'CT005', description: 'Seamless Connectivity', status: 'active' },
-  { id: '6', image: '/assets/img/products/stock-img-04.png', subCategory: 'Speakers', category: 'Electronics', categoryCode: 'CT006', description: 'Reliable Sound', status: 'active' },
-  { id: '7', image: '/assets/img/products/expire-product-01.png', subCategory: 'Handbags', category: 'Bags', categoryCode: 'CT007', description: 'Compact Carry', status: 'active' },
-  { id: '8', image: '/assets/img/products/expire-product-04.png', subCategory: 'Travel', category: 'Bags', categoryCode: 'CT008', description: 'Travel Ready', status: 'active' },
-  { id: '9', image: '/assets/img/products/stock-img-05.png', subCategory: 'Sofa', category: 'Furniture', categoryCode: 'CT009', description: 'Cozy Comfort', status: 'active' },
-  { id: '10', image: '/assets/img/products/expire-product-03.png', subCategory: 'Chair', category: 'Furniture', categoryCode: 'CT0010', description: 'Stylish Comfort', status: 'active' },
-  { id: '11', image: '/assets/img/products/product4.jpg', subCategory: 'Fruits', category: 'Fruits', categoryCode: 'CT004', description: 'Fruits Description', status: 'active' },
-  { id: '12', image: '/assets/img/products/product5.jpg', subCategory: 'Accessories', category: 'Accessories', categoryCode: 'CT005', description: 'Accessories Description', status: 'active' },
-  { id: '13', image: '/assets/img/products/product6.jpg', subCategory: 'Shoes', category: 'Shoes', categoryCode: 'CT006', description: 'Shoes Description', status: 'active' },
-  { id: '14', image: '/assets/img/products/product7.jpg', subCategory: 'Fruits', category: 'Fruits', categoryCode: 'CT007', description: 'Fruits Description', status: 'active' },
-  { id: '15', image: '/assets/img/products/product8.jpg', subCategory: 'Fruits', category: 'Fruits', categoryCode: 'CT008', description: 'Fruits Description', status: 'active' },
-  { id: '16', image: '/assets/img/products/product9.jpg', subCategory: 'Computers', category: 'Computers', categoryCode: 'CT009', description: 'Computers Description', status: 'active' },
-  { id: '17', image: '/assets/img/products/product10.jpg', subCategory: 'Health Care', category: 'Health Care', categoryCode: 'CT0010', description: 'Health Care Description', status: 'active' },
-];
-
 const SubCategories: React.FC = () => {
   const [data, setData] = useState<SubCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +19,7 @@ const SubCategories: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectAll, setSelectAll] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
 
   // Add modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -60,10 +39,15 @@ const SubCategories: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await api.get<SubCategory[]>('/sub-categories');
-        setData(response.data);
+        const [subCatRes, catRes] = await Promise.all([
+          api.get<SubCategory[]>('/sub-categories'),
+          api.get<{ id: string; name: string }[]>('/categories'),
+        ]);
+        setData(subCatRes.data);
+        setCategoryOptions(catRes.data.map((c) => c.name));
       } catch {
-        setData(fallbackData);
+        setData([]);
+        setCategoryOptions([]);
       } finally {
         setLoading(false);
       }

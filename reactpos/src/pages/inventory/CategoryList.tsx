@@ -9,19 +9,6 @@ interface Category {
   status: 'active' | 'inactive';
 }
 
-const fallbackData: Category[] = [
-  { id: '1', name: 'Computers', slug: 'computers', createdOn: '24 Dec 2024', status: 'active' },
-  { id: '2', name: 'Electronics', slug: 'electronics', createdOn: '10 Dec 2024', status: 'active' },
-  { id: '3', name: 'Shoe', slug: 'shoe', createdOn: '27 Nov 2024', status: 'active' },
-  { id: '4', name: 'Cosmetics', slug: 'cosmetics', createdOn: '18 Nov 2024', status: 'active' },
-  { id: '5', name: 'Groceries', slug: 'groceries', createdOn: '06 Nov 2024', status: 'active' },
-  { id: '6', name: 'Furniture', slug: 'furniture', createdOn: '25 Oct 2024', status: 'active' },
-  { id: '7', name: 'Bags', slug: 'bags', createdOn: '14 Oct 2024', status: 'active' },
-  { id: '8', name: 'Phone', slug: 'phone', createdOn: '03 Oct 2024', status: 'active' },
-  { id: '9', name: 'Appliances', slug: 'appliances', createdOn: '20 Sep 2024', status: 'active' },
-  { id: '10', name: 'Clothing', slug: 'clothing', createdOn: '10 Sep 2024', status: 'active' },
-];
-
 const CategoryList: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +35,7 @@ const CategoryList: React.FC = () => {
         const response = await api.get<Category[]>('/categories');
         setCategories(response.data);
       } catch {
-        setCategories(fallbackData);
+        setCategories([]);
       } finally {
         setLoading(false);
       }

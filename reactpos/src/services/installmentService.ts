@@ -36,12 +36,8 @@ export interface RepaymentEntry {
 }
 
 export interface CreateInstallmentPayload {
-  customerName: string;
-  customerPhone: string;
-  customerAddress: string;
-  productId: string;
-  productName: string;
-  productPrice: number;
+  customerId: number;
+  productId: number;
   downPayment: number;
   interestRate: number;
   tenure: number;
@@ -101,82 +97,72 @@ export function generateRepaymentSchedule(
   return schedule;
 }
 
-export function buildInstallmentPlan(payload: CreateInstallmentPayload, productImage?: string): InstallmentPlan {
-  const financedAmount = payload.productPrice - payload.downPayment;
-  const emi = calculateEMI(financedAmount, payload.interestRate, payload.tenure);
-  const totalPayable = payload.downPayment + emi * payload.tenure;
-  const totalInterest = totalPayable - payload.productPrice;
-  const schedule = generateRepaymentSchedule(financedAmount, payload.interestRate, payload.tenure, payload.startDate);
+export interface BuildPlanParams {
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  productName: string;
+  productPrice: number;
+  downPayment: number;
+  interestRate: number;
+  tenure: number;
+  startDate: string;
+}
+
+export function buildInstallmentPlan(params: BuildPlanParams, productImage?: string): InstallmentPlan {
+  const financedAmount = params.productPrice - params.downPayment;
+  const emi = calculateEMI(financedAmount, params.interestRate, params.tenure);
+  const totalPayable = params.downPayment + emi * params.tenure;
+  const totalInterest = totalPayable - params.productPrice;
+  const schedule = generateRepaymentSchedule(financedAmount, params.interestRate, params.tenure, params.startDate);
 
   const nextDue = schedule.find((s) => s.status === 'due' || s.status === 'upcoming');
 
   return {
     id: Date.now().toString(),
-    customerName: payload.customerName,
-    customerPhone: payload.customerPhone,
-    customerAddress: payload.customerAddress,
-    productName: payload.productName,
+    customerName: params.customerName,
+    customerPhone: params.customerPhone,
+    customerAddress: params.customerAddress,
+    productName: params.productName,
     productImage: productImage || '/assets/img/products/stock-img-01.png',
-    productPrice: payload.productPrice,
-    downPayment: payload.downPayment,
+    productPrice: params.productPrice,
+    downPayment: params.downPayment,
     financedAmount,
-    interestRate: payload.interestRate,
-    tenure: payload.tenure,
+    interestRate: params.interestRate,
+    tenure: params.tenure,
     emiAmount: Math.round(emi * 100) / 100,
     totalPayable: Math.round(totalPayable * 100) / 100,
     totalInterest: Math.round(totalInterest * 100) / 100,
-    startDate: payload.startDate,
+    startDate: params.startDate,
     status: 'active',
     paidInstallments: 0,
-    remainingInstallments: payload.tenure,
+    remainingInstallments: params.tenure,
     nextDueDate: nextDue?.dueDate || '',
     createdAt: new Date().toISOString().split('T')[0],
     schedule,
   };
 }
 
-// API calls with fallback
+// API calls
 export async function getInstallmentPlans(): Promise<InstallmentPlan[]> {
-  try {
-    const response = await api.get<InstallmentPlan[]>('/installments');
-    return response.data;
-  } catch {
-    return [];
-  }
+  const response = await api.get<InstallmentPlan[]>('/installments');
+  return response.data;
 }
 
-export async function getInstallmentById(id: string): Promise<InstallmentPlan | null> {
-  try {
-    const response = await api.get<InstallmentPlan>(`/installments/${id}`);
-    return response.data;
-  } catch {
-    return null;
-  }
+export async function getInstallmentById(id: string): Promise<InstallmentPlan> {
+  const response = await api.get<InstallmentPlan>(`/installments/${id}`);
+  return response.data;
 }
 
-export async function createInstallment(payload: CreateInstallmentPayload): Promise<InstallmentPlan | null> {
-  try {
-    const response = await api.post<InstallmentPlan>('/installments', payload);
-    return response.data;
-  } catch {
-    return null;
-  }
+export async function createInstallment(payload: CreateInstallmentPayload): Promise<InstallmentPlan> {
+  const response = await api.post<InstallmentPlan>('/installments', payload);
+  return response.data;
 }
 
-export async function markInstallmentPaid(planId: string, installmentNo: number): Promise<boolean> {
-  try {
-    await api.put(`/installments/${planId}/pay/${installmentNo}`);
-    return true;
-  } catch {
-    return false;
-  }
+export async function markInstallmentPaid(planId: string, installmentNo: number): Promise<void> {
+  await api.put(`/installments/${planId}/pay/${installmentNo}`);
 }
 
-export async function cancelInstallment(id: string): Promise<boolean> {
-  try {
-    await api.delete(`/installments/${id}`);
-    return true;
-  } catch {
-    return false;
-  }
+export async function cancelInstallment(id: string): Promise<void> {
+  await api.delete(`/installments/${id}`);
 }

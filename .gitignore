@@ -1,0 +1,15 @@
+# Node
+node_modules/
+build/
+dist/
+
+# Logs
+*.log
+
+# Visual Studio
+.vs/
+bin/
+obj/
+
+# Environment files
+.env

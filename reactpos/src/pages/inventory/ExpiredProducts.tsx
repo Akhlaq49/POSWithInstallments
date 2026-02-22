@@ -10,19 +10,6 @@ interface ExpiredProduct {
   expiredDate: string;
 }
 
-const fallbackData: ExpiredProduct[] = [
-  { id: '1', sku: 'PT001', name: 'Lenovo 3rd Generation', image: '/assets/img/products/stock-img-01.png', manufacturedDate: '24 Dec 2024', expiredDate: '20 Dec 2026' },
-  { id: '2', sku: 'PT002', name: 'Beats Pro', image: '/assets/img/products/stock-img-06.png', manufacturedDate: '10 Dec 2024', expiredDate: '07 Dec 2026' },
-  { id: '3', sku: 'PT003', name: 'Nike Jordan', image: '/assets/img/products/stock-img-02.png', manufacturedDate: '27 Nov 2024', expiredDate: '20 Nov 2026' },
-  { id: '4', sku: 'PT004', name: 'Apple Series 5 Watch', image: '/assets/img/products/stock-img-03.png', manufacturedDate: '18 Nov 2024', expiredDate: '15 Nov 2026' },
-  { id: '5', sku: 'PT005', name: 'Amazon Echo Dot', image: '/assets/img/products/stock-img-04.png', manufacturedDate: '06 Nov 2024', expiredDate: '04 Nov 2026' },
-  { id: '6', sku: 'PT006', name: 'Sanford Chair Sofa', image: '/assets/img/products/stock-img-05.png', manufacturedDate: '25 Oct 2024', expiredDate: '20 Oct 2026' },
-  { id: '7', sku: 'PT007', name: 'Red Premium Satchel', image: '/assets/img/products/expire-product-01.png', manufacturedDate: '14 Oct 2024', expiredDate: '10 Oct 2026' },
-  { id: '8', sku: 'PT008', name: 'Iphone 14 Pro', image: '/assets/img/products/expire-product-02.png', manufacturedDate: '03 Oct 2024', expiredDate: '01 Oct 2026' },
-  { id: '9', sku: 'PT009', name: 'Gaming Chair', image: '/assets/img/products/expire-product-03.png', manufacturedDate: '20 Sep 2024', expiredDate: '16 Sep 2026' },
-  { id: '10', sku: 'PT010', name: 'Borealis Backpack', image: '/assets/img/products/expire-product-04.png', manufacturedDate: '10 Sep 2024', expiredDate: '06 Sep 2026' },
-];
-
 const ExpiredProducts: React.FC = () => {
   const [products, setProducts] = useState<ExpiredProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +34,7 @@ const ExpiredProducts: React.FC = () => {
         const response = await api.get<ExpiredProduct[]>('/products/expired');
         setProducts(response.data);
       } catch {
-        setProducts(fallbackData);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
