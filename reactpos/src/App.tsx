@@ -364,7 +364,7 @@ function App() {
           <Route path="/online-orders" element={<OnlineOrders />} />
           <Route path="/pos-orders" element={<POSOrders />} />
           <Route path="/invoice" element={<Invoice />} />
-          <Route path="/invoice-details" element={<InvoiceDetails />} />
+          <Route path="/invoice-details/:id" element={<InvoiceDetails />} />
           <Route path="/sales-returns" element={<SalesReturns />} />
           <Route path="/quotation-list" element={<QuotationList />} />
           <Route path="/pos" element={<POS />} />

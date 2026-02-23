@@ -19,6 +19,17 @@ public class AppDbContext : DbContext
     public DbSet<StockAdjustment> StockAdjustments => Set<StockAdjustment>();
     public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
     public DbSet<StockTransferItem> StockTransferItems => Set<StockTransferItem>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<Sale> Sales => Set<Sale>();
+    public DbSet<SaleItem> SaleItems => Set<SaleItem>();
+    public DbSet<SalePayment> SalePayments => Set<SalePayment>();
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
+    public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
+    public DbSet<SalesReturnItem> SalesReturnItems => Set<SalesReturnItem>();
+    public DbSet<Quotation> Quotations => Set<Quotation>();
+    public DbSet<QuotationItem> QuotationItems => Set<QuotationItem>();
 
     // Inventory
     public DbSet<Category> Categories => Set<Category>();
@@ -127,6 +138,152 @@ public class AppDbContext : DbContext
              .WithMany(t => t.Items)
              .HasForeignKey(i => i.StockTransferId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Order
+        modelBuilder.Entity<Order>(e =>
+        {
+            e.HasOne(o => o.Customer)
+             .WithMany()
+             .HasForeignKey(o => o.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.Property(o => o.Amount).HasColumnType("decimal(18,2)");
+        });
+
+        // OrderItem -> Order
+        modelBuilder.Entity<OrderItem>(e =>
+        {
+            e.HasOne(i => i.Order)
+             .WithMany(o => o.Items)
+             .HasForeignKey(i => i.OrderId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.Property(i => i.Price).HasColumnType("decimal(18,2)");
+        });
+
+        // Sale
+        modelBuilder.Entity<Sale>(e =>
+        {
+            e.HasOne(s => s.Customer)
+             .WithMany()
+             .HasForeignKey(s => s.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.Property(s => s.GrandTotal).HasColumnType("decimal(18,2)");
+            e.Property(s => s.Paid).HasColumnType("decimal(18,2)");
+            e.Property(s => s.Due).HasColumnType("decimal(18,2)");
+            e.Property(s => s.OrderTax).HasColumnType("decimal(18,2)");
+            e.Property(s => s.Discount).HasColumnType("decimal(18,2)");
+            e.Property(s => s.Shipping).HasColumnType("decimal(18,2)");
+        });
+
+        // SaleItem -> Sale
+        modelBuilder.Entity<SaleItem>(e =>
+        {
+            e.HasOne(i => i.Sale)
+             .WithMany(s => s.Items)
+             .HasForeignKey(i => i.SaleId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.Property(i => i.PurchasePrice).HasColumnType("decimal(18,2)");
+            e.Property(i => i.Discount).HasColumnType("decimal(18,2)");
+            e.Property(i => i.TaxPercent).HasColumnType("decimal(8,4)");
+            e.Property(i => i.TaxAmount).HasColumnType("decimal(18,2)");
+            e.Property(i => i.UnitCost).HasColumnType("decimal(18,2)");
+            e.Property(i => i.TotalCost).HasColumnType("decimal(18,2)");
+        });
+
+        // SalePayment -> Sale
+        modelBuilder.Entity<SalePayment>(e =>
+        {
+            e.HasOne(p => p.Sale)
+             .WithMany(s => s.Payments)
+             .HasForeignKey(p => p.SaleId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.Property(p => p.ReceivedAmount).HasColumnType("decimal(18,2)");
+            e.Property(p => p.PayingAmount).HasColumnType("decimal(18,2)");
+        });
+
+        // Invoice
+        modelBuilder.Entity<Invoice>(e =>
+        {
+            e.HasOne(i => i.Customer)
+             .WithMany()
+             .HasForeignKey(i => i.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.Property(i => i.SubTotal).HasColumnType("decimal(18,2)");
+            e.Property(i => i.Discount).HasColumnType("decimal(18,2)");
+            e.Property(i => i.DiscountPercent).HasColumnType("decimal(8,4)");
+            e.Property(i => i.Tax).HasColumnType("decimal(18,2)");
+            e.Property(i => i.TaxPercent).HasColumnType("decimal(8,4)");
+            e.Property(i => i.TotalAmount).HasColumnType("decimal(18,2)");
+            e.Property(i => i.Paid).HasColumnType("decimal(18,2)");
+            e.Property(i => i.AmountDue).HasColumnType("decimal(18,2)");
+        });
+
+        // InvoiceItem -> Invoice
+        modelBuilder.Entity<InvoiceItem>(e =>
+        {
+            e.HasOne(i => i.Invoice)
+             .WithMany(inv => inv.Items)
+             .HasForeignKey(i => i.InvoiceId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.Property(i => i.Cost).HasColumnType("decimal(18,2)");
+            e.Property(i => i.Discount).HasColumnType("decimal(18,2)");
+            e.Property(i => i.Total).HasColumnType("decimal(18,2)");
+        });
+
+        // SalesReturn
+        modelBuilder.Entity<SalesReturn>(e =>
+        {
+            e.HasOne(r => r.Customer)
+             .WithMany()
+             .HasForeignKey(r => r.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.Property(r => r.OrderTax).HasColumnType("decimal(18,2)");
+            e.Property(r => r.Discount).HasColumnType("decimal(18,2)");
+            e.Property(r => r.Shipping).HasColumnType("decimal(18,2)");
+            e.Property(r => r.GrandTotal).HasColumnType("decimal(18,2)");
+            e.Property(r => r.Paid).HasColumnType("decimal(18,2)");
+            e.Property(r => r.Due).HasColumnType("decimal(18,2)");
+        });
+
+        // SalesReturnItem -> SalesReturn
+        modelBuilder.Entity<SalesReturnItem>(e =>
+        {
+            e.HasOne(i => i.SalesReturn)
+             .WithMany(r => r.Items)
+             .HasForeignKey(i => i.SalesReturnId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.Property(i => i.NetUnitPrice).HasColumnType("decimal(18,2)");
+            e.Property(i => i.Discount).HasColumnType("decimal(18,2)");
+            e.Property(i => i.TaxPercent).HasColumnType("decimal(8,4)");
+            e.Property(i => i.Subtotal).HasColumnType("decimal(18,2)");
+        });
+
+        // Quotation
+        modelBuilder.Entity<Quotation>(e =>
+        {
+            e.HasOne(q => q.Customer)
+             .WithMany()
+             .HasForeignKey(q => q.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.Property(q => q.OrderTax).HasColumnType("decimal(18,2)");
+            e.Property(q => q.Discount).HasColumnType("decimal(18,2)");
+            e.Property(q => q.Shipping).HasColumnType("decimal(18,2)");
+            e.Property(q => q.GrandTotal).HasColumnType("decimal(18,2)");
+        });
+
+        // QuotationItem -> Quotation
+        modelBuilder.Entity<QuotationItem>(e =>
+        {
+            e.HasOne(i => i.Quotation)
+             .WithMany(q => q.Items)
+             .HasForeignKey(i => i.QuotationId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.Property(i => i.PurchasePrice).HasColumnType("decimal(18,2)");
+            e.Property(i => i.Discount).HasColumnType("decimal(18,2)");
+            e.Property(i => i.TaxPercent).HasColumnType("decimal(8,4)");
+            e.Property(i => i.TaxAmount).HasColumnType("decimal(18,2)");
+            e.Property(i => i.UnitCost).HasColumnType("decimal(18,2)");
+            e.Property(i => i.TotalCost).HasColumnType("decimal(18,2)");
         });
 
         // User

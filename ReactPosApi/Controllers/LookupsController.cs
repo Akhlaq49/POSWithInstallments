@@ -865,3 +865,1094 @@ public class StockAdjustmentsController : ControllerBase
         return NoContent();
     }
 }
+
+// ============================
+// Orders
+// ============================
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+public class OrdersController : ControllerBase
+{
+    private readonly AppDbContext _db;
+    public OrdersController(AppDbContext db) => _db = db;
+
+    // GET api/orders
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var orders = await _db.Orders
+            .Include(o => o.Items)
+            .OrderByDescending(o => o.CreatedAt)
+            .Select(o => new OrderDto
+            {
+                Id = o.Id,
+                OrderNumber = o.OrderNumber,
+                CustomerId = o.CustomerId,
+                CustomerName = o.CustomerName,
+                CustomerImage = o.CustomerImage,
+                PaymentType = o.PaymentType,
+                Amount = o.Amount,
+                Status = o.Status,
+                OrderDate = o.OrderDate.ToString("dd MMM yyyy, hh:mm tt"),
+                Items = o.Items.Select(i => new OrderItemDto
+                {
+                    Id = i.Id,
+                    ProductId = i.ProductId,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    Price = i.Price
+                }).ToList()
+            })
+            .ToListAsync();
+        return Ok(orders);
+    }
+
+    // GET api/orders/5
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var o = await _db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
+        if (o == null) return NotFound();
+        return Ok(new OrderDto
+        {
+            Id = o.Id,
+            OrderNumber = o.OrderNumber,
+            CustomerId = o.CustomerId,
+            CustomerName = o.CustomerName,
+            CustomerImage = o.CustomerImage,
+            PaymentType = o.PaymentType,
+            Amount = o.Amount,
+            Status = o.Status,
+            OrderDate = o.OrderDate.ToString("dd MMM yyyy, hh:mm tt"),
+            Items = o.Items.Select(i => new OrderItemDto
+            {
+                Id = i.Id,
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                Price = i.Price
+            }).ToList()
+        });
+    }
+
+    // POST api/orders
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateOrderDto dto)
+    {
+        var order = new Order
+        {
+            OrderNumber = new Random().Next(1000000, 9999999).ToString(),
+            CustomerId = dto.CustomerId,
+            CustomerName = dto.CustomerName,
+            CustomerImage = dto.CustomerImage,
+            PaymentType = dto.PaymentType,
+            Amount = dto.Amount,
+            Status = dto.Status,
+            OrderDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            Items = dto.Items.Select(i => new OrderItem
+            {
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                Price = i.Price
+            }).ToList()
+        };
+        _db.Orders.Add(order);
+        await _db.SaveChangesAsync();
+        return Ok(new { order.Id, order.OrderNumber });
+    }
+
+    // PUT api/orders/5
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateOrderDto dto)
+    {
+        var order = await _db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
+        if (order == null) return NotFound();
+
+        order.CustomerId = dto.CustomerId;
+        order.CustomerName = dto.CustomerName;
+        order.CustomerImage = dto.CustomerImage;
+        order.PaymentType = dto.PaymentType;
+        order.Amount = dto.Amount;
+        order.Status = dto.Status;
+
+        _db.OrderItems.RemoveRange(order.Items);
+        order.Items = dto.Items.Select(i => new OrderItem
+        {
+            OrderId = id,
+            ProductId = i.ProductId,
+            ProductName = i.ProductName,
+            Quantity = i.Quantity,
+            Price = i.Price
+        }).ToList();
+
+        await _db.SaveChangesAsync();
+        return Ok(new { order.Id });
+    }
+
+    // PATCH api/orders/5/status
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateOrderStatusDto dto)
+    {
+        var order = await _db.Orders.FindAsync(id);
+        if (order == null) return NotFound();
+        order.Status = dto.Status;
+        await _db.SaveChangesAsync();
+        return Ok(new { order.Id, order.Status });
+    }
+
+    // DELETE api/orders/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var order = await _db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
+        if (order == null) return NotFound();
+        _db.Orders.Remove(order);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+}
+
+// ============================
+// Sales (Online Orders)
+// ============================
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+public class SalesController : ControllerBase
+{
+    private readonly AppDbContext _db;
+    public SalesController(AppDbContext db) => _db = db;
+
+    // GET api/sales?source=online|pos
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] string? source = null)
+    {
+        var query = _db.Sales.AsQueryable();
+        if (!string.IsNullOrEmpty(source))
+            query = query.Where(s => s.Source == source);
+
+        var sales = await query
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .OrderByDescending(s => s.CreatedAt)
+            .Select(s => new SaleDto
+            {
+                Id = s.Id,
+                Reference = s.Reference,
+                CustomerId = s.CustomerId,
+                CustomerName = s.CustomerName,
+                CustomerImage = s.CustomerImage,
+                Biller = s.Biller,
+                GrandTotal = s.GrandTotal,
+                Paid = s.Paid,
+                Due = s.Due,
+                OrderTax = s.OrderTax,
+                Discount = s.Discount,
+                Shipping = s.Shipping,
+                Status = s.Status,
+                PaymentStatus = s.PaymentStatus,
+                Notes = s.Notes,
+                Source = s.Source,
+                SaleDate = s.SaleDate.ToString("dd MMM yyyy"),
+                Items = s.Items.Select(i => new SaleItemDto
+                {
+                    Id = i.Id,
+                    ProductId = i.ProductId,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    PurchasePrice = i.PurchasePrice,
+                    Discount = i.Discount,
+                    TaxPercent = i.TaxPercent,
+                    TaxAmount = i.TaxAmount,
+                    UnitCost = i.UnitCost,
+                    TotalCost = i.TotalCost
+                }).ToList(),
+                Payments = s.Payments.Select(p => new SalePaymentDto
+                {
+                    Id = p.Id,
+                    Reference = p.Reference,
+                    ReceivedAmount = p.ReceivedAmount,
+                    PayingAmount = p.PayingAmount,
+                    PaymentType = p.PaymentType,
+                    Description = p.Description,
+                    PaymentDate = p.PaymentDate.ToString("dd MMM yyyy")
+                }).ToList()
+            })
+            .ToListAsync();
+        return Ok(sales);
+    }
+
+    // GET api/sales/5
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var s = await _db.Sales
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .FirstOrDefaultAsync(s => s.Id == id);
+        if (s == null) return NotFound();
+        return Ok(new SaleDto
+        {
+            Id = s.Id,
+            Reference = s.Reference,
+            CustomerId = s.CustomerId,
+            CustomerName = s.CustomerName,
+            CustomerImage = s.CustomerImage,
+            Biller = s.Biller,
+            GrandTotal = s.GrandTotal,
+            Paid = s.Paid,
+            Due = s.Due,
+            OrderTax = s.OrderTax,
+            Discount = s.Discount,
+            Shipping = s.Shipping,
+            Status = s.Status,
+            PaymentStatus = s.PaymentStatus,
+            Notes = s.Notes,
+            Source = s.Source,
+            SaleDate = s.SaleDate.ToString("dd MMM yyyy"),
+            Items = s.Items.Select(i => new SaleItemDto
+            {
+                Id = i.Id,
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                PurchasePrice = i.PurchasePrice,
+                Discount = i.Discount,
+                TaxPercent = i.TaxPercent,
+                TaxAmount = i.TaxAmount,
+                UnitCost = i.UnitCost,
+                TotalCost = i.TotalCost
+            }).ToList(),
+            Payments = s.Payments.Select(p => new SalePaymentDto
+            {
+                Id = p.Id,
+                Reference = p.Reference,
+                ReceivedAmount = p.ReceivedAmount,
+                PayingAmount = p.PayingAmount,
+                PaymentType = p.PaymentType,
+                Description = p.Description,
+                PaymentDate = p.PaymentDate.ToString("dd MMM yyyy")
+            }).ToList()
+        });
+    }
+
+    // POST api/sales
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateSaleDto dto)
+    {
+        // Auto-generate reference SL001, SL002, ...
+        var lastRef = await _db.Sales
+            .OrderByDescending(s => s.Id)
+            .Select(s => s.Reference)
+            .FirstOrDefaultAsync();
+        int nextNum = 1;
+        if (!string.IsNullOrEmpty(lastRef) && lastRef.StartsWith("SL"))
+        {
+            int.TryParse(lastRef.Substring(2), out nextNum);
+            nextNum++;
+        }
+        var reference = $"SL{nextNum:D3}";
+
+        var sale = new Sale
+        {
+            Reference = reference,
+            CustomerId = dto.CustomerId,
+            CustomerName = dto.CustomerName,
+            CustomerImage = dto.CustomerImage,
+            Biller = dto.Biller,
+            Source = dto.Source,
+            GrandTotal = dto.GrandTotal,
+            Paid = 0,
+            Due = dto.GrandTotal,
+            OrderTax = dto.OrderTax,
+            Discount = dto.Discount,
+            Shipping = dto.Shipping,
+            Status = dto.Status,
+            PaymentStatus = "Unpaid",
+            Notes = dto.Notes,
+            SaleDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            Items = dto.Items.Select(i => new SaleItem
+            {
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                PurchasePrice = i.PurchasePrice,
+                Discount = i.Discount,
+                TaxPercent = i.TaxPercent,
+                TaxAmount = i.TaxAmount,
+                UnitCost = i.UnitCost,
+                TotalCost = i.TotalCost
+            }).ToList()
+        };
+        _db.Sales.Add(sale);
+        await _db.SaveChangesAsync();
+        return Ok(new { sale.Id, sale.Reference });
+    }
+
+    // PUT api/sales/5
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateSaleDto dto)
+    {
+        var sale = await _db.Sales.Include(s => s.Items).FirstOrDefaultAsync(s => s.Id == id);
+        if (sale == null) return NotFound();
+
+        sale.CustomerId = dto.CustomerId;
+        sale.CustomerName = dto.CustomerName;
+        sale.CustomerImage = dto.CustomerImage;
+        sale.Biller = dto.Biller;
+        sale.GrandTotal = dto.GrandTotal;
+        sale.OrderTax = dto.OrderTax;
+        sale.Discount = dto.Discount;
+        sale.Shipping = dto.Shipping;
+        sale.Status = dto.Status;
+        sale.Notes = dto.Notes;
+        sale.Due = dto.GrandTotal - sale.Paid;
+        if (sale.Due <= 0) { sale.Due = 0; sale.PaymentStatus = "Paid"; }
+        else if (sale.Paid > 0) { sale.PaymentStatus = "Overdue"; }
+        else { sale.PaymentStatus = "Unpaid"; }
+
+        _db.SaleItems.RemoveRange(sale.Items);
+        sale.Items = dto.Items.Select(i => new SaleItem
+        {
+            SaleId = id,
+            ProductId = i.ProductId,
+            ProductName = i.ProductName,
+            Quantity = i.Quantity,
+            PurchasePrice = i.PurchasePrice,
+            Discount = i.Discount,
+            TaxPercent = i.TaxPercent,
+            TaxAmount = i.TaxAmount,
+            UnitCost = i.UnitCost,
+            TotalCost = i.TotalCost
+        }).ToList();
+
+        await _db.SaveChangesAsync();
+        return Ok(new { sale.Id });
+    }
+
+    // DELETE api/sales/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var sale = await _db.Sales
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .FirstOrDefaultAsync(s => s.Id == id);
+        if (sale == null) return NotFound();
+        _db.Sales.Remove(sale);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // ---- Payment sub-resources ----
+
+    // GET api/sales/5/payments
+    [HttpGet("{id}/payments")]
+    public async Task<IActionResult> GetPayments(int id)
+    {
+        var sale = await _db.Sales.Include(s => s.Payments).FirstOrDefaultAsync(s => s.Id == id);
+        if (sale == null) return NotFound();
+        return Ok(sale.Payments.Select(p => new SalePaymentDto
+        {
+            Id = p.Id,
+            Reference = p.Reference,
+            ReceivedAmount = p.ReceivedAmount,
+            PayingAmount = p.PayingAmount,
+            PaymentType = p.PaymentType,
+            Description = p.Description,
+            PaymentDate = p.PaymentDate.ToString("dd MMM yyyy")
+        }));
+    }
+
+    // POST api/sales/5/payments
+    [HttpPost("{id}/payments")]
+    public async Task<IActionResult> CreatePayment(int id, [FromBody] CreateSalePaymentDto dto)
+    {
+        var sale = await _db.Sales.FindAsync(id);
+        if (sale == null) return NotFound();
+
+        var payment = new SalePayment
+        {
+            SaleId = id,
+            Reference = dto.Reference,
+            ReceivedAmount = dto.ReceivedAmount,
+            PayingAmount = dto.PayingAmount,
+            PaymentType = dto.PaymentType,
+            Description = dto.Description,
+            PaymentDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.SalePayments.Add(payment);
+
+        // Update sale paid/due/payment status
+        sale.Paid += dto.PayingAmount;
+        sale.Due = sale.GrandTotal - sale.Paid;
+        if (sale.Due <= 0) { sale.Due = 0; sale.PaymentStatus = "Paid"; }
+        else { sale.PaymentStatus = "Overdue"; }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { payment.Id });
+    }
+
+    // PUT api/sales/5/payments/10
+    [HttpPut("{id}/payments/{paymentId}")]
+    public async Task<IActionResult> UpdatePayment(int id, int paymentId, [FromBody] CreateSalePaymentDto dto)
+    {
+        var sale = await _db.Sales.FindAsync(id);
+        if (sale == null) return NotFound();
+        var payment = await _db.SalePayments.FirstOrDefaultAsync(p => p.Id == paymentId && p.SaleId == id);
+        if (payment == null) return NotFound();
+
+        // Revert old amount, apply new
+        sale.Paid -= payment.PayingAmount;
+        payment.Reference = dto.Reference;
+        payment.ReceivedAmount = dto.ReceivedAmount;
+        payment.PayingAmount = dto.PayingAmount;
+        payment.PaymentType = dto.PaymentType;
+        payment.Description = dto.Description;
+
+        sale.Paid += dto.PayingAmount;
+        sale.Due = sale.GrandTotal - sale.Paid;
+        if (sale.Due <= 0) { sale.Due = 0; sale.PaymentStatus = "Paid"; }
+        else if (sale.Paid > 0) { sale.PaymentStatus = "Overdue"; }
+        else { sale.PaymentStatus = "Unpaid"; }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { payment.Id });
+    }
+
+    // DELETE api/sales/5/payments/10
+    [HttpDelete("{id}/payments/{paymentId}")]
+    public async Task<IActionResult> DeletePayment(int id, int paymentId)
+    {
+        var sale = await _db.Sales.FindAsync(id);
+        if (sale == null) return NotFound();
+        var payment = await _db.SalePayments.FirstOrDefaultAsync(p => p.Id == paymentId && p.SaleId == id);
+        if (payment == null) return NotFound();
+
+        sale.Paid -= payment.PayingAmount;
+        sale.Due = sale.GrandTotal - sale.Paid;
+        if (sale.Due <= 0) { sale.Due = 0; sale.PaymentStatus = "Paid"; }
+        else if (sale.Paid > 0) { sale.PaymentStatus = "Overdue"; }
+        else { sale.PaymentStatus = "Unpaid"; }
+
+        _db.SalePayments.Remove(payment);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+}
+
+// ============================
+// Invoices
+// ============================
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+public class InvoicesController : ControllerBase
+{
+    private readonly AppDbContext _db;
+    public InvoicesController(AppDbContext db) => _db = db;
+
+    // GET api/invoices
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var list = await _db.Invoices
+            .Include(i => i.Items)
+            .OrderByDescending(i => i.CreatedAt)
+            .Select(i => new InvoiceDto
+            {
+                Id = i.Id,
+                InvoiceNo = i.InvoiceNo,
+                CustomerId = i.CustomerId,
+                CustomerName = i.CustomerName,
+                CustomerImage = i.CustomerImage,
+                CustomerAddress = i.CustomerAddress,
+                CustomerEmail = i.CustomerEmail,
+                CustomerPhone = i.CustomerPhone,
+                FromName = i.FromName,
+                FromAddress = i.FromAddress,
+                FromEmail = i.FromEmail,
+                FromPhone = i.FromPhone,
+                InvoiceFor = i.InvoiceFor,
+                SubTotal = i.SubTotal,
+                Discount = i.Discount,
+                DiscountPercent = i.DiscountPercent,
+                Tax = i.Tax,
+                TaxPercent = i.TaxPercent,
+                TotalAmount = i.TotalAmount,
+                Paid = i.Paid,
+                AmountDue = i.AmountDue,
+                Status = i.Status,
+                Notes = i.Notes,
+                Terms = i.Terms,
+                DueDate = i.DueDate.ToString("dd MMM yyyy"),
+                CreatedAt = i.CreatedAt.ToString("dd MMM yyyy"),
+                Items = i.Items.Select(it => new InvoiceItemDto
+                {
+                    Id = it.Id,
+                    Description = it.Description,
+                    Quantity = it.Quantity,
+                    Cost = it.Cost,
+                    Discount = it.Discount,
+                    Total = it.Total
+                }).ToList()
+            })
+            .ToListAsync();
+        return Ok(list);
+    }
+
+    // GET api/invoices/5
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var i = await _db.Invoices
+            .Include(inv => inv.Items)
+            .FirstOrDefaultAsync(inv => inv.Id == id);
+        if (i == null) return NotFound();
+
+        return Ok(new InvoiceDto
+        {
+            Id = i.Id,
+            InvoiceNo = i.InvoiceNo,
+            CustomerId = i.CustomerId,
+            CustomerName = i.CustomerName,
+            CustomerImage = i.CustomerImage,
+            CustomerAddress = i.CustomerAddress,
+            CustomerEmail = i.CustomerEmail,
+            CustomerPhone = i.CustomerPhone,
+            FromName = i.FromName,
+            FromAddress = i.FromAddress,
+            FromEmail = i.FromEmail,
+            FromPhone = i.FromPhone,
+            InvoiceFor = i.InvoiceFor,
+            SubTotal = i.SubTotal,
+            Discount = i.Discount,
+            DiscountPercent = i.DiscountPercent,
+            Tax = i.Tax,
+            TaxPercent = i.TaxPercent,
+            TotalAmount = i.TotalAmount,
+            Paid = i.Paid,
+            AmountDue = i.AmountDue,
+            Status = i.Status,
+            Notes = i.Notes,
+            Terms = i.Terms,
+            DueDate = i.DueDate.ToString("dd MMM yyyy"),
+            CreatedAt = i.CreatedAt.ToString("dd MMM yyyy"),
+            Items = i.Items.Select(it => new InvoiceItemDto
+            {
+                Id = it.Id,
+                Description = it.Description,
+                Quantity = it.Quantity,
+                Cost = it.Cost,
+                Discount = it.Discount,
+                Total = it.Total
+            }).ToList()
+        });
+    }
+
+    // POST api/invoices
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateInvoiceDto dto)
+    {
+        // Auto-generate invoice number
+        var lastNo = await _db.Invoices
+            .OrderByDescending(i => i.Id)
+            .Select(i => i.InvoiceNo)
+            .FirstOrDefaultAsync();
+        int next = 1;
+        if (lastNo != null && lastNo.StartsWith("INV") && int.TryParse(lastNo[3..], out var n))
+            next = n + 1;
+        var invoiceNo = $"INV{next:D4}";
+
+        var invoice = new Invoice
+        {
+            InvoiceNo = invoiceNo,
+            CustomerId = dto.CustomerId,
+            CustomerName = dto.CustomerName,
+            CustomerImage = dto.CustomerImage,
+            CustomerAddress = dto.CustomerAddress,
+            CustomerEmail = dto.CustomerEmail,
+            CustomerPhone = dto.CustomerPhone,
+            FromName = dto.FromName,
+            FromAddress = dto.FromAddress,
+            FromEmail = dto.FromEmail,
+            FromPhone = dto.FromPhone,
+            InvoiceFor = dto.InvoiceFor,
+            SubTotal = dto.SubTotal,
+            Discount = dto.Discount,
+            DiscountPercent = dto.DiscountPercent,
+            Tax = dto.Tax,
+            TaxPercent = dto.TaxPercent,
+            TotalAmount = dto.TotalAmount,
+            Paid = dto.Paid,
+            AmountDue = dto.AmountDue,
+            Status = dto.Status,
+            Notes = dto.Notes,
+            Terms = dto.Terms,
+            DueDate = dto.DueDate != null ? DateTime.Parse(dto.DueDate) : DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow,
+            Items = dto.Items.Select(it => new InvoiceItem
+            {
+                Description = it.Description,
+                Quantity = it.Quantity,
+                Cost = it.Cost,
+                Discount = it.Discount,
+                Total = it.Total
+            }).ToList()
+        };
+        _db.Invoices.Add(invoice);
+        await _db.SaveChangesAsync();
+        return Ok(new { invoice.Id, invoice.InvoiceNo });
+    }
+
+    // PUT api/invoices/5
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateInvoiceDto dto)
+    {
+        var invoice = await _db.Invoices.Include(i => i.Items).FirstOrDefaultAsync(i => i.Id == id);
+        if (invoice == null) return NotFound();
+
+        invoice.CustomerId = dto.CustomerId;
+        invoice.CustomerName = dto.CustomerName;
+        invoice.CustomerImage = dto.CustomerImage;
+        invoice.CustomerAddress = dto.CustomerAddress;
+        invoice.CustomerEmail = dto.CustomerEmail;
+        invoice.CustomerPhone = dto.CustomerPhone;
+        invoice.FromName = dto.FromName;
+        invoice.FromAddress = dto.FromAddress;
+        invoice.FromEmail = dto.FromEmail;
+        invoice.FromPhone = dto.FromPhone;
+        invoice.InvoiceFor = dto.InvoiceFor;
+        invoice.SubTotal = dto.SubTotal;
+        invoice.Discount = dto.Discount;
+        invoice.DiscountPercent = dto.DiscountPercent;
+        invoice.Tax = dto.Tax;
+        invoice.TaxPercent = dto.TaxPercent;
+        invoice.TotalAmount = dto.TotalAmount;
+        invoice.Paid = dto.Paid;
+        invoice.AmountDue = dto.AmountDue;
+        invoice.Status = dto.Status;
+        invoice.Notes = dto.Notes;
+        invoice.Terms = dto.Terms;
+        if (dto.DueDate != null) invoice.DueDate = DateTime.Parse(dto.DueDate);
+
+        _db.InvoiceItems.RemoveRange(invoice.Items);
+        invoice.Items = dto.Items.Select(it => new InvoiceItem
+        {
+            InvoiceId = id,
+            Description = it.Description,
+            Quantity = it.Quantity,
+            Cost = it.Cost,
+            Discount = it.Discount,
+            Total = it.Total
+        }).ToList();
+
+        await _db.SaveChangesAsync();
+        return Ok(new { invoice.Id });
+    }
+
+    // DELETE api/invoices/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var invoice = await _db.Invoices
+            .Include(i => i.Items)
+            .FirstOrDefaultAsync(i => i.Id == id);
+        if (invoice == null) return NotFound();
+        _db.Invoices.Remove(invoice);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+}
+
+// ── Sales Returns ──────────────────────────────────────────
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class SalesReturnsController : ControllerBase
+{
+    private readonly AppDbContext _db;
+    public SalesReturnsController(AppDbContext db) => _db = db;
+
+    // GET api/salesreturns
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? customer,
+        [FromQuery] string? status,
+        [FromQuery] string? paymentStatus,
+        [FromQuery] string? sort)
+    {
+        var q = _db.SalesReturns.AsQueryable();
+
+        if (!string.IsNullOrEmpty(customer))
+            q = q.Where(r => r.CustomerName.Contains(customer));
+        if (!string.IsNullOrEmpty(status))
+            q = q.Where(r => r.Status == status);
+        if (!string.IsNullOrEmpty(paymentStatus))
+            q = q.Where(r => r.PaymentStatus == paymentStatus);
+
+        q = sort switch
+        {
+            "asc" => q.OrderBy(r => r.ReturnDate),
+            "desc" => q.OrderByDescending(r => r.ReturnDate),
+            _ => q.OrderByDescending(r => r.Id)
+        };
+
+        var list = await q.Select(r => new SalesReturnDto
+        {
+            Id = r.Id,
+            Reference = r.Reference,
+            CustomerId = r.CustomerId,
+            CustomerName = r.CustomerName,
+            CustomerImage = r.CustomerImage,
+            ProductId = r.ProductId,
+            ProductName = r.ProductName,
+            ProductImage = r.ProductImage,
+            OrderTax = r.OrderTax,
+            Discount = r.Discount,
+            Shipping = r.Shipping,
+            GrandTotal = r.GrandTotal,
+            Paid = r.Paid,
+            Due = r.Due,
+            Status = r.Status,
+            PaymentStatus = r.PaymentStatus,
+            ReturnDate = r.ReturnDate.ToString("dd MMM yyyy"),
+            CreatedAt = r.CreatedAt.ToString("dd MMM yyyy")
+        }).ToListAsync();
+
+        return Ok(list);
+    }
+
+    // GET api/salesreturns/5
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var r = await _db.SalesReturns
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.Id == id);
+        if (r == null) return NotFound();
+
+        return Ok(new SalesReturnDto
+        {
+            Id = r.Id,
+            Reference = r.Reference,
+            CustomerId = r.CustomerId,
+            CustomerName = r.CustomerName,
+            CustomerImage = r.CustomerImage,
+            ProductId = r.ProductId,
+            ProductName = r.ProductName,
+            ProductImage = r.ProductImage,
+            OrderTax = r.OrderTax,
+            Discount = r.Discount,
+            Shipping = r.Shipping,
+            GrandTotal = r.GrandTotal,
+            Paid = r.Paid,
+            Due = r.Due,
+            Status = r.Status,
+            PaymentStatus = r.PaymentStatus,
+            ReturnDate = r.ReturnDate.ToString("dd MMM yyyy"),
+            CreatedAt = r.CreatedAt.ToString("dd MMM yyyy"),
+            Items = r.Items.Select(i => new SalesReturnItemDto
+            {
+                Id = i.Id,
+                ProductName = i.ProductName,
+                NetUnitPrice = i.NetUnitPrice,
+                Stock = i.Stock,
+                Quantity = i.Quantity,
+                Discount = i.Discount,
+                TaxPercent = i.TaxPercent,
+                Subtotal = i.Subtotal
+            }).ToList()
+        });
+    }
+
+    // POST api/salesreturns
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateSalesReturnDto dto)
+    {
+        var entity = new SalesReturn
+        {
+            Reference = dto.Reference ?? string.Empty,
+            CustomerId = dto.CustomerId,
+            CustomerName = dto.CustomerName,
+            CustomerImage = dto.CustomerImage,
+            ProductId = dto.ProductId,
+            ProductName = dto.ProductName,
+            ProductImage = dto.ProductImage,
+            OrderTax = dto.OrderTax,
+            Discount = dto.Discount,
+            Shipping = dto.Shipping,
+            GrandTotal = dto.GrandTotal,
+            Paid = dto.Paid,
+            Due = dto.Due,
+            Status = dto.Status,
+            PaymentStatus = dto.PaymentStatus,
+            ReturnDate = dto.ReturnDate != null ? DateTime.Parse(dto.ReturnDate) : DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            Items = dto.Items.Select(i => new SalesReturnItem
+            {
+                ProductName = i.ProductName,
+                NetUnitPrice = i.NetUnitPrice,
+                Stock = i.Stock,
+                Quantity = i.Quantity,
+                Discount = i.Discount,
+                TaxPercent = i.TaxPercent,
+                Subtotal = i.Subtotal
+            }).ToList()
+        };
+        _db.SalesReturns.Add(entity);
+        await _db.SaveChangesAsync();
+        return Ok(new { entity.Id });
+    }
+
+    // PUT api/salesreturns/5
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateSalesReturnDto dto)
+    {
+        var entity = await _db.SalesReturns.Include(r => r.Items).FirstOrDefaultAsync(r => r.Id == id);
+        if (entity == null) return NotFound();
+
+        entity.CustomerId = dto.CustomerId;
+        entity.CustomerName = dto.CustomerName;
+        entity.CustomerImage = dto.CustomerImage;
+        entity.ProductId = dto.ProductId;
+        entity.ProductName = dto.ProductName;
+        entity.ProductImage = dto.ProductImage;
+        entity.OrderTax = dto.OrderTax;
+        entity.Discount = dto.Discount;
+        entity.Shipping = dto.Shipping;
+        entity.GrandTotal = dto.GrandTotal;
+        entity.Paid = dto.Paid;
+        entity.Due = dto.Due;
+        entity.Status = dto.Status;
+        entity.PaymentStatus = dto.PaymentStatus;
+        if (dto.ReturnDate != null) entity.ReturnDate = DateTime.Parse(dto.ReturnDate);
+
+        _db.SalesReturnItems.RemoveRange(entity.Items);
+        entity.Items = dto.Items.Select(i => new SalesReturnItem
+        {
+            SalesReturnId = id,
+            ProductName = i.ProductName,
+            NetUnitPrice = i.NetUnitPrice,
+            Stock = i.Stock,
+            Quantity = i.Quantity,
+            Discount = i.Discount,
+            TaxPercent = i.TaxPercent,
+            Subtotal = i.Subtotal
+        }).ToList();
+
+        await _db.SaveChangesAsync();
+        return Ok(new { entity.Id });
+    }
+
+    // DELETE api/salesreturns/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var entity = await _db.SalesReturns
+            .Include(r => r.Items)
+            .FirstOrDefaultAsync(r => r.Id == id);
+        if (entity == null) return NotFound();
+        _db.SalesReturns.Remove(entity);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+}
+
+// ── Quotations ──────────────────────────────────────────
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class QuotationsController : ControllerBase
+{
+    private readonly AppDbContext _db;
+    public QuotationsController(AppDbContext db) => _db = db;
+
+    // GET api/quotations
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? product,
+        [FromQuery] string? customer,
+        [FromQuery] string? status,
+        [FromQuery] string? sort)
+    {
+        var q = _db.Quotations.AsQueryable();
+
+        if (!string.IsNullOrEmpty(product))
+            q = q.Where(x => x.ProductName.Contains(product));
+        if (!string.IsNullOrEmpty(customer))
+            q = q.Where(x => x.CustomerName.Contains(customer));
+        if (!string.IsNullOrEmpty(status))
+            q = q.Where(x => x.Status == status);
+
+        q = sort switch
+        {
+            "asc" => q.OrderBy(x => x.GrandTotal),
+            "desc" => q.OrderByDescending(x => x.GrandTotal),
+            _ => q.OrderByDescending(x => x.Id)
+        };
+
+        var list = await q.Select(x => new QuotationDto
+        {
+            Id = x.Id,
+            Reference = x.Reference,
+            CustomerId = x.CustomerId,
+            CustomerName = x.CustomerName,
+            CustomerImage = x.CustomerImage,
+            ProductId = x.ProductId,
+            ProductName = x.ProductName,
+            ProductImage = x.ProductImage,
+            OrderTax = x.OrderTax,
+            Discount = x.Discount,
+            Shipping = x.Shipping,
+            GrandTotal = x.GrandTotal,
+            Status = x.Status,
+            Description = x.Description,
+            QuotationDate = x.QuotationDate.ToString("dd MMM yyyy"),
+            CreatedAt = x.CreatedAt.ToString("dd MMM yyyy")
+        }).ToListAsync();
+
+        return Ok(list);
+    }
+
+    // GET api/quotations/5
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var x = await _db.Quotations
+            .Include(q => q.Items)
+            .FirstOrDefaultAsync(q => q.Id == id);
+        if (x == null) return NotFound();
+
+        return Ok(new QuotationDto
+        {
+            Id = x.Id,
+            Reference = x.Reference,
+            CustomerId = x.CustomerId,
+            CustomerName = x.CustomerName,
+            CustomerImage = x.CustomerImage,
+            ProductId = x.ProductId,
+            ProductName = x.ProductName,
+            ProductImage = x.ProductImage,
+            OrderTax = x.OrderTax,
+            Discount = x.Discount,
+            Shipping = x.Shipping,
+            GrandTotal = x.GrandTotal,
+            Status = x.Status,
+            Description = x.Description,
+            QuotationDate = x.QuotationDate.ToString("dd MMM yyyy"),
+            CreatedAt = x.CreatedAt.ToString("dd MMM yyyy"),
+            Items = x.Items.Select(i => new QuotationItemDto
+            {
+                Id = i.Id,
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                PurchasePrice = i.PurchasePrice,
+                Discount = i.Discount,
+                TaxPercent = i.TaxPercent,
+                TaxAmount = i.TaxAmount,
+                UnitCost = i.UnitCost,
+                TotalCost = i.TotalCost
+            }).ToList()
+        });
+    }
+
+    // POST api/quotations
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateQuotationDto dto)
+    {
+        var entity = new Quotation
+        {
+            Reference = dto.Reference ?? string.Empty,
+            CustomerId = dto.CustomerId,
+            CustomerName = dto.CustomerName,
+            CustomerImage = dto.CustomerImage,
+            ProductId = dto.ProductId,
+            ProductName = dto.ProductName,
+            ProductImage = dto.ProductImage,
+            OrderTax = dto.OrderTax,
+            Discount = dto.Discount,
+            Shipping = dto.Shipping,
+            GrandTotal = dto.GrandTotal,
+            Status = dto.Status,
+            Description = dto.Description,
+            QuotationDate = dto.QuotationDate != null ? DateTime.Parse(dto.QuotationDate) : DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            Items = dto.Items.Select(i => new QuotationItem
+            {
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                PurchasePrice = i.PurchasePrice,
+                Discount = i.Discount,
+                TaxPercent = i.TaxPercent,
+                TaxAmount = i.TaxAmount,
+                UnitCost = i.UnitCost,
+                TotalCost = i.TotalCost
+            }).ToList()
+        };
+        _db.Quotations.Add(entity);
+        await _db.SaveChangesAsync();
+        return Ok(new { entity.Id });
+    }
+
+    // PUT api/quotations/5
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateQuotationDto dto)
+    {
+        var entity = await _db.Quotations.Include(q => q.Items).FirstOrDefaultAsync(q => q.Id == id);
+        if (entity == null) return NotFound();
+
+        entity.Reference = dto.Reference ?? entity.Reference;
+        entity.CustomerId = dto.CustomerId;
+        entity.CustomerName = dto.CustomerName;
+        entity.CustomerImage = dto.CustomerImage;
+        entity.ProductId = dto.ProductId;
+        entity.ProductName = dto.ProductName;
+        entity.ProductImage = dto.ProductImage;
+        entity.OrderTax = dto.OrderTax;
+        entity.Discount = dto.Discount;
+        entity.Shipping = dto.Shipping;
+        entity.GrandTotal = dto.GrandTotal;
+        entity.Status = dto.Status;
+        entity.Description = dto.Description;
+        if (dto.QuotationDate != null) entity.QuotationDate = DateTime.Parse(dto.QuotationDate);
+
+        _db.QuotationItems.RemoveRange(entity.Items);
+        entity.Items = dto.Items.Select(i => new QuotationItem
+        {
+            QuotationId = id,
+            ProductId = i.ProductId,
+            ProductName = i.ProductName,
+            Quantity = i.Quantity,
+            PurchasePrice = i.PurchasePrice,
+            Discount = i.Discount,
+            TaxPercent = i.TaxPercent,
+            TaxAmount = i.TaxAmount,
+            UnitCost = i.UnitCost,
+            TotalCost = i.TotalCost
+        }).ToList();
+
+        await _db.SaveChangesAsync();
+        return Ok(new { entity.Id });
+    }
+
+    // DELETE api/quotations/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var entity = await _db.Quotations
+            .Include(q => q.Items)
+            .FirstOrDefaultAsync(q => q.Id == id);
+        if (entity == null) return NotFound();
+        _db.Quotations.Remove(entity);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+}

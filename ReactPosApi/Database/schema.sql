@@ -208,6 +208,57 @@ CREATE TABLE RepaymentEntries (
     CONSTRAINT FK_Repayment_Plan FOREIGN KEY (PlanId) REFERENCES InstallmentPlans(Id) ON DELETE CASCADE
 );
 
+-- Sales (Online Orders)
+CREATE TABLE Sales (
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    Reference       NVARCHAR(50) NOT NULL,
+    CustomerId      INT NULL,
+    CustomerName    NVARCHAR(100) NOT NULL DEFAULT '',
+    CustomerImage   NVARCHAR(255) NULL,
+    Biller          NVARCHAR(100) NOT NULL DEFAULT 'Admin',
+    GrandTotal      DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Paid            DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Due             DECIMAL(18,2) NOT NULL DEFAULT 0,
+    OrderTax        DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Discount        DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Shipping        DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Status          NVARCHAR(30) NOT NULL DEFAULT 'Pending',
+    PaymentStatus   NVARCHAR(30) NOT NULL DEFAULT 'Unpaid',
+    Notes           NVARCHAR(500) NULL,
+    Source          NVARCHAR(20) NOT NULL DEFAULT 'online',
+    SaleDate        DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CreatedAt       DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CONSTRAINT FK_Sales_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE SET NULL
+);
+
+CREATE TABLE SaleItems (
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    SaleId          INT NOT NULL,
+    ProductId       INT NOT NULL,
+    ProductName     NVARCHAR(200) NOT NULL DEFAULT '',
+    Quantity        INT NOT NULL DEFAULT 1,
+    PurchasePrice   DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Discount        DECIMAL(18,2) NOT NULL DEFAULT 0,
+    TaxPercent      DECIMAL(8,4) NOT NULL DEFAULT 0,
+    TaxAmount       DECIMAL(18,2) NOT NULL DEFAULT 0,
+    UnitCost        DECIMAL(18,2) NOT NULL DEFAULT 0,
+    TotalCost       DECIMAL(18,2) NOT NULL DEFAULT 0,
+    CONSTRAINT FK_SaleItems_Sales FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE CASCADE
+);
+
+CREATE TABLE SalePayments (
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    SaleId          INT NOT NULL,
+    Reference       NVARCHAR(100) NOT NULL DEFAULT '',
+    ReceivedAmount  DECIMAL(18,2) NOT NULL DEFAULT 0,
+    PayingAmount    DECIMAL(18,2) NOT NULL DEFAULT 0,
+    PaymentType     NVARCHAR(50) NOT NULL DEFAULT 'Cash',
+    Description     NVARCHAR(500) NULL,
+    PaymentDate     DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CreatedAt       DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CONSTRAINT FK_SalePayments_Sales FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE CASCADE
+);
+
 -- ============================================
 -- Seed Data - Lookup Tables
 -- ============================================
@@ -238,6 +289,48 @@ INSERT INTO Brands (Value, Label) VALUES
 ('apple', 'Apple'),
 ('amazon', 'Amazon'),
 ('woodmart', 'Woodmart');
+
+-- Invoices
+CREATE TABLE Invoices (
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    InvoiceNo       NVARCHAR(50) NOT NULL,
+    CustomerId      INT NULL,
+    CustomerName    NVARCHAR(100) NOT NULL DEFAULT '',
+    CustomerImage   NVARCHAR(255) NULL,
+    CustomerAddress NVARCHAR(200) NULL,
+    CustomerEmail   NVARCHAR(100) NULL,
+    CustomerPhone   NVARCHAR(50) NULL,
+    FromName        NVARCHAR(100) NOT NULL DEFAULT '',
+    FromAddress     NVARCHAR(200) NULL,
+    FromEmail       NVARCHAR(100) NULL,
+    FromPhone       NVARCHAR(50) NULL,
+    InvoiceFor      NVARCHAR(200) NULL,
+    SubTotal        DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Discount        DECIMAL(18,2) NOT NULL DEFAULT 0,
+    DiscountPercent DECIMAL(8,4) NOT NULL DEFAULT 0,
+    Tax             DECIMAL(18,2) NOT NULL DEFAULT 0,
+    TaxPercent      DECIMAL(8,4) NOT NULL DEFAULT 0,
+    TotalAmount     DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Paid            DECIMAL(18,2) NOT NULL DEFAULT 0,
+    AmountDue       DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Status          NVARCHAR(30) NOT NULL DEFAULT 'Unpaid',
+    Notes           NVARCHAR(500) NULL,
+    Terms           NVARCHAR(500) NULL,
+    DueDate         DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CreatedAt       DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CONSTRAINT FK_Invoices_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE SET NULL
+);
+
+CREATE TABLE InvoiceItems (
+    Id          INT IDENTITY(1,1) PRIMARY KEY,
+    InvoiceId   INT NOT NULL,
+    Description NVARCHAR(200) NOT NULL DEFAULT '',
+    Quantity    INT NOT NULL DEFAULT 1,
+    Cost        DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Discount    DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Total       DECIMAL(18,2) NOT NULL DEFAULT 0,
+    CONSTRAINT FK_InvoiceItems_Invoices FOREIGN KEY (InvoiceId) REFERENCES Invoices(Id) ON DELETE CASCADE
+);
 
 INSERT INTO Units (Value, Label) VALUES
 ('kg', 'Kg'),

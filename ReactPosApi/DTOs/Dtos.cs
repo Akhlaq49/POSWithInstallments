@@ -259,6 +259,56 @@ public class CreateStockAdjustmentDto
 }
 
 // ============================
+// Order
+// ============================
+public class OrderDto
+{
+    public int Id { get; set; }
+    public string OrderNumber { get; set; } = string.Empty;
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
+    public string PaymentType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string OrderDate { get; set; } = string.Empty;
+    public List<OrderItemDto> Items { get; set; } = new();
+}
+
+public class OrderItemDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+}
+
+public class CreateOrderDto
+{
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
+    public string PaymentType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Status { get; set; } = "Pending";
+    public List<CreateOrderItemDto> Items { get; set; } = new();
+}
+
+public class CreateOrderItemDto
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
+    public decimal Price { get; set; }
+}
+
+public class UpdateOrderStatusDto
+{
+    public string Status { get; set; } = string.Empty;
+}
+
+// ============================
 // Stock Transfer
 // ============================
 public class StockTransferDto
@@ -361,4 +411,310 @@ public class UpdateLowStockDto
     public string? ProductName { get; set; }
     public int? Quantity { get; set; }
     public int? QuantityAlert { get; set; }
+}
+
+// ============================
+// Sale (Online Orders)
+// ============================
+public class SaleDto
+{
+    public int Id { get; set; }
+    public string Reference { get; set; } = string.Empty;
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
+    public string Biller { get; set; } = string.Empty;
+    public decimal GrandTotal { get; set; }
+    public decimal Paid { get; set; }
+    public decimal Due { get; set; }
+    public decimal OrderTax { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Shipping { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string PaymentStatus { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public string Source { get; set; } = string.Empty;
+    public string SaleDate { get; set; } = string.Empty;
+    public List<SaleItemDto> Items { get; set; } = new();
+    public List<SalePaymentDto> Payments { get; set; } = new();
+}
+
+public class SaleItemDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal PurchasePrice { get; set; }
+    public decimal Discount { get; set; }
+    public decimal TaxPercent { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal UnitCost { get; set; }
+    public decimal TotalCost { get; set; }
+}
+
+public class SalePaymentDto
+{
+    public int Id { get; set; }
+    public string Reference { get; set; } = string.Empty;
+    public decimal ReceivedAmount { get; set; }
+    public decimal PayingAmount { get; set; }
+    public string PaymentType { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string PaymentDate { get; set; } = string.Empty;
+}
+
+public class CreateSaleDto
+{
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
+    public string Biller { get; set; } = "Admin";
+    public decimal GrandTotal { get; set; }
+    public decimal OrderTax { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Shipping { get; set; }
+    public string Status { get; set; } = "Pending";
+    public string? Notes { get; set; }
+    public string Source { get; set; } = "online";
+    public List<CreateSaleItemDto> Items { get; set; } = new();
+}
+
+public class CreateSaleItemDto
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
+    public decimal PurchasePrice { get; set; }
+    public decimal Discount { get; set; }
+    public decimal TaxPercent { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal UnitCost { get; set; }
+    public decimal TotalCost { get; set; }
+}
+
+public class CreateSalePaymentDto
+{
+    public string Reference { get; set; } = string.Empty;
+    public decimal ReceivedAmount { get; set; }
+    public decimal PayingAmount { get; set; }
+    public string PaymentType { get; set; } = "Cash";
+    public string? Description { get; set; }
+}
+
+// ============================
+// Invoice
+// ============================
+public class InvoiceDto
+{
+    public int Id { get; set; }
+    public string InvoiceNo { get; set; } = string.Empty;
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
+    public string? CustomerAddress { get; set; }
+    public string? CustomerEmail { get; set; }
+    public string? CustomerPhone { get; set; }
+    public string FromName { get; set; } = string.Empty;
+    public string? FromAddress { get; set; }
+    public string? FromEmail { get; set; }
+    public string? FromPhone { get; set; }
+    public string? InvoiceFor { get; set; }
+    public decimal SubTotal { get; set; }
+    public decimal Discount { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public decimal Tax { get; set; }
+    public decimal TaxPercent { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal Paid { get; set; }
+    public decimal AmountDue { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public string? Terms { get; set; }
+    public string DueDate { get; set; } = string.Empty;
+    public string CreatedAt { get; set; } = string.Empty;
+    public List<InvoiceItemDto> Items { get; set; } = new();
+}
+
+public class InvoiceItemDto
+{
+    public int Id { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal Cost { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Total { get; set; }
+}
+
+public class CreateInvoiceDto
+{
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
+    public string? CustomerAddress { get; set; }
+    public string? CustomerEmail { get; set; }
+    public string? CustomerPhone { get; set; }
+    public string FromName { get; set; } = string.Empty;
+    public string? FromAddress { get; set; }
+    public string? FromEmail { get; set; }
+    public string? FromPhone { get; set; }
+    public string? InvoiceFor { get; set; }
+    public decimal SubTotal { get; set; }
+    public decimal Discount { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public decimal Tax { get; set; }
+    public decimal TaxPercent { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal Paid { get; set; }
+    public decimal AmountDue { get; set; }
+    public string Status { get; set; } = "Unpaid";
+    public string? Notes { get; set; }
+    public string? Terms { get; set; }
+    public string? DueDate { get; set; }
+    public List<CreateInvoiceItemDto> Items { get; set; } = new();
+}
+
+public class CreateInvoiceItemDto
+{
+    public string Description { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
+    public decimal Cost { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Total { get; set; }
+}
+
+// ── Sales Return ──────────────────────────────────────────
+public class SalesReturnDto
+{
+    public int Id { get; set; }
+    public string Reference { get; set; } = string.Empty;
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
+    public int? ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? ProductImage { get; set; }
+    public decimal OrderTax { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Shipping { get; set; }
+    public decimal GrandTotal { get; set; }
+    public decimal Paid { get; set; }
+    public decimal Due { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string PaymentStatus { get; set; } = string.Empty;
+    public string ReturnDate { get; set; } = string.Empty;
+    public string CreatedAt { get; set; } = string.Empty;
+    public List<SalesReturnItemDto> Items { get; set; } = new();
+}
+
+public class SalesReturnItemDto
+{
+    public int Id { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public decimal NetUnitPrice { get; set; }
+    public int Stock { get; set; }
+    public int Quantity { get; set; }
+    public decimal Discount { get; set; }
+    public decimal TaxPercent { get; set; }
+    public decimal Subtotal { get; set; }
+}
+
+public class CreateSalesReturnDto
+{
+    public string? Reference { get; set; }
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
+    public int? ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? ProductImage { get; set; }
+    public decimal OrderTax { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Shipping { get; set; }
+    public decimal GrandTotal { get; set; }
+    public decimal Paid { get; set; }
+    public decimal Due { get; set; }
+    public string Status { get; set; } = "Pending";
+    public string PaymentStatus { get; set; } = "Unpaid";
+    public string? ReturnDate { get; set; }
+    public List<CreateSalesReturnItemDto> Items { get; set; } = new();
+}
+
+public class CreateSalesReturnItemDto
+{
+    public string ProductName { get; set; } = string.Empty;
+    public decimal NetUnitPrice { get; set; }
+    public int Stock { get; set; }
+    public int Quantity { get; set; } = 1;
+    public decimal Discount { get; set; }
+    public decimal TaxPercent { get; set; }
+    public decimal Subtotal { get; set; }
+}
+
+// ── Quotation ──────────────────────────────────────────
+public class QuotationDto
+{
+    public int Id { get; set; }
+    public string Reference { get; set; } = string.Empty;
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
+    public int? ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? ProductImage { get; set; }
+    public decimal OrderTax { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Shipping { get; set; }
+    public decimal GrandTotal { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string QuotationDate { get; set; } = string.Empty;
+    public string CreatedAt { get; set; } = string.Empty;
+    public List<QuotationItemDto> Items { get; set; } = new();
+}
+
+public class QuotationItemDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal PurchasePrice { get; set; }
+    public decimal Discount { get; set; }
+    public decimal TaxPercent { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal UnitCost { get; set; }
+    public decimal TotalCost { get; set; }
+}
+
+public class CreateQuotationDto
+{
+    public string? Reference { get; set; }
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
+    public int? ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? ProductImage { get; set; }
+    public decimal OrderTax { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Shipping { get; set; }
+    public decimal GrandTotal { get; set; }
+    public string Status { get; set; } = "Pending";
+    public string? Description { get; set; }
+    public string? QuotationDate { get; set; }
+    public List<CreateQuotationItemDto> Items { get; set; } = new();
+}
+
+public class CreateQuotationItemDto
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
+    public decimal PurchasePrice { get; set; }
+    public decimal Discount { get; set; }
+    public decimal TaxPercent { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal UnitCost { get; set; }
+    public decimal TotalCost { get; set; }
 }
