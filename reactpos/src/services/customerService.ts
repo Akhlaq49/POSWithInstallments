@@ -11,6 +11,7 @@ export interface Customer {
   city: string;
   picture?: string;
   status: 'active' | 'inactive';
+  miscBalance?: number;
 }
 
 export async function getCustomers(): Promise<Customer[]> {

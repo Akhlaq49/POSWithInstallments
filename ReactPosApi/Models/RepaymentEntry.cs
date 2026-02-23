@@ -29,6 +29,12 @@ public class RepaymentEntry
     [MaxLength(20)]
     public string? PaidDate { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? ActualPaidAmount { get; set; } // Actual cash amount paid by customer
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? MiscAdjustedAmount { get; set; } // Amount adjusted from misc register
+
     // Navigation
     [ForeignKey("PlanId")]
     public InstallmentPlan? Plan { get; set; }

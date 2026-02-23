@@ -6,9 +6,10 @@ import {
   RepaymentEntry,
   GuarantorDto,
   getInstallmentById,
-  markInstallmentPaid,
+  payInstallment,
   deleteGuarantor,
 } from '../../services/installmentService';
+import { getCustomerMiscBalance } from '../../services/miscService';
 
 const InstallmentDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,8 @@ const InstallmentDetails: React.FC = () => {
   const [payInstNo, setPayInstNo] = useState<number | null>(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [selectedGuarantor, setSelectedGuarantor] = useState<GuarantorDto | null>(null);
+  const [paymentForm, setPaymentForm] = useState({ amount: 0, useMiscBalance: false, paymentMethod: 'Cash', notes: '' });
+  const [customerMiscBalance, setCustomerMiscBalance] = useState(0);
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -45,12 +48,16 @@ const InstallmentDetails: React.FC = () => {
 
   const totalPaid = useMemo(() => {
     if (!plan) return 0;
-    return plan.schedule.filter((e) => e.status === 'paid').reduce((s, e) => s + e.emiAmount, 0) + plan.downPayment;
+    return plan.schedule
+      .filter((e) => e.status === 'paid' || e.status === 'partial')
+      .reduce((s, e) => s + (e.actualPaidAmount || 0), 0) + plan.downPayment;
   }, [plan]);
 
   const totalRemaining = useMemo(() => {
     if (!plan) return 0;
-    return plan.schedule.filter((e) => e.status !== 'paid').reduce((s, e) => s + e.emiAmount, 0);
+    return plan.schedule
+      .filter((e) => e.status !== 'paid')
+      .reduce((s, e) => s + e.emiAmount - (e.actualPaidAmount || 0) - (e.miscAdjustedAmount || 0), 0);
   }, [plan]);
 
   const progressPercent = useMemo(() => {
@@ -58,39 +65,64 @@ const InstallmentDetails: React.FC = () => {
     return Math.round((plan.paidInstallments / plan.tenure) * 100);
   }, [plan]);
 
-  const openPayModal = (instNo: number) => {
+  const openPayModal = async (instNo: number) => {
+    if (!plan) return;
+    
+    const installment = plan.schedule.find(s => s.installmentNo === instNo);
+    const emiAmount = installment?.emiAmount || 0;
+    const previouslyPaid = (installment?.actualPaidAmount || 0) + (installment?.miscAdjustedAmount || 0);
+    const remainingAmount = emiAmount - previouslyPaid;
+    
     setPayInstNo(instNo);
+    setPaymentForm({ 
+      amount: remainingAmount, 
+      useMiscBalance: false, 
+      paymentMethod: 'Cash', 
+      notes: '' 
+    });
+    
+    // Fetch customer misc balance
+    try {
+      const balance = await getCustomerMiscBalance(plan.customerId || '');
+      setCustomerMiscBalance(balance);
+    } catch {
+      setCustomerMiscBalance(0);
+    }
+    
     setShowPayModal(true);
   };
 
   const handlePay = async () => {
-    if (!plan || payInstNo === null) return;
+    if (!plan || payInstNo === null || paymentForm.amount <= 0) return;
+    
     setPayingNo(payInstNo);
-    await markInstallmentPaid(plan.id, payInstNo);
+    try {
+      const result = await payInstallment(plan.id, payInstNo, paymentForm);
+      
+      if (result.status === 'partial') {
+        alert(`Partial payment recorded. Remaining amount: Rs ${result.remainingForEntry?.toFixed(2) || '0.00'}`);
+      } else if (result.overpayment > 0) {
+        alert(`Payment successful! Overpayment of Rs ${result.overpayment.toFixed(2)} has been added to the customer's misc account.`);
+      }
 
-    // Update local state
-    const updatedSchedule = plan.schedule.map((entry) =>
-      entry.installmentNo === payInstNo ? { ...entry, status: 'paid' as const, paidDate: new Date().toISOString().split('T')[0] } : entry
-    );
-    const paidCount = updatedSchedule.filter((e) => e.status === 'paid').length;
-    const nextDue = updatedSchedule.find((e) => e.status !== 'paid');
-
-    setPlan({
-      ...plan,
-      schedule: updatedSchedule,
-      paidInstallments: paidCount,
-      remainingInstallments: plan.tenure - paidCount,
-      nextDueDate: nextDue?.dueDate || '',
-      status: paidCount === plan.tenure ? 'completed' : plan.status,
-    });
-    setPayingNo(null);
-    setShowPayModal(false);
-    setPayInstNo(null);
+      // Refresh the plan data to get updated information
+      const updatedPlan = await getInstallmentById(id || '');
+      setPlan(updatedPlan);
+      
+    } catch (error) {
+      alert('Payment failed. Please try again.');
+      console.error('Payment error:', error);
+    } finally {
+      setPayingNo(null);
+      setShowPayModal(false);
+      setPayInstNo(null);
+    }
   };
 
   const statusBadgeEntry = (status: RepaymentEntry['status']) => {
     const map: Record<string, { cls: string; label: string }> = {
       paid: { cls: 'bg-success', label: 'Paid' },
+      partial: { cls: 'bg-info', label: 'Partial' },
       due: { cls: 'bg-warning', label: 'Due Now' },
       overdue: { cls: 'bg-danger', label: 'Overdue' },
       upcoming: { cls: 'bg-secondary', label: 'Upcoming' },
@@ -141,8 +173,8 @@ const InstallmentDetails: React.FC = () => {
         <div className="col-xl-3 col-sm-6">
           <div className="card">
             <div className="card-body text-center">
-              <p className="mb-1 text-muted">Product Price</p>
-              <h4 className="fw-bold">Rs {fmt(plan.productPrice)}</h4>
+              <p className="mb-1 text-muted">Finance Amount</p>
+              <h4 className="fw-bold">Rs {fmt(plan.financeAmount ?? plan.financedAmount)}</h4>
             </div>
           </div>
         </div>
@@ -309,6 +341,7 @@ const InstallmentDetails: React.FC = () => {
                       <th>#</th>
                       <th>Due Date</th>
                       <th>EMI Amount</th>
+                      <th>Paid</th>
                       <th>Principal</th>
                       <th>Interest</th>
                       <th>Balance</th>
@@ -323,6 +356,7 @@ const InstallmentDetails: React.FC = () => {
                       <td>-</td>
                       <td>{plan.startDate}</td>
                       <td className="fw-medium">Rs {fmt(plan.downPayment)}</td>
+                      <td className="text-success">Rs {fmt(plan.downPayment)}</td>
                       <td>Rs {fmt(plan.downPayment)}</td>
                       <td>-</td>
                       <td>Rs {fmt(plan.financedAmount)}</td>
@@ -331,17 +365,27 @@ const InstallmentDetails: React.FC = () => {
                       <td></td>
                     </tr>
                     {plan.schedule.map((entry) => (
-                      <tr key={entry.installmentNo} className={entry.status === 'overdue' ? 'table-danger' : entry.status === 'due' ? 'table-warning' : ''}>
+                      <tr key={entry.installmentNo} className={entry.status === 'overdue' ? 'table-danger' : entry.status === 'due' ? 'table-warning' : entry.status === 'partial' ? 'table-info' : ''}>
                         <td className="fw-medium">{entry.installmentNo}</td>
                         <td>{entry.dueDate}</td>
                         <td className="fw-medium">Rs {fmt(entry.emiAmount)}</td>
+                        <td className={entry.status === 'partial' ? 'text-info fw-medium' : entry.status === 'paid' ? 'text-success fw-medium' : ''}>
+                          {entry.actualPaidAmount != null && entry.actualPaidAmount > 0 
+                            ? <>Rs {fmt(entry.actualPaidAmount)}{entry.status === 'partial' && <small className="text-muted d-block">/ Rs {fmt(entry.emiAmount)}</small>}</>
+                            : entry.miscAdjustedAmount != null && entry.miscAdjustedAmount > 0 
+                              ? <small className="text-muted">Misc only</small>
+                              : '-'}
+                          {entry.miscAdjustedAmount != null && entry.miscAdjustedAmount > 0 && (
+                            <small className="text-info d-block"><i className="ti ti-wallet me-1"></i>Rs {fmt(entry.miscAdjustedAmount)} from Misc</small>
+                          )}
+                        </td>
                         <td>Rs {fmt(entry.principal)}</td>
                         <td className="text-danger">Rs {fmt(entry.interest)}</td>
                         <td>Rs {fmt(entry.balance)}</td>
                         <td>{statusBadgeEntry(entry.status)}</td>
                         <td>{entry.paidDate || '-'}</td>
                         <td>
-                          {(entry.status === 'due' || entry.status === 'overdue') && plan.status === 'active' && (
+                          {(entry.status === 'due' || entry.status === 'overdue' || entry.status === 'partial') && plan.status === 'active' && (
                             <button
                               className="btn btn-sm btn-success"
                               disabled={payingNo === entry.installmentNo}
@@ -350,7 +394,7 @@ const InstallmentDetails: React.FC = () => {
                               {payingNo === entry.installmentNo ? (
                                 <span className="spinner-border spinner-border-sm"></span>
                               ) : (
-                                <><i className="ti ti-check me-1"></i>Pay</>
+                                <><i className="ti ti-check me-1"></i>{entry.status === 'partial' ? 'Complete' : 'Pay'}</>
                               )}
                             </button>
                           )}
@@ -362,6 +406,9 @@ const InstallmentDetails: React.FC = () => {
                     <tr>
                       <td colSpan={2}>Total</td>
                       <td>Rs {fmt(plan.schedule.reduce((s, e) => s + e.emiAmount, 0))}</td>
+                      <td className="text-success">
+                        Rs {fmt(plan.schedule.reduce((s, e) => s + (e.actualPaidAmount || 0), 0))}
+                      </td>
                       <td>Rs {fmt(plan.schedule.reduce((s, e) => s + e.principal, 0))}</td>
                       <td className="text-danger">Rs {fmt(plan.schedule.reduce((s, e) => s + e.interest, 0))}</td>
                       <td colSpan={4}></td>
@@ -374,22 +421,148 @@ const InstallmentDetails: React.FC = () => {
         </div>
       </div>
 
-      {/* Pay Confirmation Modal */}
+      {/* Pay Installment Modal */}
       {showPayModal && payInstNo !== null && (
         <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex={-1}>
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog modal-dialog-centered modal-lg">
             <div className="modal-content">
-              <div className="page-wrapper-new p-0">
-                <div className="content p-5 px-3 text-center">
-                  <span className="rounded-circle d-inline-flex p-2 bg-success-transparent mb-2"><i className="ti ti-check fs-24 text-success"></i></span>
-                  <h4 className="fs-20 fw-bold mb-2 mt-1">Confirm Payment</h4>
-                  <p className="mb-1 fs-16">Mark installment <strong>#{payInstNo}</strong> as paid?</p>
-                  <p className="mb-0 text-muted">Amount: <strong>Rs {fmt(plan.schedule.find((e) => e.installmentNo === payInstNo)?.emiAmount || 0)}</strong></p>
-                  <div className="modal-footer-btn mt-3 d-flex justify-content-center">
-                    <button type="button" className="btn me-2 btn-secondary fs-13 fw-medium p-2 px-3 shadow-none" onClick={() => setShowPayModal(false)}>Cancel</button>
-                    <button type="button" className="btn btn-success fs-13 fw-medium p-2 px-3" onClick={handlePay}>Confirm Payment</button>
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold"><i className="ti ti-credit-card me-2"></i>Pay Installment #{payInstNo}</h5>
+                <button type="button" className="btn-close" onClick={() => setShowPayModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">EMI Amount<span className="text-danger ms-1">*</span></label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      value={`Rs ${(plan.schedule.find(e => e.installmentNo === payInstNo)?.emiAmount || 0).toFixed(2)}`}
+                      disabled 
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">
+                      {(() => {
+                        const inst = plan.schedule.find(e => e.installmentNo === payInstNo);
+                        const prevCash = inst?.actualPaidAmount || 0;
+                        const prevMisc = inst?.miscAdjustedAmount || 0;
+                        const prevTotal = prevCash + prevMisc;
+                        if (prevTotal > 0) {
+                          const parts = [];
+                          if (prevCash > 0) parts.push(`Cash: Rs ${prevCash.toFixed(2)}`);
+                          if (prevMisc > 0) parts.push(`Misc: Rs ${prevMisc.toFixed(2)}`);
+                          return `Remaining Amount (${parts.join(', ')})`;
+                        }
+                        return 'Payment Amount';
+                      })()}
+                      <span className="text-danger ms-1">*</span>
+                    </label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      placeholder="Enter payment amount"
+                      value={paymentForm.amount}
+                      onChange={(e) => setPaymentForm({...paymentForm, amount: parseFloat(e.target.value) || 0})}
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Payment Method</label>
+                    <select 
+                      className="form-select" 
+                      value={paymentForm.paymentMethod}
+                      onChange={(e) => setPaymentForm({...paymentForm, paymentMethod: e.target.value})}
+                    >
+                      <option value="Cash">Cash</option>
+                      <option value="Card">Card</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Check">Check</option>
+                    </select>
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Customer Misc Balance</label>
+                    <div className="input-group">
+                      <span className="input-group-text">Rs</span>
+                      <input 
+                        type="text" 
+                        className={`form-control ${customerMiscBalance >= 0 ? 'text-success' : 'text-danger'}`}
+                        value={customerMiscBalance.toFixed(2)}
+                        disabled 
+                      />
+                    </div>
+                  </div>
+                  {customerMiscBalance > 0 && (
+                    <div className="col-12 mb-3">
+                      <div className="form-check">
+                        <input 
+                          className="form-check-input" 
+                          type="checkbox" 
+                          id="useMiscBalance"
+                          checked={paymentForm.useMiscBalance}
+                          onChange={(e) => setPaymentForm({...paymentForm, useMiscBalance: e.target.checked})}
+                        />
+                        <label className="form-check-label" htmlFor="useMiscBalance">
+                          Use misc balance for future installments
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                  <div className="col-12 mb-0">
+                    <label className="form-label">Notes</label>
+                    <textarea 
+                      className="form-control" 
+                      rows={2} 
+                      placeholder="Optional payment notes"
+                      value={paymentForm.notes}
+                      onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                    />
                   </div>
                 </div>
+                {(() => {
+                  const inst = plan.schedule.find(e => e.installmentNo === payInstNo);
+                  const emi = inst?.emiAmount || 0;
+                  const prevCash = inst?.actualPaidAmount || 0;
+                  const prevMisc = inst?.miscAdjustedAmount || 0;
+                  const prevTotal = prevCash + prevMisc;
+                  const remaining = emi - prevTotal;
+                  const totalAfterPay = prevTotal + paymentForm.amount;
+                  
+                  if (paymentForm.amount > 0 && totalAfterPay > emi) {
+                    const excess = totalAfterPay - emi;
+                    return (
+                      <div className="alert alert-info mt-3">
+                        <i className="ti ti-info-circle me-2"></i>
+                        <strong>Overpayment:</strong> Rs {excess.toFixed(2)} will be added to the customer's misc account.
+                      </div>
+                    );
+                  } else if (paymentForm.amount > 0 && paymentForm.amount < remaining) {
+                    return (
+                      <div className="alert alert-warning mt-3">
+                        <i className="ti ti-alert-triangle me-2"></i>
+                        <strong>Underpayment:</strong> This installment will be marked as <strong>Partial</strong>. 
+                        Remaining after payment: Rs {(remaining - paymentForm.amount).toFixed(2)}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPayModal(false)}>Cancel</button>
+                <button 
+                  type="button" 
+                  className="btn btn-success" 
+                  onClick={handlePay}
+                  disabled={paymentForm.amount <= 0 || payingNo !== null}
+                >
+                  {payingNo === payInstNo ? (
+                    <><span className="spinner-border spinner-border-sm me-2"></span>Processing...</>
+                  ) : (
+                    <><i className="ti ti-check me-1"></i>Process Payment</>
+                  )}
+                </button>
               </div>
             </div>
           </div>

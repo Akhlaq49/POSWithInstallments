@@ -99,6 +99,7 @@ public class CustomerDto
     public string City { get; set; } = string.Empty;
     public string? Picture { get; set; }
     public string Status { get; set; } = "active";
+    public decimal MiscBalance { get; set; } = 0.00m;
 }
 
 public class CreateCustomerDto
@@ -126,6 +127,8 @@ public class RepaymentEntryDto
     public decimal Balance { get; set; }
     public string Status { get; set; } = "upcoming";
     public string? PaidDate { get; set; }
+    public decimal? ActualPaidAmount { get; set; }
+    public decimal? MiscAdjustedAmount { get; set; }
 }
 
 public class GuarantorDto
@@ -143,6 +146,7 @@ public class GuarantorDto
 public class InstallmentPlanDto
 {
     public string Id { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public string? CustomerSo { get; set; }
     public string? CustomerCnic { get; set; }
@@ -179,6 +183,14 @@ public class CreateInstallmentDto
     public decimal InterestRate { get; set; }
     public int Tenure { get; set; }
     public string StartDate { get; set; } = string.Empty;
+}
+
+public class PayInstallmentDto
+{
+    public decimal Amount { get; set; }
+    public bool UseMiscBalance { get; set; } = false;
+    public string? PaymentMethod { get; set; } = "Cash";
+    public string? Notes { get; set; }
 }
 
 // ============================
@@ -775,4 +787,32 @@ public class CreateCouponDto
     public int? ProductId { get; set; }
     public string? ProductName { get; set; }
     public string Status { get; set; } = "Active";
+}
+
+// ============================
+// Miscellaneous Register
+// ============================
+public class MiscellaneousRegisterDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public string TransactionType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public decimal Balance { get; set; } = 0.00m;
+    public string Description { get; set; } = string.Empty;
+    public string? ReferenceId { get; set; }
+    public string ReferenceType { get; set; } = string.Empty;
+    public string CreatedAt { get; set; } = string.Empty;
+    public string? CreatedBy { get; set; }
+}
+
+public class CreateMiscTransactionDto
+{
+    public int CustomerId { get; set; }
+    public string TransactionType { get; set; } = string.Empty; // Credit, Debit
+    public decimal Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string? ReferenceId { get; set; }
+    public string ReferenceType { get; set; } = "ManualAdjustment";
 }

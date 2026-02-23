@@ -300,6 +300,7 @@ const Customers: React.FC = () => {
                     <th>CNIC</th>
                     <th>Phone</th>
                     <th>City</th>
+                    <th>Misc Balance</th>
                     <th>Status</th>
                     <th style={{ width: 120 }}>Actions</th>
                   </tr>
@@ -319,6 +320,11 @@ const Customers: React.FC = () => {
                       <td>{c.cnic || '-'}</td>
                       <td>{c.phone || '-'}</td>
                       <td>{c.city || '-'}</td>
+                      <td>
+                        <span className={`fw-medium ${(c.miscBalance || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
+                          ${(c.miscBalance || 0).toFixed(2)}
+                        </span>
+                      </td>
                       <td>
                         <span className={`badge fw-medium fs-10 ${c.status === 'active' ? 'bg-success' : 'bg-danger'}`}>
                           {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
@@ -423,6 +429,14 @@ const Customers: React.FC = () => {
                     <tbody>
                       {viewCustomer.so && <tr><td className="text-muted"><i className="ti ti-user me-2"></i>S/O</td><td className="text-end fw-medium">{viewCustomer.so}</td></tr>}
                       {viewCustomer.cnic && <tr><td className="text-muted"><i className="ti ti-id me-2"></i>CNIC</td><td className="text-end fw-medium">{viewCustomer.cnic}</td></tr>}
+                      <tr>
+                        <td className="text-muted"><i className="ti ti-wallet me-2"></i>Misc Balance</td>
+                        <td className="text-end fw-medium">
+                          <span className={`${(viewCustomer.miscBalance || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
+                            ${(viewCustomer.miscBalance || 0).toFixed(2)}
+                          </span>
+                        </td>
+                      </tr>
                       {viewCustomer.phone && <tr><td className="text-muted"><i className="ti ti-phone me-2"></i>Phone</td><td className="text-end fw-medium">{viewCustomer.phone}</td></tr>}
                       {viewCustomer.email && <tr><td className="text-muted"><i className="ti ti-mail me-2"></i>Email</td><td className="text-end fw-medium">{viewCustomer.email}</td></tr>}
                       {viewCustomer.city && <tr><td className="text-muted"><i className="ti ti-building me-2"></i>City</td><td className="text-end fw-medium">{viewCustomer.city}</td></tr>}

@@ -26,7 +26,13 @@ public class CustomersController : ControllerBase
     {
         var list = await _db.Customers
             .OrderByDescending(c => c.CreatedAt)
-            .Select(c => new CustomerDto
+            .ToListAsync();
+
+        var customerDtos = new List<CustomerDto>();
+        foreach (var c in list)
+        {
+            var miscBalance = await CalculateMiscBalance(c.Id);
+            customerDtos.Add(new CustomerDto
             {
                 Id = c.Id.ToString(),
                 Name = c.Name,
@@ -37,10 +43,11 @@ public class CustomersController : ControllerBase
                 Address = c.Address ?? "",
                 City = c.City ?? "",
                 Picture = c.Picture,
-                Status = c.Status
-            })
-            .ToListAsync();
-        return Ok(list);
+                Status = c.Status,
+                MiscBalance = miscBalance
+            });
+        }
+        return Ok(customerDtos);
     }
 
     // GET api/customers/5
@@ -49,6 +56,8 @@ public class CustomersController : ControllerBase
     {
         var c = await _db.Customers.FindAsync(id);
         if (c == null) return NotFound();
+        
+        var miscBalance = await CalculateMiscBalance(id);
         return Ok(new CustomerDto
         {
             Id = c.Id.ToString(),
@@ -60,7 +69,8 @@ public class CustomersController : ControllerBase
             Address = c.Address ?? "",
             City = c.City ?? "",
             Picture = c.Picture,
-            Status = c.Status
+            Status = c.Status,
+            MiscBalance = miscBalance
         });
     }
 
@@ -82,6 +92,7 @@ public class CustomersController : ControllerBase
         _db.Customers.Add(entity);
         await _db.SaveChangesAsync();
 
+        var miscBalance = await CalculateMiscBalance(entity.Id);
         return CreatedAtAction(nameof(GetById), new { id = entity.Id }, new CustomerDto
         {
             Id = entity.Id.ToString(),
@@ -93,7 +104,8 @@ public class CustomersController : ControllerBase
             Address = entity.Address ?? "",
             City = entity.City ?? "",
             Picture = entity.Picture,
-            Status = entity.Status
+            Status = entity.Status,
+            MiscBalance = miscBalance
         });
     }
 
@@ -147,6 +159,7 @@ public class CustomersController : ControllerBase
         entity.Picture = $"/uploads/customers/{fileName}";
         await _db.SaveChangesAsync();
 
+        var miscBalance = await CalculateMiscBalance(id);
         return Ok(new CustomerDto
         {
             Id = entity.Id.ToString(),
@@ -158,7 +171,8 @@ public class CustomersController : ControllerBase
             Address = entity.Address ?? "",
             City = entity.City ?? "",
             Picture = entity.Picture,
-            Status = entity.Status
+            Status = entity.Status,
+            MiscBalance = miscBalance
         });
     }
 
@@ -172,5 +186,17 @@ public class CustomersController : ControllerBase
         _db.Customers.Remove(entity);
         await _db.SaveChangesAsync();
         return NoContent();
+    }
+
+    private async Task<decimal> CalculateMiscBalance(int customerId)
+    {
+        var transactions = await _db.MiscellaneousRegisters
+            .Where(m => m.CustomerId == customerId)
+            .ToListAsync();
+
+        var credits = transactions.Where(t => t.TransactionType == "Credit").Sum(t => t.Amount);
+        var debits = transactions.Where(t => t.TransactionType == "Debit").Sum(t => t.Amount);
+
+        return credits - debits;
     }
 }

@@ -205,7 +205,22 @@ CREATE TABLE RepaymentEntries (
     Balance         DECIMAL(18,2) NOT NULL DEFAULT 0,
     Status          NVARCHAR(20) NOT NULL DEFAULT 'upcoming', -- paid | due | overdue | upcoming
     PaidDate        NVARCHAR(20) NULL,
+    ActualPaidAmount DECIMAL(18,2) NULL, -- Actual amount paid (can be more than EmiAmount for overpayments)
     CONSTRAINT FK_Repayment_Plan FOREIGN KEY (PlanId) REFERENCES InstallmentPlans(Id) ON DELETE CASCADE
+);
+
+-- Miscellaneous Register for Customer Balance Tracking
+CREATE TABLE MiscellaneousRegister (
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    CustomerId      INT NOT NULL,
+    TransactionType NVARCHAR(100) NOT NULL, -- Credit, Debit, Adjustment
+    Amount          DECIMAL(18,2) NOT NULL,
+    Description     NVARCHAR(500) NOT NULL,
+    ReferenceId     NVARCHAR(50) NULL, -- Link to installment plan or payment ID
+    ReferenceType   NVARCHAR(50) NOT NULL, -- InstallmentPayment, ManualAdjustment, etc.
+    CreatedAt       DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CreatedBy       NVARCHAR(100) NULL,
+    CONSTRAINT FK_MiscRegister_Customer FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE
 );
 
 -- Sales (Online Orders)

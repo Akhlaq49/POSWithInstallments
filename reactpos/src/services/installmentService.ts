@@ -13,6 +13,7 @@ export interface GuarantorDto {
 
 export interface InstallmentPlan {
   id: string;
+  customerId: string;
   customerName: string;
   customerSo?: string;
   customerCnic?: string;
@@ -47,8 +48,10 @@ export interface RepaymentEntry {
   principal: number;
   interest: number;
   balance: number;
-  status: 'paid' | 'due' | 'overdue' | 'upcoming';
+  status: 'paid' | 'partial' | 'due' | 'overdue' | 'upcoming';
   paidDate?: string;
+  actualPaidAmount?: number;
+  miscAdjustedAmount?: number;
 }
 
 export interface CreateInstallmentPayload {
@@ -176,8 +179,21 @@ export async function createInstallment(payload: CreateInstallmentPayload): Prom
   return response.data;
 }
 
+export interface PayInstallmentRequest {
+  amount: number;
+  useMiscBalance: boolean;
+  paymentMethod?: string;
+  notes?: string;
+}
+
+export async function payInstallment(planId: string, installmentNo: number, payment: PayInstallmentRequest): Promise<{ message: string; overpayment: number; status: string; actualPaidAmount: number; remainingForEntry: number }> {
+  const response = await api.put(`/installments/${planId}/pay/${installmentNo}`, payment);
+  return response.data;
+}
+
+// Deprecated - use payInstallment instead
 export async function markInstallmentPaid(planId: string, installmentNo: number): Promise<void> {
-  await api.put(`/installments/${planId}/pay/${installmentNo}`);
+  await api.put(`/installments/${planId}/pay/${installmentNo}`, { amount: 0, useMiscBalance: false });
 }
 
 export async function cancelInstallment(id: string): Promise<void> {

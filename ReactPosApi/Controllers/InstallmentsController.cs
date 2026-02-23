@@ -112,7 +112,7 @@ public class InstallmentsController : ControllerBase
 
     // PUT api/installments/5/pay/3
     [HttpPut("{planId}/pay/{installmentNo}")]
-    public async Task<IActionResult> MarkPaid(int planId, int installmentNo)
+    public async Task<IActionResult> MarkPaid(int planId, int installmentNo, [FromBody] PayInstallmentDto paymentDto)
     {
         var plan = await _db.InstallmentPlans
             .Include(p => p.Customer)
@@ -125,13 +125,58 @@ public class InstallmentsController : ControllerBase
         if (entry == null) return NotFound(new { message = "Installment entry not found" });
         if (entry.Status == "paid") return BadRequest(new { message = "Already paid" });
 
-        entry.Status = "paid";
-        entry.PaidDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var paidAmount = paymentDto.Amount;
+        var emiAmount = entry.EmiAmount;
+
+        // Calculate previously paid amount (for partial installments being completed)
+        var previouslyPaid = (entry.ActualPaidAmount ?? 0m) + (entry.MiscAdjustedAmount ?? 0m);
+        var remainingAmount = emiAmount - previouslyPaid;
+        var totalPaidForEntry = previouslyPaid + paidAmount;
+
+        decimal overpayment = 0;
+
+        if (totalPaidForEntry >= emiAmount)
+        {
+            // Full payment (or completing a partial)
+            entry.Status = "paid";
+            entry.PaidDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
+            entry.ActualPaidAmount = (entry.ActualPaidAmount ?? 0m) + paidAmount;
+
+            overpayment = totalPaidForEntry - emiAmount;
+
+            // Handle overpayment - add to misc account
+            if (overpayment > 0)
+            {
+                var miscTransaction = new MiscellaneousRegister
+                {
+                    CustomerId = plan.Customer!.Id,
+                    TransactionType = "Credit",
+                    Amount = overpayment,
+                    Description = $"Overpayment for installment #{installmentNo} (Paid: {paidAmount:C}, EMI: {emiAmount:C})",
+                    ReferenceId = planId.ToString(),
+                    ReferenceType = "InstallmentPayment",
+                    CreatedBy = "System"
+                };
+                _db.MiscellaneousRegisters.Add(miscTransaction);
+            }
+        }
+        else
+        {
+            // Underpayment - mark as partial
+            entry.Status = "partial";
+            entry.ActualPaidAmount = (entry.ActualPaidAmount ?? 0m) + paidAmount;
+        }
+
+        // Check if customer wants to use misc balance for future installments
+        if (paymentDto.UseMiscBalance && plan.Customer != null)
+        {
+            await ApplyMiscBalanceToInstallments(planId, plan.Customer.Id);
+        }
 
         plan.PaidInstallments = plan.Schedule.Count(s => s.Status == "paid");
         plan.RemainingInstallments = plan.Tenure - plan.PaidInstallments;
 
-        // Update next due date
+        // Update next due date (partial installments are still due)
         var nextDue = plan.Schedule
             .Where(s => s.Status != "paid")
             .OrderBy(s => s.InstallmentNo)
@@ -145,7 +190,17 @@ public class InstallmentsController : ControllerBase
         }
 
         await _db.SaveChangesAsync();
-        return Ok(new { message = "Installment marked as paid" });
+        var totalSettled = (entry.ActualPaidAmount ?? 0) + (entry.MiscAdjustedAmount ?? 0);
+        return Ok(new { 
+            message = entry.Status == "partial" 
+                ? $"Partial payment recorded. Remaining: {(emiAmount - totalSettled):C}" 
+                : "Payment processed successfully", 
+            overpayment = overpayment > 0 ? overpayment : 0,
+            status = entry.Status,
+            actualPaidAmount = entry.ActualPaidAmount,
+            miscAdjustedAmount = entry.MiscAdjustedAmount ?? 0,
+            remainingForEntry = entry.Status == "partial" ? emiAmount - totalSettled : 0
+        });
     }
 
     // DELETE api/installments/5  (cancel)
@@ -307,6 +362,7 @@ public class InstallmentsController : ControllerBase
     private static InstallmentPlanDto MapToDto(InstallmentPlan p) => new()
     {
         Id = p.Id.ToString(),
+        CustomerId = p.CustomerId.ToString(),
         CustomerName = p.Customer?.Name ?? "",
         CustomerSo = p.Customer?.SO,
         CustomerCnic = p.Customer?.Cnic,
@@ -339,7 +395,9 @@ public class InstallmentsController : ControllerBase
             Interest = s.Interest,
             Balance = s.Balance,
             Status = s.Status,
-            PaidDate = s.PaidDate
+            PaidDate = s.PaidDate,
+            ActualPaidAmount = s.ActualPaidAmount,
+            MiscAdjustedAmount = s.MiscAdjustedAmount
         }).ToList(),
         Guarantors = (p.Guarantors ?? new List<Guarantor>()).Select(g => new GuarantorDto
         {
@@ -353,4 +411,100 @@ public class InstallmentsController : ControllerBase
             Picture = g.Picture
         }).ToList()
     };
+
+    private async Task ApplyMiscBalanceToInstallments(int planId, int customerId)
+    {
+        // Calculate current misc balance
+        var transactions = await _db.MiscellaneousRegisters
+            .Where(m => m.CustomerId == customerId)
+            .ToListAsync();
+
+        var credits = transactions.Where(t => t.TransactionType == "Credit").Sum(t => t.Amount);
+        var debits = transactions.Where(t => t.TransactionType == "Debit").Sum(t => t.Amount);
+        var availableBalance = credits - debits;
+
+        if (availableBalance <= 0) return;
+
+        // Get unpaid installments for this plan
+        var plan = await _db.InstallmentPlans
+            .Include(p => p.Schedule)
+            .FirstOrDefaultAsync(p => p.Id == planId);
+
+        if (plan == null) return;
+
+        var unpaidInstallments = plan.Schedule
+            .Where(s => s.Status != "paid")
+            .OrderBy(s => s.InstallmentNo)
+            .ToList();
+
+        foreach (var installment in unpaidInstallments)
+        {
+            if (availableBalance <= 0) break;
+
+            var emiAmount = installment.EmiAmount;
+            var previouslyPaid = (installment.ActualPaidAmount ?? 0m) + (installment.MiscAdjustedAmount ?? 0m);
+            var remainingForEntry = emiAmount - previouslyPaid;
+            var amountToApply = Math.Min(availableBalance, remainingForEntry);
+
+            if (amountToApply >= remainingForEntry)
+            {
+                // Full payment from misc balance
+                installment.Status = "paid";
+                installment.PaidDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
+                // Don't overwrite ActualPaidAmount - keep original cash amount
+                installment.MiscAdjustedAmount = (installment.MiscAdjustedAmount ?? 0m) + remainingForEntry;
+
+                // Create debit transaction
+                var miscTransaction = new MiscellaneousRegister
+                {
+                    CustomerId = customerId,
+                    TransactionType = "Debit",
+                    Amount = remainingForEntry,
+                    Description = $"Adjusted {remainingForEntry:C} from misc balance for installment #{installment.InstallmentNo}",
+                    ReferenceId = planId.ToString(),
+                    ReferenceType = "InstallmentPayment",
+                    CreatedBy = "System"
+                };
+                _db.MiscellaneousRegisters.Add(miscTransaction);
+
+                availableBalance -= remainingForEntry;
+            }
+            else if (amountToApply > 0)
+            {
+                // Partial payment from misc balance
+                installment.Status = "partial";
+                // Don't overwrite ActualPaidAmount - keep original cash amount
+                installment.MiscAdjustedAmount = (installment.MiscAdjustedAmount ?? 0m) + amountToApply;
+
+                var miscTransaction = new MiscellaneousRegister
+                {
+                    CustomerId = customerId,
+                    TransactionType = "Debit",
+                    Amount = amountToApply,
+                    Description = $"Partially adjusted {amountToApply:C} from misc balance for installment #{installment.InstallmentNo}",
+                    ReferenceId = planId.ToString(),
+                    ReferenceType = "PartialInstallmentPayment",
+                    CreatedBy = "System"
+                };
+                _db.MiscellaneousRegisters.Add(miscTransaction);
+
+                availableBalance = 0;
+            }
+        }
+
+        // Update plan statistics
+        plan.PaidInstallments = plan.Schedule.Count(s => s.Status == "paid");
+        plan.RemainingInstallments = plan.Tenure - plan.PaidInstallments;
+
+        var nextDue = plan.Schedule
+            .Where(s => s.Status != "paid")
+            .OrderBy(s => s.InstallmentNo)
+            .FirstOrDefault();
+        plan.NextDueDate = nextDue?.DueDate ?? "";
+
+        if (plan.PaidInstallments >= plan.Tenure)
+        {
+            plan.Status = "completed";
+        }
+    }
 }

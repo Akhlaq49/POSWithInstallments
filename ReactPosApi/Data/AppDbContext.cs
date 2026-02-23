@@ -40,6 +40,7 @@ public class AppDbContext : DbContext
 
     // Customers
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<MiscellaneousRegister> MiscellaneousRegisters => Set<MiscellaneousRegister>();
 
     // Installments
     public DbSet<InstallmentPlan> InstallmentPlans => Set<InstallmentPlan>();
