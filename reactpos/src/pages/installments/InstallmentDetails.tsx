@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { mediaUrl } from '../../services/api';
+import { mediaUrl, MEDIA_BASE_URL } from '../../services/api';
 import {
   InstallmentPlan,
   RepaymentEntry,
+  GuarantorDto,
   getInstallmentById,
   markInstallmentPaid,
+  deleteGuarantor,
 } from '../../services/installmentService';
 
 const InstallmentDetails: React.FC = () => {
@@ -16,6 +18,8 @@ const InstallmentDetails: React.FC = () => {
   const [payingNo, setPayingNo] = useState<number | null>(null);
   const [showPayModal, setShowPayModal] = useState(false);
   const [payInstNo, setPayInstNo] = useState<number | null>(null);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [selectedGuarantor, setSelectedGuarantor] = useState<GuarantorDto | null>(null);
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -172,12 +176,23 @@ const InstallmentDetails: React.FC = () => {
         {/* Left: Customer & Product Details */}
         <div className="col-xl-4">
           {/* Customer Card */}
-          <div className="card">
-            <div className="card-header"><h5 className="card-title mb-0"><i className="ti ti-user me-2"></i>Customer</h5></div>
+          <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowCustomerModal(true)}>
+            <div className="card-header"><h5 className="card-title mb-0"><i className="ti ti-user me-2"></i>Customer <i className="ti ti-chevron-right float-end fs-14 text-muted"></i></h5></div>
             <div className="card-body">
-              <p className="mb-2"><strong>Name:</strong> {plan.customerName}</p>
-              <p className="mb-2"><strong>Phone:</strong> {plan.customerPhone}</p>
-              <p className="mb-0"><strong>Address:</strong> {plan.customerAddress}</p>
+              <div className="d-flex align-items-center mb-3">
+                {plan.customerImage ? (
+                  <img src={`${MEDIA_BASE_URL}${plan.customerImage}`} alt={plan.customerName} className="rounded-circle border me-3" style={{ width: 56, height: 56, objectFit: 'cover' }} />
+                ) : (
+                  <span className="avatar avatar-lg me-3 bg-primary-transparent text-primary d-flex align-items-center justify-content-center rounded-circle fw-bold fs-20">
+                    {plan.customerName.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <div>
+                  <h6 className="fw-bold mb-1">{plan.customerName}</h6>
+                  <small className="text-muted">{plan.customerPhone}</small>
+                </div>
+              </div>
+              <p className="mb-0 text-muted small"><i className="ti ti-map-pin me-1"></i>{plan.customerAddress || 'No address'}</p>
             </div>
           </div>
 
@@ -201,6 +216,9 @@ const InstallmentDetails: React.FC = () => {
             <div className="card-body">
               <table className="table table-borderless table-sm mb-0">
                 <tbody>
+                  {plan.financeAmount != null && plan.financeAmount > 0 && plan.financeAmount !== plan.productPrice && (
+                    <tr><td className="text-muted">Finance Amount</td><td className="text-end text-info fw-bold">Rs {fmt(plan.financeAmount)}</td></tr>
+                  )}
                   <tr><td className="text-muted">Down Payment</td><td className="text-end">Rs {fmt(plan.downPayment)}</td></tr>
                   <tr><td className="text-muted">Financed Amount</td><td className="text-end">Rs {fmt(plan.financedAmount)}</td></tr>
                   <tr><td className="text-muted">Interest Rate</td><td className="text-end">{plan.interestRate}% p.a.</td></tr>
@@ -232,6 +250,45 @@ const InstallmentDetails: React.FC = () => {
               {plan.nextDueDate && <p className="mt-2 mb-0 text-muted"><small>Next due: <strong>{plan.nextDueDate}</strong></small></p>}
             </div>
           </div>
+
+          {/* Guarantors */}
+          {plan.guarantors && plan.guarantors.length > 0 && (
+            <div className="card">
+              <div className="card-header">
+                <h5 className="card-title mb-0"><i className="ti ti-shield-check me-2"></i>Guarantors ({plan.guarantors.length})</h5>
+              </div>
+              <div className="card-body">
+                {plan.guarantors.map((g, idx) => (
+                  <div key={g.id} className={`${idx > 0 ? 'border-top pt-3 mt-3' : ''}`}>
+                    <div className="d-flex align-items-start gap-3" style={{ cursor: 'pointer' }} onClick={() => setSelectedGuarantor(g)}>
+                      {g.picture ? (
+                        <img src={`${MEDIA_BASE_URL}${g.picture}`} alt={g.name} className="rounded border" style={{ width: 64, height: 64, objectFit: 'cover' }} />
+                      ) : (
+                        <div className="rounded border bg-light d-flex align-items-center justify-content-center" style={{ width: 64, height: 64 }}>
+                          <i className="ti ti-user fs-24 text-muted"></i>
+                        </div>
+                      )}
+                      <div className="flex-fill">
+                        <h6 className="fw-bold mb-1">{g.name}</h6>
+                        {g.so && <p className="mb-1 small text-muted">S/O: {g.so}</p>}
+                        {g.relationship && <span className="badge bg-primary-transparent text-primary me-2 mb-1">{g.relationship}</span>}
+                        {g.phone && <p className="mb-1 small"><i className="ti ti-phone me-1"></i>{g.phone}</p>}
+                      </div>
+                      <button className="btn btn-sm btn-outline-danger" title="Remove guarantor" onClick={(e) => {
+                        e.stopPropagation();
+                        if (!window.confirm(`Remove guarantor ${g.name}?`)) return;
+                        deleteGuarantor(g.id).then(() => {
+                          setPlan({ ...plan, guarantors: plan.guarantors.filter(x => x.id !== g.id) });
+                        });
+                      }}>
+                        <i className="ti ti-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right: Repayment Schedule */}
@@ -333,6 +390,147 @@ const InstallmentDetails: React.FC = () => {
                     <button type="button" className="btn btn-success fs-13 fw-medium p-2 px-3" onClick={handlePay}>Confirm Payment</button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Detail Modal */}
+      {showCustomerModal && plan && (
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex={-1} onClick={() => setShowCustomerModal(false)}>
+          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold"><i className="ti ti-user me-2"></i>Customer Details</h5>
+                <button type="button" className="btn-close" onClick={() => setShowCustomerModal(false)}></button>
+              </div>
+              <div className="modal-body text-center">
+                {plan.customerImage ? (
+                  <img src={`${MEDIA_BASE_URL}${plan.customerImage}`} alt={plan.customerName} className="rounded-circle border mb-3" style={{ width: 120, height: 120, objectFit: 'cover' }} />
+                ) : (
+                  <div className="rounded-circle bg-primary-transparent text-primary d-inline-flex align-items-center justify-content-center mb-3" style={{ width: 120, height: 120 }}>
+                    <span className="fs-1 fw-bold">{plan.customerName.charAt(0).toUpperCase()}</span>
+                  </div>
+                )}
+                <h4 className="fw-bold mb-1">{plan.customerName}</h4>
+                <p className="text-muted mb-3">Customer</p>
+                <div className="text-start border rounded p-3">
+                  <div className="row">
+                    {plan.customerSo && (
+                    <div className="col-12 mb-2">
+                      <div className="d-flex align-items-center">
+                        <i className="ti ti-user me-2 text-primary fs-18"></i>
+                        <div>
+                          <small className="text-muted d-block">S/O (Father's Name)</small>
+                          <span className="fw-medium">{plan.customerSo}</span>
+                        </div>
+                      </div>
+                    </div>
+                    )}
+                    {plan.customerCnic && (
+                    <div className="col-12 mb-2">
+                      <div className="d-flex align-items-center">
+                        <i className="ti ti-id me-2 text-primary fs-18"></i>
+                        <div>
+                          <small className="text-muted d-block">CNIC</small>
+                          <span className="fw-medium">{plan.customerCnic}</span>
+                        </div>
+                      </div>
+                    </div>
+                    )}
+                    <div className="col-12 mb-2">
+                      <div className="d-flex align-items-center">
+                        <i className="ti ti-phone me-2 text-primary fs-18"></i>
+                        <div>
+                          <small className="text-muted d-block">Phone</small>
+                          <span className="fw-medium">{plan.customerPhone || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-12 mb-2">
+                      <div className="d-flex align-items-center">
+                        <i className="ti ti-map-pin me-2 text-primary fs-18"></i>
+                        <div>
+                          <small className="text-muted d-block">Address</small>
+                          <span className="fw-medium">{plan.customerAddress || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCustomerModal(false)}>Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guarantor Detail Modal */}
+      {selectedGuarantor && (
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex={-1} onClick={() => setSelectedGuarantor(null)}>
+          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold"><i className="ti ti-shield-check me-2"></i>Guarantor Details</h5>
+                <button type="button" className="btn-close" onClick={() => setSelectedGuarantor(null)}></button>
+              </div>
+              <div className="modal-body text-center">
+                {selectedGuarantor.picture ? (
+                  <img src={`${MEDIA_BASE_URL}${selectedGuarantor.picture}`} alt={selectedGuarantor.name} className="rounded-circle border mb-3" style={{ width: 120, height: 120, objectFit: 'cover' }} />
+                ) : (
+                  <div className="rounded-circle bg-warning-transparent text-warning d-inline-flex align-items-center justify-content-center mb-3" style={{ width: 120, height: 120 }}>
+                    <span className="fs-1 fw-bold">{selectedGuarantor.name.charAt(0).toUpperCase()}</span>
+                  </div>
+                )}
+                <h4 className="fw-bold mb-1">{selectedGuarantor.name}</h4>
+                {selectedGuarantor.so && <p className="text-muted mb-1">S/O: {selectedGuarantor.so}</p>}
+                {selectedGuarantor.relationship && <span className="badge bg-primary-transparent text-primary mb-3">{selectedGuarantor.relationship}</span>}
+                <div className="text-start border rounded p-3 mt-2">
+                  <div className="row">
+                    <div className="col-12 mb-2">
+                      <div className="d-flex align-items-center">
+                        <i className="ti ti-phone me-2 text-primary fs-18"></i>
+                        <div>
+                          <small className="text-muted d-block">Phone</small>
+                          <span className="fw-medium">{selectedGuarantor.phone || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-12 mb-2">
+                      <div className="d-flex align-items-center">
+                        <i className="ti ti-id me-2 text-primary fs-18"></i>
+                        <div>
+                          <small className="text-muted d-block">CNIC / ID Number</small>
+                          <span className="fw-medium">{selectedGuarantor.cnic || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-12 mb-2">
+                      <div className="d-flex align-items-center">
+                        <i className="ti ti-map-pin me-2 text-primary fs-18"></i>
+                        <div>
+                          <small className="text-muted d-block">Address</small>
+                          <span className="fw-medium">{selectedGuarantor.address || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-12 mb-0">
+                      <div className="d-flex align-items-center">
+                        <i className="ti ti-users me-2 text-primary fs-18"></i>
+                        <div>
+                          <small className="text-muted d-block">Relationship</small>
+                          <span className="fw-medium">{selectedGuarantor.relationship || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setSelectedGuarantor(null)}>Close</button>
               </div>
             </div>
           </div>

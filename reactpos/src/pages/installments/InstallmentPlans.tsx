@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { InstallmentPlan, getInstallmentPlans, cancelInstallment } from '../../services/installmentService';
-import { mediaUrl } from '../../services/api';
+import { mediaUrl, MEDIA_BASE_URL } from '../../services/api';
 
 const InstallmentPlans: React.FC = () => {
   const [plans, setPlans] = useState<InstallmentPlan[]>([]);
@@ -196,8 +196,19 @@ const InstallmentPlans: React.FC = () => {
                         <label className="checkboxs"><input type="checkbox" checked={selectedIds.has(plan.id)} onChange={(e) => handleSelectOne(plan.id, e.target.checked)} /><span className="checkmarks"></span></label>
                       </td>
                       <td>
-                        <span className="text-gray-9 fw-medium">{plan.customerName}</span>
-                        <br /><small className="text-muted">{plan.customerPhone}</small>
+                        <div className="d-flex align-items-center">
+                          {plan.customerImage ? (
+                            <img src={`${MEDIA_BASE_URL}${plan.customerImage}`} alt={plan.customerName} className="rounded-circle border me-2" style={{ width: 36, height: 36, objectFit: 'cover' }} />
+                          ) : (
+                            <span className="avatar avatar-sm me-2 bg-primary-transparent text-primary d-flex align-items-center justify-content-center rounded-circle fw-bold">
+                              {plan.customerName.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                          <div>
+                            <span className="text-gray-9 fw-medium">{plan.customerName}</span>
+                            <br /><small className="text-muted">{plan.customerPhone}</small>
+                          </div>
+                        </div>
                       </td>
                       <td>
                         <div className="d-flex align-items-center">

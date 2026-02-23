@@ -13,7 +13,8 @@ namespace ReactPosApi.Controllers;
 public class InstallmentsController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public InstallmentsController(AppDbContext db) => _db = db;
+    private readonly IWebHostEnvironment _env;
+    public InstallmentsController(AppDbContext db, IWebHostEnvironment env) { _db = db; _env = env; }
 
     // GET api/installments
     [HttpGet]
@@ -23,6 +24,7 @@ public class InstallmentsController : ControllerBase
             .Include(p => p.Customer)
             .Include(p => p.Product).ThenInclude(pr => pr!.Images)
             .Include(p => p.Schedule.OrderBy(s => s.InstallmentNo))
+            .Include(p => p.Guarantors)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
         return Ok(plans.Select(MapToDto).ToList());
@@ -36,6 +38,7 @@ public class InstallmentsController : ControllerBase
             .Include(p => p.Customer)
             .Include(p => p.Product).ThenInclude(pr => pr!.Images)
             .Include(p => p.Schedule.OrderBy(s => s.InstallmentNo))
+            .Include(p => p.Guarantors)
             .FirstOrDefaultAsync(p => p.Id == id);
         if (plan == null) return NotFound();
         return Ok(MapToDto(plan));
@@ -54,16 +57,21 @@ public class InstallmentsController : ControllerBase
         if (product == null) return BadRequest(new { message = "Product not found" });
 
         var productPrice = product.Price;
-        var financedAmount = productPrice - dto.DownPayment;
+        // Use custom finance amount if provided, otherwise fall back to product price
+        var baseAmount = dto.FinanceAmount.HasValue && dto.FinanceAmount.Value > 0
+            ? dto.FinanceAmount.Value
+            : productPrice;
+        var financedAmount = baseAmount - dto.DownPayment;
         var emi = CalculateEMI(financedAmount, dto.InterestRate, dto.Tenure);
         var totalPayable = dto.DownPayment + emi * dto.Tenure;
-        var totalInterest = totalPayable - productPrice;
+        var totalInterest = totalPayable - baseAmount;
 
         var plan = new InstallmentPlan
         {
             CustomerId = dto.CustomerId,
             ProductId = dto.ProductId,
             ProductPrice = productPrice,
+            FinanceAmount = dto.FinanceAmount,
             DownPayment = dto.DownPayment,
             FinancedAmount = financedAmount,
             InterestRate = dto.InterestRate,
@@ -152,6 +160,103 @@ public class InstallmentsController : ControllerBase
         return NoContent();
     }
 
+    // ── Guarantor Endpoints ─────────────────────────────────
+
+    // POST api/installments/5/guarantors
+    [HttpPost("{planId}/guarantors")]
+    public async Task<IActionResult> AddGuarantor(int planId, [FromForm] string name, [FromForm] string? so, [FromForm] string? phone,
+        [FromForm] string? cnic, [FromForm] string? address, [FromForm] string? relationship, IFormFile? picture)
+    {
+        var plan = await _db.InstallmentPlans.FindAsync(planId);
+        if (plan == null) return NotFound(new { message = "Plan not found" });
+
+        string? picturePath = null;
+        if (picture != null)
+            picturePath = await SaveFile(picture, "guarantors");
+
+        var guarantor = new Guarantor
+        {
+            PlanId = planId,
+            Name = name,
+            SO = so,
+            Phone = phone,
+            Cnic = cnic,
+            Address = address,
+            Relationship = relationship,
+            Picture = picturePath
+        };
+
+        _db.Guarantors.Add(guarantor);
+        await _db.SaveChangesAsync();
+
+        return Ok(new GuarantorDto
+        {
+            Id = guarantor.Id,
+            Name = guarantor.Name,
+            SO = guarantor.SO,
+            Phone = guarantor.Phone,
+            Cnic = guarantor.Cnic,
+            Address = guarantor.Address,
+            Relationship = guarantor.Relationship,
+            Picture = guarantor.Picture
+        });
+    }
+
+    // PUT api/installments/guarantors/7
+    [HttpPut("guarantors/{guarantorId}")]
+    public async Task<IActionResult> UpdateGuarantor(int guarantorId, [FromForm] string name, [FromForm] string? so, [FromForm] string? phone,
+        [FromForm] string? cnic, [FromForm] string? address, [FromForm] string? relationship, IFormFile? picture)
+    {
+        var guarantor = await _db.Guarantors.FindAsync(guarantorId);
+        if (guarantor == null) return NotFound();
+
+        guarantor.Name = name;
+        guarantor.SO = so;
+        guarantor.Phone = phone;
+        guarantor.Cnic = cnic;
+        guarantor.Address = address;
+        guarantor.Relationship = relationship;
+
+        if (picture != null)
+            guarantor.Picture = await SaveFile(picture, "guarantors");
+
+        await _db.SaveChangesAsync();
+        return Ok(new GuarantorDto
+        {
+            Id = guarantor.Id,
+            Name = guarantor.Name,
+            SO = guarantor.SO,
+            Phone = guarantor.Phone,
+            Cnic = guarantor.Cnic,
+            Address = guarantor.Address,
+            Relationship = guarantor.Relationship,
+            Picture = guarantor.Picture
+        });
+    }
+
+    // DELETE api/installments/guarantors/7
+    [HttpDelete("guarantors/{guarantorId}")]
+    public async Task<IActionResult> DeleteGuarantor(int guarantorId)
+    {
+        var guarantor = await _db.Guarantors.FindAsync(guarantorId);
+        if (guarantor == null) return NotFound();
+        _db.Guarantors.Remove(guarantor);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // ── File Upload Helper ──────────────────────────────────
+    private async Task<string> SaveFile(IFormFile file, string folder)
+    {
+        var uploadsDir = Path.Combine(_env.ContentRootPath, "wwwroot", "uploads", folder);
+        Directory.CreateDirectory(uploadsDir);
+        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+        var filePath = Path.Combine(uploadsDir, fileName);
+        using var stream = new FileStream(filePath, FileMode.Create);
+        await file.CopyToAsync(stream);
+        return $"/uploads/{folder}/{fileName}";
+    }
+
     // ---- EMI Calculation ----
 
     private static decimal CalculateEMI(decimal principal, decimal annualRate, int months)
@@ -203,11 +308,15 @@ public class InstallmentsController : ControllerBase
     {
         Id = p.Id.ToString(),
         CustomerName = p.Customer?.Name ?? "",
+        CustomerSo = p.Customer?.SO,
+        CustomerCnic = p.Customer?.Cnic,
         CustomerPhone = p.Customer?.Phone ?? "",
         CustomerAddress = p.Customer?.Address ?? "",
+        CustomerImage = p.Customer?.Picture,
         ProductName = p.Product?.ProductName ?? "",
         ProductImage = p.Product?.Images.FirstOrDefault()?.ImagePath ?? "/assets/img/products/stock-img-01.png",
         ProductPrice = p.ProductPrice,
+        FinanceAmount = p.FinanceAmount,
         DownPayment = p.DownPayment,
         FinancedAmount = p.FinancedAmount,
         InterestRate = p.InterestRate,
@@ -231,6 +340,17 @@ public class InstallmentsController : ControllerBase
             Balance = s.Balance,
             Status = s.Status,
             PaidDate = s.PaidDate
+        }).ToList(),
+        Guarantors = (p.Guarantors ?? new List<Guarantor>()).Select(g => new GuarantorDto
+        {
+            Id = g.Id,
+            Name = g.Name,
+            SO = g.SO,
+            Phone = g.Phone,
+            Cnic = g.Cnic,
+            Address = g.Address,
+            Relationship = g.Relationship,
+            Picture = g.Picture
         }).ToList()
     };
 }

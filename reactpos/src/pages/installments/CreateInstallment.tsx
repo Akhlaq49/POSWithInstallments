@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mediaUrl } from '../../services/api';
+import { mediaUrl, MEDIA_BASE_URL } from '../../services/api';
 import {
   CreateInstallmentPayload,
   calculateEMI,
   generateRepaymentSchedule,
   createInstallment,
+  addGuarantor,
   RepaymentEntry,
 } from '../../services/installmentService';
 import { getProducts, ProductResponse } from '../../services/productService';
-import { getCustomers, Customer } from '../../services/customerService';
+import { getCustomers, Customer, createCustomer, uploadCustomerPicture } from '../../services/customerService';
 
 const CreateInstallment: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +25,13 @@ const CreateInstallment: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const customerSearchRef = useRef<HTMLDivElement>(null);
 
+  // New customer modal state
+  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
+  const [newCustomerSaving, setNewCustomerSaving] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: '', so: '', cnic: '', phone: '', email: '', address: '', city: '' });
+  const [newCustomerPicture, setNewCustomerPicture] = useState<File | null>(null);
+  const [newCustomerPicturePreview, setNewCustomerPicturePreview] = useState('');
+
   // Product search state
   const [products, setProducts] = useState<ProductResponse[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -35,21 +43,37 @@ const CreateInstallment: React.FC = () => {
   const [form, setForm] = useState<CreateInstallmentPayload>({
     customerId: 0,
     productId: 0,
+    financeAmount: undefined as number | undefined,
     downPayment: 0,
     interestRate: 0,
     tenure: 12,
     startDate: new Date().toISOString().split('T')[0],
   });
 
+  // Guarantors local state
+  interface LocalGuarantor {
+    name: string;
+    so: string;
+    phone: string;
+    cnic: string;
+    address: string;
+    relationship: string;
+    pictureFile: File | null;
+    picturePreview: string;
+  }
+  const emptyGuarantor: LocalGuarantor = { name: '', so: '', phone: '', cnic: '', address: '', relationship: '', pictureFile: null, picturePreview: '' };
+  const [guarantors, setGuarantors] = useState<LocalGuarantor[]>([]);
+
   // Preview data
   const productPrice = selectedProduct?.price ?? 0;
-  const financedAmount = productPrice - form.downPayment;
+  const baseAmount = (form.financeAmount && form.financeAmount > 0) ? form.financeAmount : productPrice;
+  const financedAmount = baseAmount - form.downPayment;
   const emi = useMemo(
     () => (financedAmount > 0 && form.tenure > 0 ? calculateEMI(financedAmount, form.interestRate, form.tenure) : 0),
     [financedAmount, form.interestRate, form.tenure]
   );
   const totalPayable = form.downPayment + emi * form.tenure;
-  const totalInterest = totalPayable - productPrice;
+  const totalInterest = totalPayable - baseAmount;
   const schedule: RepaymentEntry[] = useMemo(
     () => (financedAmount > 0 && form.tenure > 0 ? generateRepaymentSchedule(financedAmount, form.interestRate, form.tenure, form.startDate) : []),
     [financedAmount, form.interestRate, form.tenure, form.startDate]
@@ -142,6 +166,27 @@ const CreateInstallment: React.FC = () => {
     }));
   }, []);
 
+  const handleCreateCustomer = async () => {
+    if (!newCustomer.name.trim()) return;
+    setNewCustomerSaving(true);
+    try {
+      let created = await createCustomer({ ...newCustomer, status: 'active' } as Omit<Customer, 'id'>);
+      if (newCustomerPicture) {
+        created = await uploadCustomerPicture(created.id, newCustomerPicture);
+      }
+      setCustomers(prev => [created, ...prev]);
+      handleSelectCustomer(created);
+      setShowNewCustomerModal(false);
+      setNewCustomer({ name: '', so: '', cnic: '', phone: '', email: '', address: '', city: '' });
+      setNewCustomerPicture(null);
+      setNewCustomerPicturePreview('');
+    } catch {
+      setError('Failed to create customer.');
+    } finally {
+      setNewCustomerSaving(false);
+    }
+  };
+
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return products;
     const q = productSearch.toLowerCase();
@@ -172,7 +217,7 @@ const CreateInstallment: React.FC = () => {
     }));
   }, []);
 
-  const isValid = form.customerId > 0 && form.productId > 0 && productPrice > 0 && form.downPayment >= 0 && form.downPayment < productPrice && form.tenure > 0 && form.startDate;
+  const isValid = form.customerId > 0 && form.productId > 0 && baseAmount > 0 && form.downPayment >= 0 && form.downPayment < baseAmount && form.tenure > 0 && form.startDate;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,7 +226,20 @@ const CreateInstallment: React.FC = () => {
     setError('');
 
     try {
-      await createInstallment(form);
+      const result = await createInstallment(form);
+      // Upload guarantors
+      for (const g of guarantors) {
+        if (!g.name.trim()) continue;
+        const fd = new FormData();
+        fd.append('name', g.name);
+        fd.append('so', g.so);
+        fd.append('phone', g.phone);
+        fd.append('cnic', g.cnic);
+        fd.append('address', g.address);
+        fd.append('relationship', g.relationship);
+        if (g.pictureFile) fd.append('picture', g.pictureFile);
+        await addGuarantor(result.id, fd);
+      }
       navigate('/installment-plans');
     } catch {
       setError('Failed to create installment plan. Please try again.');
@@ -215,8 +273,11 @@ const CreateInstallment: React.FC = () => {
           <div className="col-xl-7">
             {/* Customer Information */}
             <div className="card">
-              <div className="card-header">
+              <div className="card-header d-flex align-items-center justify-content-between">
                 <h5 className="card-title mb-0"><i className="ti ti-user me-2"></i>Customer Information</h5>
+                <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => setShowNewCustomerModal(true)}>
+                  <i className="ti ti-plus me-1"></i>New Customer
+                </button>
               </div>
               <div className="card-body">
                 <div className="row">
@@ -262,9 +323,13 @@ const CreateInstallment: React.FC = () => {
                                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = selectedCustomer?.id === customer.id ? '' : '#f8f9fa')}
                                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = selectedCustomer?.id === customer.id ? '' : '')}
                               >
-                                <span className="avatar avatar-md me-2 bg-primary-transparent text-primary d-flex align-items-center justify-content-center rounded-circle fw-bold">
-                                  {customer.name.charAt(0).toUpperCase()}
-                                </span>
+                                {customer.picture ? (
+                                  <img src={`${MEDIA_BASE_URL}${customer.picture}`} alt={customer.name} className="rounded-circle border me-2" style={{ width: 36, height: 36, objectFit: 'cover' }} />
+                                ) : (
+                                  <span className="avatar avatar-md me-2 bg-primary-transparent text-primary d-flex align-items-center justify-content-center rounded-circle fw-bold">
+                                    {customer.name.charAt(0).toUpperCase()}
+                                  </span>
+                                )}
                                 <div className="flex-grow-1">
                                   <h6 className="mb-0 fs-13 fw-medium">{customer.name}</h6>
                                   <small className="text-muted">{customer.phone} &bull; {customer.email || '-'}</small>
@@ -284,12 +349,18 @@ const CreateInstallment: React.FC = () => {
                   {selectedCustomer && (
                     <div className="col-12 mb-3">
                       <div className="alert alert-success d-flex align-items-center mb-0" role="alert">
-                        <span className="avatar avatar-lg me-3 bg-success-transparent text-success d-flex align-items-center justify-content-center rounded-circle fw-bold fs-20">
-                          {selectedCustomer.name.charAt(0).toUpperCase()}
-                        </span>
+                        {selectedCustomer.picture ? (
+                          <img src={`${MEDIA_BASE_URL}${selectedCustomer.picture}`} alt={selectedCustomer.name} className="rounded-circle border me-3" style={{ width: 48, height: 48, objectFit: 'cover' }} />
+                        ) : (
+                          <span className="avatar avatar-lg me-3 bg-success-transparent text-success d-flex align-items-center justify-content-center rounded-circle fw-bold fs-20">
+                            {selectedCustomer.name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
                         <div className="flex-grow-1">
                           <h6 className="mb-1 fw-bold">{selectedCustomer.name}</h6>
                           <div className="d-flex gap-3 flex-wrap">
+                            {selectedCustomer.so && <small><strong>S/O:</strong> {selectedCustomer.so}</small>}
+                            {selectedCustomer.cnic && <small><strong>CNIC:</strong> {selectedCustomer.cnic}</small>}
                             <small><strong>Phone:</strong> {selectedCustomer.phone}</small>
                             <small><strong>Email:</strong> {selectedCustomer.email || '-'}</small>
                             <small><strong>City:</strong> {selectedCustomer.city || '-'}</small>
@@ -312,6 +383,90 @@ const CreateInstallment: React.FC = () => {
                     <textarea className="form-control" rows={2} value={selectedCustomer?.address ?? ''} readOnly placeholder="Auto-filled from customer" />
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Guarantors */}
+            <div className="card">
+              <div className="card-header d-flex align-items-center justify-content-between">
+                <h5 className="card-title mb-0"><i className="ti ti-shield-check me-2"></i>Guarantors</h5>
+                <button type="button" className="btn btn-sm btn-primary" onClick={() => setGuarantors(prev => [...prev, { ...emptyGuarantor }])}>
+                  <i className="ti ti-plus me-1"></i>Add Guarantor
+                </button>
+              </div>
+              <div className="card-body">
+                {guarantors.length === 0 && (
+                  <p className="text-muted text-center mb-0">No guarantors added. Click "Add Guarantor" to add one.</p>
+                )}
+                {guarantors.map((g, idx) => (
+                  <div key={idx} className={`border rounded p-3 ${idx > 0 ? 'mt-3' : ''}`}>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h6 className="fw-bold mb-0">Guarantor #{idx + 1}</h6>
+                      <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => setGuarantors(prev => prev.filter((_, i) => i !== idx))}>
+                        <i className="ti ti-trash me-1"></i>Remove
+                      </button>
+                    </div>
+                    <div className="row">
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">Full Name<span className="text-danger ms-1">*</span></label>
+                        <input type="text" className="form-control" placeholder="Guarantor name" value={g.name}
+                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, name: e.target.value } : item))} />
+                      </div>
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">S/O (Father's Name)</label>
+                        <input type="text" className="form-control" placeholder="Son/Daughter of" value={g.so}
+                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, so: e.target.value } : item))} />
+                      </div>
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">Phone</label>
+                        <input type="text" className="form-control" placeholder="Phone number" value={g.phone}
+                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, phone: e.target.value } : item))} />
+                      </div>
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">CNIC / ID Number</label>
+                        <input type="text" className="form-control" placeholder="CNIC or ID number" value={g.cnic}
+                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, cnic: e.target.value } : item))} />
+                      </div>
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">Relationship</label>
+                        <select className="form-select" value={g.relationship}
+                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, relationship: e.target.value } : item))}>
+                          <option value="">Select Relationship</option>
+                          <option value="Father">Father</option>
+                          <option value="Brother">Brother</option>
+                          <option value="Uncle">Uncle</option>
+                          <option value="Friend">Friend</option>
+                          <option value="Colleague">Colleague</option>
+                          <option value="Employer">Employer</option>
+                          <option value="Neighbor">Neighbor</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div className="col-12 mb-3">
+                        <label className="form-label">Address</label>
+                        <textarea className="form-control" rows={2} placeholder="Full address" value={g.address}
+                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, address: e.target.value } : item))} />
+                      </div>
+                      <div className="col-12 mb-0">
+                        <label className="form-label">Photo / ID Picture</label>
+                        <div className="d-flex align-items-center gap-3">
+                          <input type="file" className="form-control" accept="image/*"
+                            onChange={e => {
+                              const file = e.target.files?.[0] || null;
+                              setGuarantors(prev => prev.map((item, i) => i === idx ? {
+                                ...item,
+                                pictureFile: file,
+                                picturePreview: file ? URL.createObjectURL(file) : ''
+                              } : item));
+                            }} />
+                          {g.picturePreview && (
+                            <img src={g.picturePreview} alt="Preview" className="rounded border" style={{ width: 60, height: 60, objectFit: 'cover' }} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -412,6 +567,11 @@ const CreateInstallment: React.FC = () => {
                     <label className="form-label">Product Price (Rs)<span className="text-danger ms-1">*</span></label>
                     <input type="number" className="form-control" value={productPrice || ''} readOnly placeholder="Auto-filled from product" />
                   </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Finance Amount (Rs)</label>
+                    <input type="number" className="form-control" min={0} step="0.01" value={form.financeAmount ?? ''} onChange={(e) => set('financeAmount', parseFloat(e.target.value) || 0)} placeholder="Leave blank to use product price" />
+                    <small className="text-muted">Custom finance amount (defaults to product price if blank)</small>
+                  </div>
                 </div>
               </div>
             </div>
@@ -426,7 +586,7 @@ const CreateInstallment: React.FC = () => {
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Down Payment (Rs)<span className="text-danger ms-1">*</span></label>
                     <input type="number" className="form-control" min={0} step="0.01" value={form.downPayment || ''} onChange={(e) => set('downPayment', parseFloat(e.target.value) || 0)} placeholder="0.00" />
-                    {productPrice > 0 && <small className="text-muted">{((form.downPayment / productPrice) * 100).toFixed(1)}% of product price</small>}
+                    {productPrice > 0 && <small className="text-muted">{((form.downPayment / baseAmount) * 100).toFixed(1)}% of {form.financeAmount && form.financeAmount > 0 ? 'finance' : 'product'} amount</small>}
                   </div>
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Interest Rate (% per annum)</label>
@@ -461,6 +621,9 @@ const CreateInstallment: React.FC = () => {
                 <table className="table table-borderless mb-0">
                   <tbody>
                     <tr><td className="text-muted">Product Price</td><td className="text-end fw-medium">Rs {fmt(productPrice)}</td></tr>
+                    {form.financeAmount && form.financeAmount > 0 && form.financeAmount !== productPrice && (
+                      <tr><td className="text-muted">Finance Amount</td><td className="text-end fw-medium text-info">Rs {fmt(form.financeAmount)}</td></tr>
+                    )}
                     <tr><td className="text-muted">Down Payment</td><td className="text-end fw-medium text-success">- Rs {fmt(form.downPayment)}</td></tr>
                     <tr className="border-top"><td className="text-muted">Financed Amount</td><td className="text-end fw-bold">Rs {fmt(financedAmount)}</td></tr>
                     <tr><td className="text-muted">Interest Rate</td><td className="text-end">{form.interestRate}% p.a.</td></tr>
@@ -532,6 +695,79 @@ const CreateInstallment: React.FC = () => {
           </div>
         </div>
       </form>
+
+      {/* New Customer Modal */}
+      {showNewCustomerModal && (
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title"><i className="ti ti-user-plus me-2"></i>Add New Customer</h5>
+                <button type="button" className="btn-close" onClick={() => setShowNewCustomerModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Full Name<span className="text-danger ms-1">*</span></label>
+                    <input type="text" className="form-control" placeholder="Customer name" value={newCustomer.name}
+                      onChange={e => setNewCustomer(prev => ({ ...prev, name: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">S/O (Father's Name)</label>
+                    <input type="text" className="form-control" placeholder="Son/Daughter of" value={newCustomer.so}
+                      onChange={e => setNewCustomer(prev => ({ ...prev, so: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">CNIC</label>
+                    <input type="text" className="form-control" placeholder="CNIC number" value={newCustomer.cnic}
+                      onChange={e => setNewCustomer(prev => ({ ...prev, cnic: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Phone<span className="text-danger ms-1">*</span></label>
+                    <input type="text" className="form-control" placeholder="Phone number" value={newCustomer.phone}
+                      onChange={e => setNewCustomer(prev => ({ ...prev, phone: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Email</label>
+                    <input type="email" className="form-control" placeholder="Email address" value={newCustomer.email}
+                      onChange={e => setNewCustomer(prev => ({ ...prev, email: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">City</label>
+                    <input type="text" className="form-control" placeholder="City" value={newCustomer.city}
+                      onChange={e => setNewCustomer(prev => ({ ...prev, city: e.target.value }))} />
+                  </div>
+                  <div className="col-12 mb-3">
+                    <label className="form-label">Address</label>
+                    <textarea className="form-control" rows={2} placeholder="Full address" value={newCustomer.address}
+                      onChange={e => setNewCustomer(prev => ({ ...prev, address: e.target.value }))} />
+                  </div>
+                  <div className="col-12 mb-0">
+                    <label className="form-label">Photo</label>
+                    <div className="d-flex align-items-center gap-3">
+                      <input type="file" className="form-control" accept="image/*"
+                        onChange={e => {
+                          const file = e.target.files?.[0] || null;
+                          setNewCustomerPicture(file);
+                          setNewCustomerPicturePreview(file ? URL.createObjectURL(file) : '');
+                        }} />
+                      {newCustomerPicturePreview && (
+                        <img src={newCustomerPicturePreview} alt="Preview" className="rounded-circle border" style={{ width: 48, height: 48, objectFit: 'cover' }} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowNewCustomerModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-primary" disabled={!newCustomer.name.trim() || !newCustomer.phone.trim() || newCustomerSaving} onClick={handleCreateCustomer}>
+                  {newCustomerSaving ? <><span className="spinner-border spinner-border-sm me-2"></span>Saving...</> : <><i className="ti ti-check me-1"></i>Add Customer</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -1,13 +1,28 @@
 import api from './api';
 
+export interface GuarantorDto {
+  id: number;
+  name: string;
+  so?: string;
+  phone?: string;
+  cnic?: string;
+  address?: string;
+  relationship?: string;
+  picture?: string;
+}
+
 export interface InstallmentPlan {
   id: string;
   customerName: string;
+  customerSo?: string;
+  customerCnic?: string;
   customerPhone: string;
   customerAddress: string;
+  customerImage?: string;
   productName: string;
   productImage: string;
   productPrice: number;
+  financeAmount?: number;
   downPayment: number;
   financedAmount: number;
   interestRate: number; // annual %
@@ -22,6 +37,7 @@ export interface InstallmentPlan {
   nextDueDate: string;
   createdAt: string;
   schedule: RepaymentEntry[];
+  guarantors: GuarantorDto[];
 }
 
 export interface RepaymentEntry {
@@ -38,6 +54,7 @@ export interface RepaymentEntry {
 export interface CreateInstallmentPayload {
   customerId: number;
   productId: number;
+  financeAmount?: number;
   downPayment: number;
   interestRate: number;
   tenure: number;
@@ -165,4 +182,23 @@ export async function markInstallmentPaid(planId: string, installmentNo: number)
 
 export async function cancelInstallment(id: string): Promise<void> {
   await api.delete(`/installments/${id}`);
+}
+
+// Guarantor API calls
+export async function addGuarantor(planId: string, data: FormData): Promise<GuarantorDto> {
+  const response = await api.post<GuarantorDto>(`/installments/${planId}/guarantors`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}
+
+export async function updateGuarantor(guarantorId: number, data: FormData): Promise<GuarantorDto> {
+  const response = await api.put<GuarantorDto>(`/installments/guarantors/${guarantorId}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}
+
+export async function deleteGuarantor(guarantorId: number): Promise<void> {
+  await api.delete(`/installments/guarantors/${guarantorId}`);
 }

@@ -91,16 +91,21 @@ public class CustomerDto
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string? SO { get; set; }
+    public string? Cnic { get; set; }
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
+    public string? Picture { get; set; }
     public string Status { get; set; } = "active";
 }
 
 public class CreateCustomerDto
 {
     public string Name { get; set; } = string.Empty;
+    public string? SO { get; set; }
+    public string? Cnic { get; set; }
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
@@ -123,15 +128,31 @@ public class RepaymentEntryDto
     public string? PaidDate { get; set; }
 }
 
+public class GuarantorDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? SO { get; set; }
+    public string? Phone { get; set; }
+    public string? Cnic { get; set; }
+    public string? Address { get; set; }
+    public string? Relationship { get; set; }
+    public string? Picture { get; set; }
+}
+
 public class InstallmentPlanDto
 {
     public string Id { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerSo { get; set; }
+    public string? CustomerCnic { get; set; }
     public string CustomerPhone { get; set; } = string.Empty;
     public string CustomerAddress { get; set; } = string.Empty;
+    public string? CustomerImage { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string ProductImage { get; set; } = string.Empty;
     public decimal ProductPrice { get; set; }
+    public decimal? FinanceAmount { get; set; }
     public decimal DownPayment { get; set; }
     public decimal FinancedAmount { get; set; }
     public decimal InterestRate { get; set; }
@@ -146,12 +167,14 @@ public class InstallmentPlanDto
     public string NextDueDate { get; set; } = string.Empty;
     public string CreatedAt { get; set; } = string.Empty;
     public List<RepaymentEntryDto> Schedule { get; set; } = new();
+    public List<GuarantorDto> Guarantors { get; set; } = new();
 }
 
 public class CreateInstallmentDto
 {
     public int CustomerId { get; set; }
     public int ProductId { get; set; }
+    public decimal? FinanceAmount { get; set; }
     public decimal DownPayment { get; set; }
     public decimal InterestRate { get; set; }
     public int Tenure { get; set; }
@@ -717,4 +740,39 @@ public class CreateQuotationItemDto
     public decimal TaxAmount { get; set; }
     public decimal UnitCost { get; set; }
     public decimal TotalCost { get; set; }
+}
+
+// ── Coupon DTOs ─────────────────────────────────────────
+
+public class CouponDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Type { get; set; } = "Percentage";
+    public decimal Discount { get; set; }
+    public int Limit { get; set; }
+    public string? StartDate { get; set; }
+    public string? EndDate { get; set; }
+    public bool OncePerCustomer { get; set; }
+    public int? ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public string Status { get; set; } = "Active";
+}
+
+public class CreateCouponDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Type { get; set; } = "Percentage";
+    public decimal Discount { get; set; }
+    public int Limit { get; set; }
+    public string? StartDate { get; set; }
+    public string? EndDate { get; set; }
+    public bool OncePerCustomer { get; set; }
+    public int? ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public string Status { get; set; } = "Active";
 }

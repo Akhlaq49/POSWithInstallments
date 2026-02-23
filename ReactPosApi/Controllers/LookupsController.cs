@@ -1956,3 +1956,139 @@ public class QuotationsController : ControllerBase
         return NoContent();
     }
 }
+
+// ── Coupons ─────────────────────────────────────────────
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class CouponsController : ControllerBase
+{
+    private readonly AppDbContext _db;
+    public CouponsController(AppDbContext db) => _db = db;
+
+    // GET api/coupons
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? type,
+        [FromQuery] string? status,
+        [FromQuery] string? sort)
+    {
+        var q = _db.Coupons.AsQueryable();
+
+        if (!string.IsNullOrEmpty(type))
+            q = q.Where(c => c.Type == type);
+        if (!string.IsNullOrEmpty(status))
+            q = q.Where(c => c.Status == status);
+
+        q = sort switch
+        {
+            "Ascending" => q.OrderBy(c => c.Name),
+            "Descending" => q.OrderByDescending(c => c.Name),
+            _ => q.OrderByDescending(c => c.CreatedAt)
+        };
+
+        var list = await q.Select(c => new CouponDto
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Code = c.Code,
+            Description = c.Description,
+            Type = c.Type,
+            Discount = c.Discount,
+            Limit = c.Limit,
+            StartDate = c.StartDate,
+            EndDate = c.EndDate,
+            OncePerCustomer = c.OncePerCustomer,
+            ProductId = c.ProductId,
+            ProductName = c.ProductName,
+            Status = c.Status
+        }).ToListAsync();
+
+        return Ok(list);
+    }
+
+    // GET api/coupons/5
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var c = await _db.Coupons.FindAsync(id);
+        if (c == null) return NotFound();
+
+        return Ok(new CouponDto
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Code = c.Code,
+            Description = c.Description,
+            Type = c.Type,
+            Discount = c.Discount,
+            Limit = c.Limit,
+            StartDate = c.StartDate,
+            EndDate = c.EndDate,
+            OncePerCustomer = c.OncePerCustomer,
+            ProductId = c.ProductId,
+            ProductName = c.ProductName,
+            Status = c.Status
+        });
+    }
+
+    // POST api/coupons
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateCouponDto dto)
+    {
+        var entity = new Coupon
+        {
+            Name = dto.Name,
+            Code = dto.Code,
+            Description = dto.Description,
+            Type = dto.Type,
+            Discount = dto.Discount,
+            Limit = dto.Limit,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            OncePerCustomer = dto.OncePerCustomer,
+            ProductId = dto.ProductId,
+            ProductName = dto.ProductName,
+            Status = dto.Status
+        };
+
+        _db.Coupons.Add(entity);
+        await _db.SaveChangesAsync();
+        return Ok(new { entity.Id });
+    }
+
+    // PUT api/coupons/5
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateCouponDto dto)
+    {
+        var entity = await _db.Coupons.FindAsync(id);
+        if (entity == null) return NotFound();
+
+        entity.Name = dto.Name;
+        entity.Code = dto.Code;
+        entity.Description = dto.Description;
+        entity.Type = dto.Type;
+        entity.Discount = dto.Discount;
+        entity.Limit = dto.Limit;
+        entity.StartDate = dto.StartDate;
+        entity.EndDate = dto.EndDate;
+        entity.OncePerCustomer = dto.OncePerCustomer;
+        entity.ProductId = dto.ProductId;
+        entity.ProductName = dto.ProductName;
+        entity.Status = dto.Status;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { entity.Id });
+    }
+
+    // DELETE api/coupons/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var entity = await _db.Coupons.FindAsync(id);
+        if (entity == null) return NotFound();
+        _db.Coupons.Remove(entity);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+}

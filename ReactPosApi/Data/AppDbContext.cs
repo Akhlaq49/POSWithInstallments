@@ -30,6 +30,7 @@ public class AppDbContext : DbContext
     public DbSet<SalesReturnItem> SalesReturnItems => Set<SalesReturnItem>();
     public DbSet<Quotation> Quotations => Set<Quotation>();
     public DbSet<QuotationItem> QuotationItems => Set<QuotationItem>();
+    public DbSet<Coupon> Coupons => Set<Coupon>();
 
     // Inventory
     public DbSet<Category> Categories => Set<Category>();
@@ -43,6 +44,7 @@ public class AppDbContext : DbContext
     // Installments
     public DbSet<InstallmentPlan> InstallmentPlans => Set<InstallmentPlan>();
     public DbSet<RepaymentEntry> RepaymentEntries => Set<RepaymentEntry>();
+    public DbSet<Guarantor> Guarantors => Set<Guarantor>();
 
     // Auth
     public DbSet<User> Users => Set<User>();
@@ -108,6 +110,7 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Restrict);
 
             e.Property(p => p.ProductPrice).HasColumnType("decimal(18,2)");
+            e.Property(p => p.FinanceAmount).HasColumnType("decimal(18,2)");
             e.Property(p => p.DownPayment).HasColumnType("decimal(18,2)");
             e.Property(p => p.FinancedAmount).HasColumnType("decimal(18,2)");
             e.Property(p => p.InterestRate).HasColumnType("decimal(8,4)");
@@ -129,6 +132,15 @@ public class AppDbContext : DbContext
             e.Property(r => r.Interest).HasColumnType("decimal(18,2)");
             e.Property(r => r.Balance).HasColumnType("decimal(18,2)");
             e.Property(r => r.Status).HasDefaultValue("upcoming");
+        });
+
+        // Guarantor -> InstallmentPlan
+        modelBuilder.Entity<Guarantor>(e =>
+        {
+            e.HasOne(g => g.Plan)
+             .WithMany(p => p.Guarantors)
+             .HasForeignKey(g => g.PlanId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // StockTransferItem -> StockTransfer
@@ -284,6 +296,13 @@ public class AppDbContext : DbContext
             e.Property(i => i.TaxAmount).HasColumnType("decimal(18,2)");
             e.Property(i => i.UnitCost).HasColumnType("decimal(18,2)");
             e.Property(i => i.TotalCost).HasColumnType("decimal(18,2)");
+        });
+
+        // Coupon
+        modelBuilder.Entity<Coupon>(e =>
+        {
+            e.HasIndex(c => c.Code).IsUnique();
+            e.Property(c => c.Discount).HasColumnType("decimal(18,2)");
         });
 
         // User

@@ -14,6 +14,9 @@ public class InstallmentPlan
 
     public decimal ProductPrice { get; set; }
 
+    /// <summary>Custom finance amount (may differ from product price)</summary>
+    public decimal? FinanceAmount { get; set; }
+
     public decimal DownPayment { get; set; }
 
     public decimal FinancedAmount { get; set; }
@@ -51,4 +54,6 @@ public class InstallmentPlan
     public Product? Product { get; set; }
 
     public ICollection<RepaymentEntry> Schedule { get; set; } = new List<RepaymentEntry>();
+
+    public ICollection<Guarantor> Guarantors { get; set; } = new List<Guarantor>();
 }

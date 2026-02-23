@@ -13,7 +13,12 @@ namespace ReactPosApi.Controllers;
 public class CustomersController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public CustomersController(AppDbContext db) => _db = db;
+    private readonly IWebHostEnvironment _env;
+    public CustomersController(AppDbContext db, IWebHostEnvironment env)
+    {
+        _db = db;
+        _env = env;
+    }
 
     // GET api/customers
     [HttpGet]
@@ -25,10 +30,13 @@ public class CustomersController : ControllerBase
             {
                 Id = c.Id.ToString(),
                 Name = c.Name,
+                SO = c.SO,
+                Cnic = c.Cnic,
                 Phone = c.Phone ?? "",
                 Email = c.Email ?? "",
                 Address = c.Address ?? "",
                 City = c.City ?? "",
+                Picture = c.Picture,
                 Status = c.Status
             })
             .ToListAsync();
@@ -45,10 +53,13 @@ public class CustomersController : ControllerBase
         {
             Id = c.Id.ToString(),
             Name = c.Name,
+            SO = c.SO,
+            Cnic = c.Cnic,
             Phone = c.Phone ?? "",
             Email = c.Email ?? "",
             Address = c.Address ?? "",
             City = c.City ?? "",
+            Picture = c.Picture,
             Status = c.Status
         });
     }
@@ -60,6 +71,8 @@ public class CustomersController : ControllerBase
         var entity = new Customer
         {
             Name = dto.Name,
+            SO = dto.SO,
+            Cnic = dto.Cnic,
             Phone = dto.Phone,
             Email = dto.Email,
             Address = dto.Address,
@@ -73,10 +86,13 @@ public class CustomersController : ControllerBase
         {
             Id = entity.Id.ToString(),
             Name = entity.Name,
+            SO = entity.SO,
+            Cnic = entity.Cnic,
             Phone = entity.Phone ?? "",
             Email = entity.Email ?? "",
             Address = entity.Address ?? "",
             City = entity.City ?? "",
+            Picture = entity.Picture,
             Status = entity.Status
         });
     }
@@ -89,6 +105,8 @@ public class CustomersController : ControllerBase
         if (entity == null) return NotFound();
 
         entity.Name = dto.Name;
+        entity.SO = dto.SO;
+        entity.Cnic = dto.Cnic;
         entity.Phone = dto.Phone;
         entity.Email = dto.Email;
         entity.Address = dto.Address;
@@ -100,10 +118,46 @@ public class CustomersController : ControllerBase
         {
             Id = entity.Id.ToString(),
             Name = entity.Name,
+            SO = entity.SO,
+            Cnic = entity.Cnic,
             Phone = entity.Phone ?? "",
             Email = entity.Email ?? "",
             Address = entity.Address ?? "",
             City = entity.City ?? "",
+            Picture = entity.Picture,
+            Status = entity.Status
+        });
+    }
+
+    // POST api/customers/{id}/picture
+    [HttpPost("{id}/picture")]
+    public async Task<ActionResult<CustomerDto>> UploadPicture(int id, IFormFile picture)
+    {
+        var entity = await _db.Customers.FindAsync(id);
+        if (entity == null) return NotFound();
+
+        var uploadsDir = Path.Combine(_env.WebRootPath, "uploads", "customers");
+        if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
+        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(picture.FileName)}";
+        var filePath = Path.Combine(uploadsDir, fileName);
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await picture.CopyToAsync(stream);
+        }
+        entity.Picture = $"/uploads/customers/{fileName}";
+        await _db.SaveChangesAsync();
+
+        return Ok(new CustomerDto
+        {
+            Id = entity.Id.ToString(),
+            Name = entity.Name,
+            SO = entity.SO,
+            Cnic = entity.Cnic,
+            Phone = entity.Phone ?? "",
+            Email = entity.Email ?? "",
+            Address = entity.Address ?? "",
+            City = entity.City ?? "",
+            Picture = entity.Picture,
             Status = entity.Status
         });
     }
