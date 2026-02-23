@@ -201,6 +201,106 @@ public class CreateVariantAttributeDto
 }
 
 // ============================
+// Stock Entry
+// ============================
+public class StockEntryDto
+{
+    public int Id { get; set; }
+    public string Warehouse { get; set; } = string.Empty;
+    public string Store { get; set; } = string.Empty;
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string ProductImage { get; set; } = string.Empty;
+    public string Sku { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Person { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public string Date { get; set; } = string.Empty;
+}
+
+public class CreateStockEntryDto
+{
+    public string Warehouse { get; set; } = string.Empty;
+    public string Store { get; set; } = string.Empty;
+    public int ProductId { get; set; }
+    public string Person { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
+}
+
+// ============================
+// Stock Adjustment
+// ============================
+public class StockAdjustmentDto
+{
+    public int Id { get; set; }
+    public string Warehouse { get; set; } = string.Empty;
+    public string Store { get; set; } = string.Empty;
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string ProductImage { get; set; } = string.Empty;
+    public string Sku { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string ReferenceNumber { get; set; } = string.Empty;
+    public string Person { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public string? Notes { get; set; }
+    public string Date { get; set; } = string.Empty;
+}
+
+public class CreateStockAdjustmentDto
+{
+    public string Warehouse { get; set; } = string.Empty;
+    public string Store { get; set; } = string.Empty;
+    public int ProductId { get; set; }
+    public string ReferenceNumber { get; set; } = string.Empty;
+    public string Person { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
+    public string? Notes { get; set; }
+}
+
+// ============================
+// Stock Transfer
+// ============================
+public class StockTransferDto
+{
+    public int Id { get; set; }
+    public string WarehouseFrom { get; set; } = string.Empty;
+    public string WarehouseTo { get; set; } = string.Empty;
+    public string ReferenceNumber { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public int NoOfProducts { get; set; }
+    public int QuantityTransferred { get; set; }
+    public string Date { get; set; } = string.Empty;
+    public List<StockTransferItemDto> Items { get; set; } = new();
+}
+
+public class StockTransferItemDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string ProductImage { get; set; } = string.Empty;
+    public string Sku { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+}
+
+public class CreateStockTransferDto
+{
+    public string WarehouseFrom { get; set; } = string.Empty;
+    public string WarehouseTo { get; set; } = string.Empty;
+    public string ReferenceNumber { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public List<CreateStockTransferItemDto> Items { get; set; } = new();
+}
+
+public class CreateStockTransferItemDto
+{
+    public int ProductId { get; set; }
+    public int Quantity { get; set; } = 1;
+}
+
+// ============================
 // Unit
 // ============================
 public class UnitDto

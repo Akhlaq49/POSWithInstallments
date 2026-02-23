@@ -15,6 +15,10 @@ public class AppDbContext : DbContext
 
     public DbSet<VariantAttribute> VariantAttributes => Set<VariantAttribute>();
     public DbSet<Warranty> Warranties => Set<Warranty>();
+    public DbSet<StockEntry> StockEntries => Set<StockEntry>();
+    public DbSet<StockAdjustment> StockAdjustments => Set<StockAdjustment>();
+    public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
+    public DbSet<StockTransferItem> StockTransferItems => Set<StockTransferItem>();
 
     // Inventory
     public DbSet<Category> Categories => Set<Category>();
@@ -114,6 +118,15 @@ public class AppDbContext : DbContext
             e.Property(r => r.Interest).HasColumnType("decimal(18,2)");
             e.Property(r => r.Balance).HasColumnType("decimal(18,2)");
             e.Property(r => r.Status).HasDefaultValue("upcoming");
+        });
+
+        // StockTransferItem -> StockTransfer
+        modelBuilder.Entity<StockTransferItem>(e =>
+        {
+            e.HasOne(i => i.StockTransfer)
+             .WithMany(t => t.Items)
+             .HasForeignKey(i => i.StockTransferId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // User

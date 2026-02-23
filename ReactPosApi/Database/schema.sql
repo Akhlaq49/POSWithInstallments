@@ -54,6 +54,30 @@ CREATE TABLE Warranties (
     CreatedAt   DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
+CREATE TABLE StockEntries (
+    Id          INT IDENTITY(1,1) PRIMARY KEY,
+    Warehouse   NVARCHAR(200) NOT NULL,
+    Store       NVARCHAR(200) NOT NULL,
+    ProductId   INT NOT NULL,
+    Person      NVARCHAR(200) NOT NULL DEFAULT '',
+    Quantity    INT NOT NULL DEFAULT 0,
+    Date        DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CreatedAt   DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+CREATE TABLE StockAdjustments (
+    Id               INT IDENTITY(1,1) PRIMARY KEY,
+    Warehouse        NVARCHAR(200) NOT NULL,
+    Store            NVARCHAR(200) NOT NULL,
+    ProductId        INT NOT NULL,
+    ReferenceNumber  NVARCHAR(100) NOT NULL DEFAULT '',
+    Person           NVARCHAR(200) NOT NULL DEFAULT '',
+    Quantity         INT NOT NULL DEFAULT 0,
+    Notes            NVARCHAR(MAX) NULL,
+    Date             DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CreatedAt        DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
 CREATE TABLE Units (
     Id          INT IDENTITY(1,1) PRIMARY KEY,
     Value       NVARCHAR(50)  NOT NULL,
