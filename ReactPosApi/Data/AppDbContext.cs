@@ -13,6 +13,9 @@ public class AppDbContext : DbContext
     public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<Unit> Units => Set<Unit>();
 
+    public DbSet<VariantAttribute> VariantAttributes => Set<VariantAttribute>();
+    public DbSet<Warranty> Warranties => Set<Warranty>();
+
     // Inventory
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<SubCategory> SubCategories => Set<SubCategory>();

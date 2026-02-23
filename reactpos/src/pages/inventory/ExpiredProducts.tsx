@@ -1,6 +1,15 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import api, { mediaUrl } from '../../services/api';
 
+interface ProductDto {
+  id: string;
+  sku: string;
+  productName: string;
+  manufacturedDate: string;
+  expiryDate: string;
+  images: string[];
+}
+
 interface ExpiredProduct {
   id: string;
   sku: string;
@@ -9,6 +18,15 @@ interface ExpiredProduct {
   manufacturedDate: string;
   expiredDate: string;
 }
+
+const mapDtoToExpired = (dto: ProductDto): ExpiredProduct => ({
+  id: dto.id,
+  sku: dto.sku,
+  name: dto.productName,
+  image: dto.images && dto.images.length > 0 ? dto.images[0] : '',
+  manufacturedDate: dto.manufacturedDate,
+  expiredDate: dto.expiryDate,
+});
 
 const ExpiredProducts: React.FC = () => {
   const [products, setProducts] = useState<ExpiredProduct[]>([]);
@@ -31,8 +49,8 @@ const ExpiredProducts: React.FC = () => {
   useEffect(() => {
     const fetchExpiredProducts = async () => {
       try {
-        const response = await api.get<ExpiredProduct[]>('/products/expired');
-        setProducts(response.data);
+        const response = await api.get<ProductDto[]>('/products/expired');
+        setProducts(response.data.map(mapDtoToExpired));
       } catch {
         setProducts([]);
       } finally {
@@ -80,17 +98,25 @@ const ExpiredProducts: React.FC = () => {
 
   const handleEditSave = async () => {
     try {
-      await api.put(`/products/expired/${editForm.id}`, editForm);
+      await api.put(`/products/expired/${editForm.id}`, {
+        sku: editForm.sku,
+        productName: editForm.name,
+        manufacturedDate: editForm.manufacturedDate,
+        expiryDate: editForm.expiredDate,
+      });
+      // Refetch from server after successful update
+      const response = await api.get<ProductDto[]>('/products/expired');
+      setProducts(response.data.map(mapDtoToExpired));
     } catch {
       // Update locally on API failure
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === editForm.id
+            ? { ...p, sku: editForm.sku, name: editForm.name, manufacturedDate: editForm.manufacturedDate, expiredDate: editForm.expiredDate }
+            : p
+        )
+      );
     }
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === editForm.id
-          ? { ...p, sku: editForm.sku, name: editForm.name, manufacturedDate: editForm.manufacturedDate, expiredDate: editForm.expiredDate }
-          : p
-      )
-    );
     setShowEditModal(false);
   };
 
@@ -331,31 +357,23 @@ const ExpiredProducts: React.FC = () => {
                   <div className="col-lg-12">
                     <div className="mb-3">
                       <label className="form-label">Manufacturer Date<span className="text-danger ms-1">*</span></label>
-                      <div className="input-groupicon calender-input">
-                        <i data-feather="calendar" className="info-img"></i>
-                        <input
-                          type="text"
-                          className="form-control p-2"
-                          placeholder="dd/mm/yyyy"
-                          value={editForm.manufacturedDate}
-                          onChange={(e) => setEditForm((prev) => ({ ...prev, manufacturedDate: e.target.value }))}
-                        />
-                      </div>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={editForm.manufacturedDate}
+                        onChange={(e) => setEditForm((prev) => ({ ...prev, manufacturedDate: e.target.value }))}
+                      />
                     </div>
                   </div>
                   <div className="col-lg-12">
                     <div className="mb-0">
                       <label className="form-label">Expiry Date<span className="text-danger ms-1">*</span></label>
-                      <div className="input-groupicon calender-input">
-                        <i data-feather="calendar" className="info-img"></i>
-                        <input
-                          type="text"
-                          className="form-control p-2"
-                          placeholder="dd/mm/yyyy"
-                          value={editForm.expiredDate}
-                          onChange={(e) => setEditForm((prev) => ({ ...prev, expiredDate: e.target.value }))}
-                        />
-                      </div>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={editForm.expiredDate}
+                        onChange={(e) => setEditForm((prev) => ({ ...prev, expiredDate: e.target.value }))}
+                      />
                     </div>
                   </div>
                 </div>

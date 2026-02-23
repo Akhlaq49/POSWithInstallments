@@ -31,6 +31,26 @@ CREATE TABLE Brands (
     Id          INT IDENTITY(1,1) PRIMARY KEY,
     Value       NVARCHAR(100) NOT NULL,
     Label       NVARCHAR(200) NOT NULL,
+    Image       NVARCHAR(500) NULL,
+    Status      NVARCHAR(20) NOT NULL DEFAULT 'active',
+    CreatedAt   DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+CREATE TABLE VariantAttributes (
+    Id          INT IDENTITY(1,1) PRIMARY KEY,
+    Name        NVARCHAR(200) NOT NULL,
+    [Values]    NVARCHAR(MAX) NOT NULL DEFAULT '',
+    Status      NVARCHAR(20) NOT NULL DEFAULT 'active',
+    CreatedAt   DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+CREATE TABLE Warranties (
+    Id          INT IDENTITY(1,1) PRIMARY KEY,
+    Name        NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX) NULL,
+    Duration    INT NOT NULL DEFAULT 0,
+    Period      NVARCHAR(20) NOT NULL DEFAULT 'Month',
+    Status      NVARCHAR(20) NOT NULL DEFAULT 'active',
     CreatedAt   DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
@@ -38,6 +58,7 @@ CREATE TABLE Units (
     Id          INT IDENTITY(1,1) PRIMARY KEY,
     Value       NVARCHAR(50)  NOT NULL,
     Label       NVARCHAR(100) NOT NULL,
+    Status      NVARCHAR(20) NOT NULL DEFAULT 'active',
     CreatedAt   DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 

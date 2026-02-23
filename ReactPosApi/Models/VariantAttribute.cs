@@ -2,19 +2,17 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ReactPosApi.Models;
 
-public class Brand
+public class VariantAttribute
 {
     [Key]
     public int Id { get; set; }
 
-    [Required, MaxLength(100)]
-    public string Value { get; set; } = string.Empty;
-
     [Required, MaxLength(200)]
-    public string Label { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
-    [MaxLength(500)]
-    public string? Image { get; set; }
+    /// <summary>Comma-separated variant values (e.g. "XS, S, M, L, XL")</summary>
+    [Required]
+    public string Values { get; set; } = string.Empty;
 
     [MaxLength(20)]
     public string Status { get; set; } = "active";

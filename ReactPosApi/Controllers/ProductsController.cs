@@ -39,10 +39,45 @@ public class ProductsController : ControllerBase
         var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
         var products = await _db.Products
             .Include(p => p.Images)
-            .Where(p => p.ExpiryDate != null && p.ExpiryDate.CompareTo(today) <= 0)
+            .Where(p => p.ExpiryDate == null || string.Compare(p.ExpiryDate, today) <= 0)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
         return Ok(products.Select(MapToDto).ToList());
+    }
+
+    // PUT api/products/expired/5  (update expiry-related fields only)
+    [HttpPut("expired/{id}")]
+    public async Task<ActionResult<ProductDto>> UpdateExpired(int id, [FromBody] UpdateExpiredDto dto)
+    {
+        var entity = await _db.Products
+            .Include(p => p.Images)
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (entity == null) return NotFound();
+
+        entity.SKU = dto.Sku ?? entity.SKU;
+        entity.ProductName = dto.ProductName ?? entity.ProductName;
+        entity.ManufacturedDate = dto.ManufacturedDate ?? entity.ManufacturedDate;
+        entity.ExpiryDate = dto.ExpiryDate ?? entity.ExpiryDate;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return Ok(MapToDto(entity));
+    }
+
+    // DELETE api/products/expired/5
+    [HttpDelete("expired/{id}")]
+    public async Task<IActionResult> DeleteExpired(int id)
+    {
+        var entity = await _db.Products.FindAsync(id);
+        if (entity == null) return NotFound();
+
+        var installmentCount = await _db.InstallmentPlans.CountAsync(ip => ip.ProductId == id);
+        if (installmentCount > 0)
+            return Conflict(new { message = $"Cannot delete this product. It is referenced by {installmentCount} installment plan(s)." });
+
+        _db.Products.Remove(entity);
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 
     // GET api/products/5
@@ -54,6 +89,52 @@ public class ProductsController : ControllerBase
             .FirstOrDefaultAsync(p => p.Id == id);
         if (product == null) return NotFound();
         return Ok(MapToDto(product));
+    }
+
+    // GET api/products/low-stocks  (qty > 0 && qty <= quantityAlert)
+    [HttpGet("low-stocks")]
+    public async Task<ActionResult<List<ProductDto>>> GetLowStocks()
+    {
+        var products = await _db.Products
+            .Include(p => p.Images)
+            .Where(p => p.QuantityAlert > 0 && p.Quantity > 0 && p.Quantity <= p.QuantityAlert)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+        return Ok(products.Select(MapToDto).ToList());
+    }
+
+    // GET api/products/out-of-stocks  (qty == 0 && quantityAlert > 0)
+    [HttpGet("out-of-stocks")]
+    public async Task<ActionResult<List<ProductDto>>> GetOutOfStocks()
+    {
+        var products = await _db.Products
+            .Include(p => p.Images)
+            .Where(p => p.QuantityAlert > 0 && p.Quantity == 0)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+        return Ok(products.Select(MapToDto).ToList());
+    }
+
+    // PUT api/products/low-stocks/5  (update stock-related fields only)
+    [HttpPut("low-stocks/{id}")]
+    public async Task<ActionResult<ProductDto>> UpdateLowStock(int id, [FromBody] UpdateLowStockDto dto)
+    {
+        var entity = await _db.Products
+            .Include(p => p.Images)
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (entity == null) return NotFound();
+
+        entity.Warehouse = dto.Warehouse ?? entity.Warehouse;
+        entity.Store = dto.Store ?? entity.Store;
+        entity.SKU = dto.Sku ?? entity.SKU;
+        entity.Category = dto.Category ?? entity.Category;
+        entity.ProductName = dto.ProductName ?? entity.ProductName;
+        entity.Quantity = dto.Quantity ?? entity.Quantity;
+        entity.QuantityAlert = dto.QuantityAlert ?? entity.QuantityAlert;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return Ok(MapToDto(entity));
     }
 
     // POST api/products  (multipart/form-data)

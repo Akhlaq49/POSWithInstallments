@@ -160,18 +160,7 @@ const menuData: MenuSection[] = [
       { title: 'Invoices', icon: 'ti-file-invoice', iconType: 'tabler', path: '/invoice' },
       { title: 'Sales Return', icon: 'ti-receipt-refund', iconType: 'tabler', path: '/sales-returns' },
       { title: 'Quotation', icon: 'ti-files', iconType: 'tabler', path: '/quotation-list' },
-      {
-        title: 'POS',
-        icon: 'ti-device-laptop',
-        iconType: 'tabler',
-        children: [
-          { title: 'POS 1', path: '/pos' },
-          { title: 'POS 2', path: '/pos-2' },
-          { title: 'POS 3', path: '/pos-3' },
-          { title: 'POS 4', path: '/pos-4' },
-          { title: 'POS 5', path: '/pos-5' },
-        ],
-      },
+      { title: 'POS', icon: 'ti-device-laptop', iconType: 'tabler', path: '/pos' },
     ],
   },
   {

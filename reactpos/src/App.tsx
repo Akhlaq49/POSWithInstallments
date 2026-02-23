@@ -50,10 +50,6 @@ const InvoiceDetails = lazy(() => import('./pages/sales/InvoiceDetails'))
 const SalesReturns = lazy(() => import('./pages/sales/SalesReturns'))
 const QuotationList = lazy(() => import('./pages/sales/QuotationList'))
 const POS = lazy(() => import('./pages/sales/POS'))
-const POS2 = lazy(() => import('./pages/sales/POS2'))
-const POS3 = lazy(() => import('./pages/sales/POS3'))
-const POS4 = lazy(() => import('./pages/sales/POS4'))
-const POS5 = lazy(() => import('./pages/sales/POS5'))
 
 // Promo
 const Coupons = lazy(() => import('./pages/promo/Coupons'))
@@ -372,10 +368,6 @@ function App() {
           <Route path="/sales-returns" element={<SalesReturns />} />
           <Route path="/quotation-list" element={<QuotationList />} />
           <Route path="/pos" element={<POS />} />
-          <Route path="/pos-2" element={<POS2 />} />
-          <Route path="/pos-3" element={<POS3 />} />
-          <Route path="/pos-4" element={<POS4 />} />
-          <Route path="/pos-5" element={<POS5 />} />
 
           {/* Promo */}
           <Route path="/coupons" element={<Coupons />} />

@@ -157,3 +157,108 @@ public class CreateInstallmentDto
     public int Tenure { get; set; }
     public string StartDate { get; set; } = string.Empty;
 }
+
+// ============================
+// Warranty
+// ============================
+public class WarrantyDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int Duration { get; set; }
+    public string Period { get; set; } = "Month";
+    public string DurationDisplay { get; set; } = string.Empty;
+    public string Status { get; set; } = "active";
+}
+
+public class CreateWarrantyDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int Duration { get; set; }
+    public string Period { get; set; } = "Month";
+    public string Status { get; set; } = "active";
+}
+
+// ============================
+// Variant Attribute
+// ============================
+public class VariantAttributeDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Values { get; set; } = string.Empty;
+    public string Status { get; set; } = "active";
+    public string CreatedAt { get; set; } = string.Empty;
+}
+
+public class CreateVariantAttributeDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Values { get; set; } = string.Empty;
+    public string Status { get; set; } = "active";
+}
+
+// ============================
+// Unit
+// ============================
+public class UnitDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string ShortName { get; set; } = string.Empty;
+    public int ProductCount { get; set; }
+    public string Status { get; set; } = "active";
+    public string CreatedAt { get; set; } = string.Empty;
+}
+
+public class CreateUnitDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string ShortName { get; set; } = string.Empty;
+    public string Status { get; set; } = "active";
+}
+
+// ============================
+// Brand
+// ============================
+public class BrandDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Image { get; set; }
+    public string Status { get; set; } = "active";
+    public string CreatedAt { get; set; } = string.Empty;
+}
+
+public class CreateBrandDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Status { get; set; } = "active";
+}
+
+// ============================
+// Expired Product Update
+// ============================
+public class UpdateExpiredDto
+{
+    public string? Sku { get; set; }
+    public string? ProductName { get; set; }
+    public string? ManufacturedDate { get; set; }
+    public string? ExpiryDate { get; set; }
+}
+
+// ============================
+// Low Stock Update
+// ============================
+public class UpdateLowStockDto
+{
+    public string? Warehouse { get; set; }
+    public string? Store { get; set; }
+    public string? Sku { get; set; }
+    public string? Category { get; set; }
+    public string? ProductName { get; set; }
+    public int? Quantity { get; set; }
+    public int? QuantityAlert { get; set; }
+}
