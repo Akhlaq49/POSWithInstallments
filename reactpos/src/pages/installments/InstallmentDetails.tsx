@@ -10,6 +10,8 @@ import {
   deleteGuarantor,
 } from '../../services/installmentService';
 import { getCustomerMiscBalance } from '../../services/miscService';
+import DepositSlip from '../../components/DepositSlip';
+import PlanPrintView from '../../components/PlanPrintView';
 
 const InstallmentDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +25,8 @@ const InstallmentDetails: React.FC = () => {
   const [selectedGuarantor, setSelectedGuarantor] = useState<GuarantorDto | null>(null);
   const [paymentForm, setPaymentForm] = useState({ amount: 0, useMiscBalance: false, paymentMethod: 'Cash', notes: '' });
   const [customerMiscBalance, setCustomerMiscBalance] = useState(0);
+  const [slipEntry, setSlipEntry] = useState<RepaymentEntry | null>(null);
+  const [showPlanPrint, setShowPlanPrint] = useState(false);
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -108,6 +112,12 @@ const InstallmentDetails: React.FC = () => {
       // Refresh the plan data to get updated information
       const updatedPlan = await getInstallmentById(id || '');
       setPlan(updatedPlan);
+
+      // Auto-show deposit slip for the paid entry
+      const paidEntry = updatedPlan.schedule.find(e => e.installmentNo === payInstNo);
+      if (paidEntry && (paidEntry.status === 'paid' || paidEntry.status === 'partial')) {
+        setSlipEntry(paidEntry);
+      }
       
     } catch (error) {
       alert('Payment failed. Please try again.');
@@ -162,8 +172,8 @@ const InstallmentDetails: React.FC = () => {
           <button className="btn btn-secondary" onClick={() => navigate('/installment-plans')}>
             <i className="ti ti-arrow-left me-1"></i>Back
           </button>
-          <button className="btn btn-outline-primary" onClick={() => window.print()}>
-            <i className="ti ti-printer me-1"></i>Print
+          <button className="btn btn-outline-primary" onClick={() => setShowPlanPrint(true)}>
+            <i className="ti ti-printer me-1"></i>Print Plan
           </button>
         </div>
       </div>
@@ -398,6 +408,15 @@ const InstallmentDetails: React.FC = () => {
                               )}
                             </button>
                           )}
+                          {(entry.status === 'paid' || entry.status === 'partial') && (
+                            <button
+                              className="btn btn-sm btn-outline-info ms-1"
+                              title="Generate Deposit Slip"
+                              onClick={() => setSlipEntry(entry)}
+                            >
+                              <i className="ti ti-receipt me-1"></i>Slip
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -567,6 +586,16 @@ const InstallmentDetails: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Deposit Slip Modal */}
+      {slipEntry && plan && (
+        <DepositSlip plan={plan} entry={slipEntry} onClose={() => setSlipEntry(null)} />
+      )}
+
+      {/* Full Plan Print View */}
+      {showPlanPrint && plan && (
+        <PlanPrintView plan={plan} onClose={() => setShowPlanPrint(false)} />
       )}
 
       {/* Customer Detail Modal */}
