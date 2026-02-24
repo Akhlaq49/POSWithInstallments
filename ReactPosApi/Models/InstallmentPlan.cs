@@ -48,12 +48,12 @@ public class InstallmentPlan
 
     // Navigation
     [ForeignKey("CustomerId")]
-    public Customer? Customer { get; set; }
+    public Party? Customer { get; set; }
 
     [ForeignKey("ProductId")]
     public Product? Product { get; set; }
 
     public ICollection<RepaymentEntry> Schedule { get; set; } = new List<RepaymentEntry>();
 
-    public ICollection<Guarantor> Guarantors { get; set; } = new List<Guarantor>();
+    public ICollection<PlanGuarantor> PlanGuarantors { get; set; } = new List<PlanGuarantor>();
 }

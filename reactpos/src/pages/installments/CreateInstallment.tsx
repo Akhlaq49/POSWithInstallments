@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { mediaUrl, MEDIA_BASE_URL } from '../../services/api';
 import {
   CreateInstallmentPayload,
-  calculateEMI,
-  generateRepaymentSchedule,
   createInstallment,
   addGuarantor,
   RepaymentEntry,
+  previewInstallment,
+  InstallmentPreview,
 } from '../../services/installmentService';
 import { getProducts, ProductResponse } from '../../services/productService';
 import { getCustomers, Customer, createCustomer, uploadCustomerPicture } from '../../services/customerService';
@@ -64,20 +64,47 @@ const CreateInstallment: React.FC = () => {
   const emptyGuarantor: LocalGuarantor = { name: '', so: '', phone: '', cnic: '', address: '', relationship: '', pictureFile: null, picturePreview: '' };
   const [guarantors, setGuarantors] = useState<LocalGuarantor[]>([]);
 
-  // Preview data
+  // Preview data via API
   const productPrice = selectedProduct?.price ?? 0;
   const baseAmount = (form.financeAmount && form.financeAmount > 0) ? form.financeAmount : productPrice;
   const financedAmount = baseAmount - form.downPayment;
-  const emi = useMemo(
-    () => (financedAmount > 0 && form.tenure > 0 ? calculateEMI(financedAmount, form.interestRate, form.tenure) : 0),
-    [financedAmount, form.interestRate, form.tenure]
-  );
-  const totalPayable = form.downPayment + emi * form.tenure;
-  const totalInterest = totalPayable - baseAmount;
-  const schedule: RepaymentEntry[] = useMemo(
-    () => (financedAmount > 0 && form.tenure > 0 ? generateRepaymentSchedule(financedAmount, form.interestRate, form.tenure, form.startDate) : []),
-    [financedAmount, form.interestRate, form.tenure, form.startDate]
-  );
+
+  const [preview, setPreview] = useState<InstallmentPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced preview from backend
+  useEffect(() => {
+    if (financedAmount <= 0 || form.tenure <= 0 || !form.startDate) {
+      setPreview(null);
+      return;
+    }
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    previewTimer.current = setTimeout(async () => {
+      setPreviewLoading(true);
+      try {
+        const result = await previewInstallment({
+          productPrice,
+          financeAmount: form.financeAmount,
+          downPayment: form.downPayment,
+          interestRate: form.interestRate,
+          tenure: form.tenure,
+          startDate: form.startDate,
+        });
+        setPreview(result);
+      } catch {
+        // silent – keep previous preview
+      } finally {
+        setPreviewLoading(false);
+      }
+    }, 300);
+    return () => { if (previewTimer.current) clearTimeout(previewTimer.current); };
+  }, [productPrice, form.financeAmount, form.downPayment, form.interestRate, form.tenure, form.startDate, financedAmount]);
+
+  const emi = preview?.emiAmount ?? 0;
+  const totalPayable = preview?.totalPayable ?? 0;
+  const totalInterest = preview?.totalInterest ?? 0;
+  const schedule: RepaymentEntry[] = preview?.schedule ?? [];
 
   const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -615,7 +642,7 @@ const CreateInstallment: React.FC = () => {
             {/* Plan Summary */}
             <div className="card border-primary">
               <div className="card-header bg-primary text-white">
-                <h5 className="card-title mb-0 text-white"><i className="ti ti-calculator me-2"></i>Plan Summary</h5>
+                <h5 className="card-title mb-0 text-white"><i className="ti ti-calculator me-2"></i>Plan Summary {previewLoading && <span className="spinner-border spinner-border-sm ms-2"></span>}</h5>
               </div>
               <div className="card-body">
                 <table className="table table-borderless mb-0">

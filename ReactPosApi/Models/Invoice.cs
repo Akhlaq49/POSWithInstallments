@@ -10,7 +10,7 @@ public class Invoice
     public string InvoiceNo { get; set; } = string.Empty;
 
     public int? CustomerId { get; set; }
-    public Customer? Customer { get; set; }
+    public Party? Customer { get; set; }
 
     [MaxLength(100)]
     public string CustomerName { get; set; } = string.Empty;

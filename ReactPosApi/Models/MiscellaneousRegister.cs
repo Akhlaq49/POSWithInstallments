@@ -32,5 +32,5 @@ public class MiscellaneousRegister
 
     // Navigation property
     [ForeignKey("CustomerId")]
-    public Customer? Customer { get; set; }
+    public Party? Customer { get; set; }
 }

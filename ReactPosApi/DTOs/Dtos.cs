@@ -193,6 +193,30 @@ public class PayInstallmentDto
     public string? Notes { get; set; }
 }
 
+public class PreviewInstallmentDto
+{
+    public decimal ProductPrice { get; set; }
+    public decimal? FinanceAmount { get; set; }
+    public decimal DownPayment { get; set; }
+    public decimal InterestRate { get; set; }
+    public int Tenure { get; set; }
+    public string StartDate { get; set; } = string.Empty;
+}
+
+public class InstallmentPreviewDto
+{
+    public decimal ProductPrice { get; set; }
+    public decimal FinanceAmount { get; set; }
+    public decimal FinancedAmount { get; set; }
+    public decimal DownPayment { get; set; }
+    public decimal InterestRate { get; set; }
+    public int Tenure { get; set; }
+    public decimal EmiAmount { get; set; }
+    public decimal TotalPayable { get; set; }
+    public decimal TotalInterest { get; set; }
+    public List<RepaymentEntryDto> Schedule { get; set; } = new();
+}
+
 // ============================
 // Warranty
 // ============================

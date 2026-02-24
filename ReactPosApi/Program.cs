@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ReactPosApi.Data;
 using ReactPosApi.Models;
+using ReactPosApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,33 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Register application services
+builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IMiscellaneousRegisterService, MiscellaneousRegisterService>();
+builder.Services.AddScoped<IInstallmentService, InstallmentService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ISubCategoryService, SubCategoryService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
+builder.Services.AddScoped<IStoreService, StoreService>();
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<IBrandService, BrandService>();
+builder.Services.AddScoped<IUnitService, UnitService>();
+builder.Services.AddScoped<IVariantAttributeService, VariantAttributeService>();
+builder.Services.AddScoped<IWarrantyService, WarrantyService>();
+builder.Services.AddScoped<IStockEntryService, StockEntryService>();
+builder.Services.AddScoped<IStockTransferService, StockTransferService>();
+builder.Services.AddScoped<IStockAdjustmentService, StockAdjustmentService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ISaleService, SaleService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<ISalesReturnService, SalesReturnService>();
+builder.Services.AddScoped<IQuotationService, QuotationService>();
+builder.Services.AddScoped<ICouponService, CouponService>();
 
 // EF Core - SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -67,18 +95,19 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Seed admin user
+// Seed admin party
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    if (!db.Users.Any(u => u.Email == "admin@reactpos.com"))
+    if (!db.Parties.Any(p => p.Email == "admin@reactpos.com" && p.Role == "Admin"))
     {
-        db.Users.Add(new User
+        db.Parties.Add(new Party
         {
             FullName = "Admin",
             Email = "admin@reactpos.com",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
             Role = "Admin",
+            IsActive = true,
             CreatedAt = DateTime.UtcNow
         });
         db.SaveChanges();

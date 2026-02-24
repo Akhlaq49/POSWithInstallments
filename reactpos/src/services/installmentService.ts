@@ -64,103 +64,26 @@ export interface CreateInstallmentPayload {
   startDate: string;
 }
 
-// EMI = [P × r × (1+r)^n] / [(1+r)^n – 1]
-export function calculateEMI(principal: number, annualRate: number, months: number): number {
-  if (annualRate === 0) return principal / months;
-  const r = annualRate / 12 / 100;
-  const factor = Math.pow(1 + r, months);
-  return (principal * r * factor) / (factor - 1);
-}
-
-export function generateRepaymentSchedule(
-  financedAmount: number,
-  annualRate: number,
-  tenure: number,
-  startDate: string
-): RepaymentEntry[] {
-  const schedule: RepaymentEntry[] = [];
-  const emi = calculateEMI(financedAmount, annualRate, tenure);
-  const r = annualRate / 12 / 100;
-  let balance = financedAmount;
-  const start = new Date(startDate);
-  const today = new Date();
-
-  for (let i = 1; i <= tenure; i++) {
-    const dueDate = new Date(start);
-    dueDate.setMonth(dueDate.getMonth() + i);
-
-    const interest = annualRate === 0 ? 0 : balance * r;
-    const principal = emi - interest;
-    balance = Math.max(0, balance - principal);
-
-    let status: RepaymentEntry['status'] = 'upcoming';
-    if (dueDate < today) {
-      status = 'overdue';
-    } else if (
-      dueDate.getMonth() === today.getMonth() &&
-      dueDate.getFullYear() === today.getFullYear()
-    ) {
-      status = 'due';
-    }
-
-    schedule.push({
-      installmentNo: i,
-      dueDate: dueDate.toISOString().split('T')[0],
-      emiAmount: Math.round(emi * 100) / 100,
-      principal: Math.round(principal * 100) / 100,
-      interest: Math.round(interest * 100) / 100,
-      balance: Math.round(balance * 100) / 100,
-      status,
-    });
-  }
-
-  return schedule;
-}
-
-export interface BuildPlanParams {
-  customerName: string;
-  customerPhone: string;
-  customerAddress: string;
-  productName: string;
+export interface PreviewInstallmentPayload {
   productPrice: number;
+  financeAmount?: number;
   downPayment: number;
   interestRate: number;
   tenure: number;
   startDate: string;
 }
 
-export function buildInstallmentPlan(params: BuildPlanParams, productImage?: string): InstallmentPlan {
-  const financedAmount = params.productPrice - params.downPayment;
-  const emi = calculateEMI(financedAmount, params.interestRate, params.tenure);
-  const totalPayable = params.downPayment + emi * params.tenure;
-  const totalInterest = totalPayable - params.productPrice;
-  const schedule = generateRepaymentSchedule(financedAmount, params.interestRate, params.tenure, params.startDate);
-
-  const nextDue = schedule.find((s) => s.status === 'due' || s.status === 'upcoming');
-
-  return {
-    id: Date.now().toString(),
-    customerName: params.customerName,
-    customerPhone: params.customerPhone,
-    customerAddress: params.customerAddress,
-    productName: params.productName,
-    productImage: productImage || '/assets/img/products/stock-img-01.png',
-    productPrice: params.productPrice,
-    downPayment: params.downPayment,
-    financedAmount,
-    interestRate: params.interestRate,
-    tenure: params.tenure,
-    emiAmount: Math.round(emi * 100) / 100,
-    totalPayable: Math.round(totalPayable * 100) / 100,
-    totalInterest: Math.round(totalInterest * 100) / 100,
-    startDate: params.startDate,
-    status: 'active',
-    paidInstallments: 0,
-    remainingInstallments: params.tenure,
-    nextDueDate: nextDue?.dueDate || '',
-    createdAt: new Date().toISOString().split('T')[0],
-    schedule,
-  };
+export interface InstallmentPreview {
+  productPrice: number;
+  financeAmount: number;
+  financedAmount: number;
+  downPayment: number;
+  interestRate: number;
+  tenure: number;
+  emiAmount: number;
+  totalPayable: number;
+  totalInterest: number;
+  schedule: RepaymentEntry[];
 }
 
 // API calls
@@ -217,4 +140,10 @@ export async function updateGuarantor(guarantorId: number, data: FormData): Prom
 
 export async function deleteGuarantor(guarantorId: number): Promise<void> {
   await api.delete(`/installments/guarantors/${guarantorId}`);
+}
+
+// Preview / calculation endpoint (server-side)
+export async function previewInstallment(payload: PreviewInstallmentPayload): Promise<InstallmentPreview> {
+  const response = await api.post<InstallmentPreview>('/installments/preview', payload);
+  return response.data;
 }

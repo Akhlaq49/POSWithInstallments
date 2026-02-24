@@ -38,17 +38,14 @@ public class AppDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
 
-    // Customers
-    public DbSet<Customer> Customers => Set<Customer>();
+    // Parties (unified: Admin, Manager, User, Customer, Guarantor)
+    public DbSet<Party> Parties => Set<Party>();
+    public DbSet<PlanGuarantor> PlanGuarantors => Set<PlanGuarantor>();
     public DbSet<MiscellaneousRegister> MiscellaneousRegisters => Set<MiscellaneousRegister>();
 
     // Installments
     public DbSet<InstallmentPlan> InstallmentPlans => Set<InstallmentPlan>();
     public DbSet<RepaymentEntry> RepaymentEntries => Set<RepaymentEntry>();
-    public DbSet<Guarantor> Guarantors => Set<Guarantor>();
-
-    // Auth
-    public DbSet<User> Users => Set<User>();
 
     // Role Permissions
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
@@ -91,10 +88,13 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Customer
-        modelBuilder.Entity<Customer>(e =>
+        // Party (unified: Admin, Manager, User, Customer, Guarantor)
+        modelBuilder.Entity<Party>(e =>
         {
-            e.Property(c => c.Status).HasDefaultValue("active");
+            e.HasIndex(p => p.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
+            e.Property(p => p.Role).HasDefaultValue("Customer");
+            e.Property(p => p.Status).HasDefaultValue("active");
+            e.Property(p => p.IsActive).HasDefaultValue(true);
         });
 
         // InstallmentPlan
@@ -135,13 +135,18 @@ public class AppDbContext : DbContext
             e.Property(r => r.Status).HasDefaultValue("upcoming");
         });
 
-        // Guarantor -> InstallmentPlan
-        modelBuilder.Entity<Guarantor>(e =>
+        // PlanGuarantor -> InstallmentPlan + Party
+        modelBuilder.Entity<PlanGuarantor>(e =>
         {
-            e.HasOne(g => g.Plan)
-             .WithMany(p => p.Guarantors)
-             .HasForeignKey(g => g.PlanId)
+            e.HasOne(pg => pg.Plan)
+             .WithMany(p => p.PlanGuarantors)
+             .HasForeignKey(pg => pg.PlanId)
              .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(pg => pg.Party)
+             .WithMany(p => p.GuaranteedPlans)
+             .HasForeignKey(pg => pg.PartyId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         // StockTransferItem -> StockTransfer
@@ -304,13 +309,6 @@ public class AppDbContext : DbContext
         {
             e.HasIndex(c => c.Code).IsUnique();
             e.Property(c => c.Discount).HasColumnType("decimal(18,2)");
-        });
-
-        // User
-        modelBuilder.Entity<User>(e =>
-        {
-            e.HasIndex(u => u.Email).IsUnique();
-            e.Property(u => u.Role).HasDefaultValue("User");
         });
 
         // RolePermission
