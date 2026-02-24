@@ -17,6 +17,34 @@ const CreateInstallment: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Collapsible sections state – accordion: only one open at a time
+  type SectionKey = 'customer' | 'guarantor' | 'product' | 'financial' | 'plan';
+  const sectionOrder: SectionKey[] = ['customer', 'guarantor', 'product', 'financial', 'plan'];
+  const [activeSection, setActiveSection] = useState<SectionKey>('customer');
+
+  const toggleSection = (section: SectionKey) => {
+    setActiveSection(prev => prev === section ? prev : section);
+  };
+
+  const goNext = () => {
+    const idx = sectionOrder.indexOf(activeSection);
+    if (idx < sectionOrder.length - 1) setActiveSection(sectionOrder[idx + 1]);
+  };
+
+  const goBack = () => {
+    const idx = sectionOrder.indexOf(activeSection);
+    if (idx > 0) setActiveSection(sectionOrder[idx - 1]);
+  };
+
+  // Helper to check if a section is collapsed
+  const collapsedSections = {
+    customer: activeSection !== 'customer',
+    guarantor: activeSection !== 'guarantor',
+    product: activeSection !== 'product',
+    financial: activeSection !== 'financial',
+    plan: activeSection !== 'plan'
+  };
+
   // Customer search state
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
@@ -63,6 +91,7 @@ const CreateInstallment: React.FC = () => {
   }
   const emptyGuarantor: LocalGuarantor = { name: '', so: '', phone: '', cnic: '', address: '', relationship: '', pictureFile: null, picturePreview: '' };
   const [guarantors, setGuarantors] = useState<LocalGuarantor[]>([]);
+  const [activeGuarantorTab, setActiveGuarantorTab] = useState(0);
 
   // Preview data via API
   const productPrice = selectedProduct?.price ?? 0;
@@ -296,18 +325,34 @@ const CreateInstallment: React.FC = () => {
 
       <form onSubmit={handleSubmit}>
         <div className="row">
-          {/* LEFT: Form */}
-          <div className="col-xl-7">
+          {/* Form Sections */}
+          <div className="col-12">
             {/* Customer Information */}
             <div className="card">
-              <div className="card-header d-flex align-items-center justify-content-between">
-                <h5 className="card-title mb-0"><i className="ti ti-user me-2"></i>Customer Information</h5>
-                <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => setShowNewCustomerModal(true)}>
+              <div 
+                className="card-header d-flex align-items-center justify-content-between cursor-pointer"
+                onClick={() => toggleSection('customer')}
+                style={{ cursor: 'pointer' }}
+              >
+                <h5 className="card-title mb-0">
+                  <i className="ti ti-user me-2"></i>
+                  Customer Information
+                  <i className={`ti ${collapsedSections.customer ? 'ti-chevron-down' : 'ti-chevron-up'} ms-2`}></i>
+                </h5>
+                <button 
+                  type="button" 
+                  className="btn btn-sm btn-outline-primary" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowNewCustomerModal(true);
+                  }}
+                >
                   <i className="ti ti-plus me-1"></i>New Customer
                 </button>
               </div>
-              <div className="card-body">
-                <div className="row">
+              <div className={`collapse ${!collapsedSections.customer ? 'show' : ''}`}>
+                <div className="card-body">
+                  <div className="row">
                   <div className="col-12 mb-3">
                     <label className="form-label">Search Customer<span className="text-danger ms-1">*</span></label>
                     <div ref={customerSearchRef} style={{ position: 'relative' }}>
@@ -409,101 +454,161 @@ const CreateInstallment: React.FC = () => {
                     <label className="form-label">Address</label>
                     <textarea className="form-control" rows={2} value={selectedCustomer?.address ?? ''} readOnly placeholder="Auto-filled from customer" />
                   </div>
+                  </div>
+                  <div className="d-flex justify-content-end mt-3">
+                    <button type="button" className="btn btn-primary" onClick={goNext}>
+                      Next <i className="ti ti-arrow-right ms-1"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Guarantors */}
             <div className="card">
-              <div className="card-header d-flex align-items-center justify-content-between">
-                <h5 className="card-title mb-0"><i className="ti ti-shield-check me-2"></i>Guarantors</h5>
-                <button type="button" className="btn btn-sm btn-primary" onClick={() => setGuarantors(prev => [...prev, { ...emptyGuarantor }])}>
+              <div 
+                className="card-header d-flex align-items-center justify-content-between cursor-pointer"
+                onClick={() => toggleSection('guarantor')}
+                style={{ cursor: 'pointer' }}
+              >
+                <h5 className="card-title mb-0">
+                  <i className="ti ti-shield-check me-2"></i>
+                  Guarantors
+                  <i className={`ti ${collapsedSections.guarantor ? 'ti-chevron-down' : 'ti-chevron-up'} ms-2`}></i>
+                </h5>
+                <button 
+                  type="button" 
+                  className="btn btn-sm btn-primary" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setGuarantors(prev => [...prev, { ...emptyGuarantor }]);
+                    setActiveGuarantorTab(guarantors.length);
+                  }}
+                >
                   <i className="ti ti-plus me-1"></i>Add Guarantor
                 </button>
               </div>
-              <div className="card-body">
-                {guarantors.length === 0 && (
-                  <p className="text-muted text-center mb-0">No guarantors added. Click "Add Guarantor" to add one.</p>
-                )}
-                {guarantors.map((g, idx) => (
-                  <div key={idx} className={`border rounded p-3 ${idx > 0 ? 'mt-3' : ''}`}>
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <h6 className="fw-bold mb-0">Guarantor #{idx + 1}</h6>
-                      <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => setGuarantors(prev => prev.filter((_, i) => i !== idx))}>
-                        <i className="ti ti-trash me-1"></i>Remove
-                      </button>
-                    </div>
-                    <div className="row">
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label">Full Name<span className="text-danger ms-1">*</span></label>
-                        <input type="text" className="form-control" placeholder="Guarantor name" value={g.name}
-                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, name: e.target.value } : item))} />
-                      </div>
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label">S/O (Father's Name)</label>
-                        <input type="text" className="form-control" placeholder="Son/Daughter of" value={g.so}
-                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, so: e.target.value } : item))} />
-                      </div>
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label">Phone</label>
-                        <input type="text" className="form-control" placeholder="Phone number" value={g.phone}
-                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, phone: e.target.value } : item))} />
-                      </div>
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label">CNIC / ID Number</label>
-                        <input type="text" className="form-control" placeholder="CNIC or ID number" value={g.cnic}
-                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, cnic: e.target.value } : item))} />
-                      </div>
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label">Relationship</label>
-                        <select className="form-select" value={g.relationship}
-                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, relationship: e.target.value } : item))}>
-                          <option value="">Select Relationship</option>
-                          <option value="Father">Father</option>
-                          <option value="Brother">Brother</option>
-                          <option value="Uncle">Uncle</option>
-                          <option value="Friend">Friend</option>
-                          <option value="Colleague">Colleague</option>
-                          <option value="Employer">Employer</option>
-                          <option value="Neighbor">Neighbor</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-                      <div className="col-12 mb-3">
-                        <label className="form-label">Address</label>
-                        <textarea className="form-control" rows={2} placeholder="Full address" value={g.address}
-                          onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, address: e.target.value } : item))} />
-                      </div>
-                      <div className="col-12 mb-0">
-                        <label className="form-label">Photo / ID Picture</label>
-                        <div className="d-flex align-items-center gap-3">
-                          <input type="file" className="form-control" accept="image/*"
-                            onChange={e => {
-                              const file = e.target.files?.[0] || null;
-                              setGuarantors(prev => prev.map((item, i) => i === idx ? {
-                                ...item,
-                                pictureFile: file,
-                                picturePreview: file ? URL.createObjectURL(file) : ''
-                              } : item));
-                            }} />
-                          {g.picturePreview && (
-                            <img src={g.picturePreview} alt="Preview" className="rounded border" style={{ width: 60, height: 60, objectFit: 'cover' }} />
-                          )}
+              <div className={`collapse ${!collapsedSections.guarantor ? 'show' : ''}`}>
+                <div className="card-body">
+                  {guarantors.length === 0 && (
+                    <p className="text-muted text-center mb-0">No guarantors added. Click "Add Guarantor" to add one.</p>
+                  )}
+                  {guarantors.length > 0 && (
+                    <>
+                      <ul className="nav nav-tabs mb-3">
+                        {guarantors.map((_, idx) => (
+                          <li className="nav-item" key={idx}>
+                            <button
+                              type="button"
+                              className={`nav-link ${activeGuarantorTab === idx ? 'active' : ''}`}
+                              onClick={() => setActiveGuarantorTab(idx)}
+                            >
+                              Guarantor {idx + 1}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                      {guarantors.map((g, idx) => (
+                        <div key={idx} className={activeGuarantorTab === idx ? '' : 'd-none'}>
+                          <div className="d-flex justify-content-end mb-3">
+                            <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => {
+                              setGuarantors(prev => prev.filter((_, i) => i !== idx));
+                              setActiveGuarantorTab(prev => prev >= guarantors.length - 1 ? Math.max(0, guarantors.length - 2) : prev);
+                            }}>
+                              <i className="ti ti-trash me-1"></i>Remove
+                            </button>
+                          </div>
+                          <div className="row">
+                            <div className="col-md-6 mb-3">
+                              <label className="form-label">Full Name<span className="text-danger ms-1">*</span></label>
+                              <input type="text" className="form-control" placeholder="Guarantor name" value={g.name}
+                                onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, name: e.target.value } : item))} />
+                            </div>
+                            <div className="col-md-6 mb-3">
+                              <label className="form-label">S/O (Father's Name)</label>
+                              <input type="text" className="form-control" placeholder="Son/Daughter of" value={g.so}
+                                onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, so: e.target.value } : item))} />
+                            </div>
+                            <div className="col-md-6 mb-3">
+                              <label className="form-label">Phone</label>
+                              <input type="text" className="form-control" placeholder="Phone number" value={g.phone}
+                                onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, phone: e.target.value } : item))} />
+                            </div>
+                            <div className="col-md-6 mb-3">
+                              <label className="form-label">CNIC / ID Number</label>
+                              <input type="text" className="form-control" placeholder="CNIC or ID number" value={g.cnic}
+                                onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, cnic: e.target.value } : item))} />
+                            </div>
+                            <div className="col-md-6 mb-3">
+                              <label className="form-label">Relationship</label>
+                              <select className="form-select" value={g.relationship}
+                                onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, relationship: e.target.value } : item))}>
+                                <option value="">Select Relationship</option>
+                                <option value="Father">Father</option>
+                                <option value="Brother">Brother</option>
+                                <option value="Uncle">Uncle</option>
+                                <option value="Friend">Friend</option>
+                                <option value="Colleague">Colleague</option>
+                                <option value="Employer">Employer</option>
+                                <option value="Neighbor">Neighbor</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+                            <div className="col-12 mb-3">
+                              <label className="form-label">Address</label>
+                              <textarea className="form-control" rows={2} placeholder="Full address" value={g.address}
+                                onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, address: e.target.value } : item))} />
+                            </div>
+                            <div className="col-12 mb-0">
+                              <label className="form-label">Photo / ID Picture</label>
+                              <div className="d-flex align-items-center gap-3">
+                                <input type="file" className="form-control" accept="image/*"
+                                  onChange={e => {
+                                    const file = e.target.files?.[0] || null;
+                                    setGuarantors(prev => prev.map((item, i) => i === idx ? {
+                                      ...item,
+                                      pictureFile: file,
+                                      picturePreview: file ? URL.createObjectURL(file) : ''
+                                    } : item));
+                                  }} />
+                                {g.picturePreview && (
+                                  <img src={g.picturePreview} alt="Preview" className="rounded border" style={{ width: 60, height: 60, objectFit: 'cover' }} />
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      ))}
+                    </>
+                  )}
+                  <div className="d-flex justify-content-between mt-3">
+                    <button type="button" className="btn btn-secondary" onClick={goBack}>
+                      <i className="ti ti-arrow-left me-1"></i> Back
+                    </button>
+                    <button type="button" className="btn btn-primary" onClick={goNext}>
+                      Next <i className="ti ti-arrow-right ms-1"></i>
+                    </button>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
 
             {/* Product Information */}
             <div className="card">
-              <div className="card-header">
-                <h5 className="card-title mb-0"><i className="ti ti-box me-2"></i>Product Information</h5>
+              <div 
+                className="card-header cursor-pointer"
+                onClick={() => toggleSection('product')}
+                style={{ cursor: 'pointer' }}
+              >
+                <h5 className="card-title mb-0">
+                  <i className="ti ti-box me-2"></i>
+                  Product Information
+                  <i className={`ti ${collapsedSections.product ? 'ti-chevron-down' : 'ti-chevron-up'} ms-2`}></i>
+                </h5>
               </div>
-              <div className="card-body">
-                <div className="row">
+              <div className={`collapse ${!collapsedSections.product ? 'show' : ''}`}>
+                <div className="card-body">
+                  <div className="row">
                   <div className="col-12 mb-3">
                     <label className="form-label">Search Product from Inventory<span className="text-danger ms-1">*</span></label>
                     <div ref={productSearchRef} style={{ position: 'relative' }}>
@@ -599,17 +704,35 @@ const CreateInstallment: React.FC = () => {
                     <input type="number" className="form-control" min={0} step="0.01" value={form.financeAmount ?? ''} onChange={(e) => set('financeAmount', parseFloat(e.target.value) || 0)} placeholder="Leave blank to use product price" />
                     <small className="text-muted">Custom finance amount (defaults to product price if blank)</small>
                   </div>
+                  </div>
+                  <div className="d-flex justify-content-between mt-3">
+                    <button type="button" className="btn btn-secondary" onClick={goBack}>
+                      <i className="ti ti-arrow-left me-1"></i> Back
+                    </button>
+                    <button type="button" className="btn btn-primary" onClick={goNext}>
+                      Next <i className="ti ti-arrow-right ms-1"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Installment Settings */}
             <div className="card">
-              <div className="card-header">
-                <h5 className="card-title mb-0"><i className="ti ti-settings me-2"></i>Installment Settings</h5>
+              <div 
+                className="card-header cursor-pointer"
+                onClick={() => toggleSection('financial')}
+                style={{ cursor: 'pointer' }}
+              >
+                <h5 className="card-title mb-0">
+                  <i className="ti ti-settings me-2"></i>
+                  Financial Details & Settings
+                  <i className={`ti ${collapsedSections.financial ? 'ti-chevron-down' : 'ti-chevron-up'} ms-2`}></i>
+                </h5>
               </div>
-              <div className="card-body">
-                <div className="row">
+              <div className={`collapse ${!collapsedSections.financial ? 'show' : ''}`}>
+                <div className="card-body">
+                  <div className="row">
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Down Payment (Rs)<span className="text-danger ms-1">*</span></label>
                     <input type="number" className="form-control" min={0} step="0.01" value={form.downPayment || ''} onChange={(e) => set('downPayment', parseFloat(e.target.value) || 0)} placeholder="0.00" />
@@ -632,83 +755,110 @@ const CreateInstallment: React.FC = () => {
                     <label className="form-label">Start Date<span className="text-danger ms-1">*</span></label>
                     <input type="date" className="form-control" value={form.startDate} onChange={(e) => set('startDate', e.target.value)} />
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT: Preview */}
-          <div className="col-xl-5">
-            {/* Plan Summary */}
-            <div className="card border-primary">
-              <div className="card-header bg-primary text-white">
-                <h5 className="card-title mb-0 text-white"><i className="ti ti-calculator me-2"></i>Plan Summary {previewLoading && <span className="spinner-border spinner-border-sm ms-2"></span>}</h5>
-              </div>
-              <div className="card-body">
-                <table className="table table-borderless mb-0">
-                  <tbody>
-                    <tr><td className="text-muted">Product Price</td><td className="text-end fw-medium">Rs {fmt(productPrice)}</td></tr>
-                    {form.financeAmount && form.financeAmount > 0 && form.financeAmount !== productPrice && (
-                      <tr><td className="text-muted">Finance Amount</td><td className="text-end fw-medium text-info">Rs {fmt(form.financeAmount)}</td></tr>
-                    )}
-                    <tr><td className="text-muted">Down Payment</td><td className="text-end fw-medium text-success">- Rs {fmt(form.downPayment)}</td></tr>
-                    <tr className="border-top"><td className="text-muted">Financed Amount</td><td className="text-end fw-bold">Rs {fmt(financedAmount)}</td></tr>
-                    <tr><td className="text-muted">Interest Rate</td><td className="text-end">{form.interestRate}% p.a.</td></tr>
-                    <tr><td className="text-muted">Tenure</td><td className="text-end">{form.tenure} months</td></tr>
-                    <tr className="border-top"><td className="text-muted">Monthly EMI</td><td className="text-end fw-bold fs-16 text-primary">Rs {fmt(Math.round(emi * 100) / 100)}</td></tr>
-                    <tr><td className="text-muted">Total Interest</td><td className="text-end text-danger">Rs {fmt(Math.round(totalInterest * 100) / 100)}</td></tr>
-                    <tr className="border-top"><td className="fw-bold">Total Payable</td><td className="text-end fw-bold fs-16">Rs {fmt(Math.round(totalPayable * 100) / 100)}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Repayment Schedule Preview */}
-            {schedule.length > 0 && (
-              <div className="card">
-                <div className="card-header d-flex align-items-center justify-content-between">
-                  <h5 className="card-title mb-0"><i className="ti ti-calendar me-2"></i>Repayment Schedule</h5>
-                  <span className="badge bg-primary">{schedule.length} installments</span>
-                </div>
-                <div className="card-body p-0">
-                  <div className="table-responsive" style={{ maxHeight: 400, overflowY: 'auto' }}>
-                    <table className="table table-sm mb-0">
-                      <thead className="thead-light">
-                        <tr>
-                          <th>#</th>
-                          <th>Due Date</th>
-                          <th>EMI</th>
-                          <th>Principal</th>
-                          <th>Interest</th>
-                          <th>Balance</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {schedule.map((entry) => (
-                          <tr key={entry.installmentNo}>
-                            <td>{entry.installmentNo}</td>
-                            <td>{entry.dueDate}</td>
-                            <td className="fw-medium">{fmt(entry.emiAmount)}</td>
-                            <td>{fmt(entry.principal)}</td>
-                            <td className="text-danger">{fmt(entry.interest)}</td>
-                            <td>{fmt(entry.balance)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot className="border-top">
-                        <tr className="fw-bold">
-                          <td colSpan={2}>Total</td>
-                          <td>{fmt(schedule.reduce((s, e) => s + e.emiAmount, 0))}</td>
-                          <td>{fmt(schedule.reduce((s, e) => s + e.principal, 0))}</td>
-                          <td className="text-danger">{fmt(schedule.reduce((s, e) => s + e.interest, 0))}</td>
-                          <td>-</td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                  </div>
+                  <div className="d-flex justify-content-between mt-3">
+                    <button type="button" className="btn btn-secondary" onClick={goBack}>
+                      <i className="ti ti-arrow-left me-1"></i> Back
+                    </button>
+                    <button type="button" className="btn btn-primary" onClick={goNext}>
+                      Next <i className="ti ti-arrow-right ms-1"></i>
+                    </button>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Plan Summary & Schedule */}
+            <div className="card border-primary">
+              <div 
+                className="card-header bg-primary text-white cursor-pointer"
+                onClick={() => toggleSection('plan')}
+                style={{ cursor: 'pointer' }}
+              >
+                <h5 className="card-title mb-0 text-white">
+                  <i className="ti ti-calculator me-2"></i>
+                  Plan Summary & Schedule
+                  <i className={`ti ${collapsedSections.plan ? 'ti-chevron-down' : 'ti-chevron-up'} ms-2 text-white`}></i>
+                  {previewLoading && <span className="spinner-border spinner-border-sm ms-2"></span>}
+                </h5>
+              </div>
+              <div className={`collapse ${!collapsedSections.plan ? 'show' : ''}`}>
+                <div className="card-body">
+                  <div className="row">
+                    <div className="col-lg-5 mb-3 mb-lg-0">
+                      <table className="table table-borderless mb-0">
+                        <tbody>
+                          <tr><td className="text-muted">Product Price</td><td className="text-end fw-medium">Rs {fmt(productPrice)}</td></tr>
+                          {form.financeAmount && form.financeAmount > 0 && form.financeAmount !== productPrice && (
+                            <tr><td className="text-muted">Finance Amount</td><td className="text-end fw-medium text-info">Rs {fmt(form.financeAmount)}</td></tr>
+                          )}
+                          <tr><td className="text-muted">Down Payment</td><td className="text-end fw-medium text-success">- Rs {fmt(form.downPayment)}</td></tr>
+                          <tr className="border-top"><td className="text-muted">Financed Amount</td><td className="text-end fw-bold">Rs {fmt(financedAmount)}</td></tr>
+                          <tr><td className="text-muted">Interest Rate</td><td className="text-end">{form.interestRate}% p.a.</td></tr>
+                          <tr><td className="text-muted">Tenure</td><td className="text-end">{form.tenure} months</td></tr>
+                          <tr className="border-top"><td className="text-muted">Monthly EMI</td><td className="text-end fw-bold fs-16 text-primary">Rs {fmt(Math.round(emi * 100) / 100)}</td></tr>
+                          <tr><td className="text-muted">Total Interest</td><td className="text-end text-danger">Rs {fmt(Math.round(totalInterest * 100) / 100)}</td></tr>
+                          <tr className="border-top"><td className="fw-bold">Total Payable</td><td className="text-end fw-bold fs-16">Rs {fmt(Math.round(totalPayable * 100) / 100)}</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Repayment Schedule Preview */}
+                    {schedule.length > 0 && (
+                      <div className="col-lg-7">
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <h6 className="mb-0"><i className="ti ti-calendar me-2"></i>Repayment Schedule</h6>
+                          <span className="badge bg-primary">{schedule.length} installments</span>
+                        </div>
+                        <div className="table-responsive" style={{ maxHeight: 400, overflowY: 'auto' }}>
+                          <table className="table table-sm mb-0">
+                            <thead className="thead-light">
+                              <tr>
+                                <th>#</th>
+                                <th>Due Date</th>
+                                <th>EMI</th>
+                                <th>Principal</th>
+                                <th>Interest</th>
+                                <th>Balance</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {schedule.map((entry) => (
+                                <tr key={entry.installmentNo}>
+                                  <td>{entry.installmentNo}</td>
+                                  <td>{entry.dueDate}</td>
+                                  <td className="fw-medium">{fmt(entry.emiAmount)}</td>
+                                  <td>{fmt(entry.principal)}</td>
+                                  <td className="text-danger">{fmt(entry.interest)}</td>
+                                  <td>{fmt(entry.balance)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot className="border-top">
+                              <tr className="fw-bold">
+                                <td colSpan={2}>Total</td>
+                                <td>{fmt(schedule.reduce((s, e) => s + e.emiAmount, 0))}</td>
+                                <td>{fmt(schedule.reduce((s, e) => s + e.principal, 0))}</td>
+                                <td className="text-danger">{fmt(schedule.reduce((s, e) => s + e.interest, 0))}</td>
+                                <td>-</td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="d-flex justify-content-between mt-3">
+                    <button type="button" className="btn btn-secondary" onClick={goBack}>
+                      <i className="ti ti-arrow-left me-1"></i> Back
+                    </button>
+                    <button type="submit" className="btn btn-primary" disabled={!isValid || submitting}>
+                      {submitting ? <><span className="spinner-border spinner-border-sm me-2"></span>Creating...</> : <><i className="ti ti-check me-1"></i>Create Installment Plan</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

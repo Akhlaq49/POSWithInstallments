@@ -64,7 +64,14 @@ const InstallmentPlans: React.FC = () => {
   };
 
   const filtered = plans.filter((p) => {
-    const matchSearch = !searchTerm || p.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || p.productName.toLowerCase().includes(searchTerm.toLowerCase());
+    const q = searchTerm.toLowerCase();
+    const matchGuarantor = p.guarantors?.some(
+      (g) =>
+        g.name?.toLowerCase().includes(q) ||
+        g.phone?.toLowerCase().includes(q) ||
+        g.cnic?.toLowerCase().includes(q)
+    );
+    const matchSearch = !searchTerm || p.customerName.toLowerCase().includes(q) || p.productName.toLowerCase().includes(q) || matchGuarantor;
     const matchStatus = !statusFilter || p.status === statusFilter;
     return matchSearch && matchStatus;
   });
