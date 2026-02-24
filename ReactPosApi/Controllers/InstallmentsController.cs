@@ -79,14 +79,21 @@ public class InstallmentsController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("parties/search")]
+    public async Task<IActionResult> SearchParties([FromQuery] string? q)
+    {
+        var parties = await _service.SearchPartiesAsync(q);
+        return Ok(parties);
+    }
+
     [HttpPost("{planId}/guarantors")]
     public async Task<IActionResult> AddGuarantor(int planId, [FromForm] string name, [FromForm] string? so,
         [FromForm] string? phone, [FromForm] string? cnic, [FromForm] string? address,
-        [FromForm] string? relationship, IFormFile? picture)
+        [FromForm] string? relationship, [FromForm] int? partyId, IFormFile? picture)
     {
         try
         {
-            var result = await _service.AddGuarantorAsync(planId, name, so, phone, cnic, address, relationship, picture);
+            var result = await _service.AddGuarantorAsync(planId, name, so, phone, cnic, address, relationship, picture, partyId);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)

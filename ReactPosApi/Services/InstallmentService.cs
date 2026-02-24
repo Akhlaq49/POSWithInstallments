@@ -193,31 +193,74 @@ public class InstallmentService : IInstallmentService
         return true;
     }
 
+    // ── Party Search ───────────────────────────────────────
+
+    public async Task<List<PartySearchDto>> SearchPartiesAsync(string? query)
+    {
+        var q = _db.Parties.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var term = query.ToLower();
+            q = q.Where(p => p.FullName.ToLower().Contains(term)
+                || (p.Phone != null && p.Phone.Contains(term))
+                || (p.Cnic != null && p.Cnic.Contains(term))
+                || (p.Email != null && p.Email.ToLower().Contains(term)));
+        }
+
+        var parties = await q.OrderByDescending(p => p.CreatedAt).Take(50).ToListAsync();
+
+        return parties.Select(p => new PartySearchDto
+        {
+            Id = p.Id,
+            Name = p.FullName,
+            SO = p.SO,
+            Phone = p.Phone,
+            Cnic = p.Cnic,
+            Address = p.Address,
+            Email = p.Email,
+            City = p.City,
+            Picture = p.Picture,
+            Role = p.Role
+        }).ToList();
+    }
+
     // ── Guarantors ─────────────────────────────────────────
 
     public async Task<GuarantorDto> AddGuarantorAsync(int planId, string name, string? so, string? phone,
-        string? cnic, string? address, string? relationship, IFormFile? picture)
+        string? cnic, string? address, string? relationship, IFormFile? picture, int? existingPartyId = null)
     {
         var plan = await _db.InstallmentPlans.FindAsync(planId)
             ?? throw new KeyNotFoundException("Plan not found");
 
-        string? picturePath = null;
-        if (picture != null)
-            picturePath = await _fileService.SaveFileAsync(picture, "guarantors");
+        Party party;
 
-        // Create a new Party with role "Guarantor"
-        var party = new Party
+        if (existingPartyId.HasValue && existingPartyId.Value > 0)
         {
-            FullName = name,
-            SO = so,
-            Phone = phone,
-            Cnic = cnic,
-            Address = address,
-            Picture = picturePath,
-            Role = "Guarantor"
-        };
-        _db.Parties.Add(party);
-        await _db.SaveChangesAsync();
+            // Use existing party
+            party = await _db.Parties.FindAsync(existingPartyId.Value)
+                ?? throw new KeyNotFoundException("Party not found");
+        }
+        else
+        {
+            // Create a new Party with role "Guarantor"
+            string? picturePath = null;
+            if (picture != null)
+                picturePath = await _fileService.SaveFileAsync(picture, "guarantors");
+
+            party = new Party
+            {
+                FullName = name,
+                SO = so,
+                Phone = phone,
+                Cnic = cnic,
+                Address = address,
+                Picture = picturePath,
+                Role = "Guarantor"
+            };
+            _db.Parties.Add(party);
+            await _db.SaveChangesAsync();
+        }
 
         // Link to plan via join table
         var planGuarantor = new PlanGuarantor

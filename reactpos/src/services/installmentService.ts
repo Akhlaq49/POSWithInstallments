@@ -1,5 +1,18 @@
 import api from './api';
 
+export interface PartySearchResult {
+  id: number;
+  name: string;
+  so?: string;
+  phone?: string;
+  cnic?: string;
+  address?: string;
+  email?: string;
+  city?: string;
+  picture?: string;
+  role: string;
+}
+
 export interface GuarantorDto {
   id: number;
   name: string;
@@ -145,5 +158,13 @@ export async function deleteGuarantor(guarantorId: number): Promise<void> {
 // Preview / calculation endpoint (server-side)
 export async function previewInstallment(payload: PreviewInstallmentPayload): Promise<InstallmentPreview> {
   const response = await api.post<InstallmentPreview>('/installments/preview', payload);
+  return response.data;
+}
+
+// Party search for guarantor auto-fill
+export async function searchParties(query?: string): Promise<PartySearchResult[]> {
+  const response = await api.get<PartySearchResult[]>('/installments/parties/search', {
+    params: { q: query || '' },
+  });
   return response.data;
 }

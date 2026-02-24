@@ -193,6 +193,20 @@ public class PayInstallmentDto
     public string? Notes { get; set; }
 }
 
+public class PartySearchDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? SO { get; set; }
+    public string? Phone { get; set; }
+    public string? Cnic { get; set; }
+    public string? Address { get; set; }
+    public string? Email { get; set; }
+    public string? City { get; set; }
+    public string? Picture { get; set; }
+    public string Role { get; set; } = string.Empty;
+}
+
 public class PreviewInstallmentDto
 {
     public decimal ProductPrice { get; set; }
