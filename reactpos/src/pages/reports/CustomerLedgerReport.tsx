@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getCustomerLedger, CustomerLedger } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const CustomerLedgerReport: React.FC = () => {
   const [data, setData] = useState<CustomerLedger | null>(null);
@@ -31,6 +33,26 @@ const CustomerLedgerReport: React.FC = () => {
             </div>
             <div className="col-md-3">
               <button className="btn btn-primary" onClick={fetchData}>Load Ledger</button>
+            </div>
+            <div className="col-md-3 ms-auto">
+              {data && <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Date', 'Type', 'Description', 'Debit', 'Credit', 'Running Balance', 'Reference'];
+                  const rows = data.transactions.map(t => [new Date(t.date).toLocaleDateString(), t.type, t.description, t.debit, t.credit, t.runningBalance, t.reference || '-']);
+                  exportToExcel(cols, rows, `Customer-Ledger-${data.customerName}`);
+                }}
+                onExportPDF={() => {
+                  const cols = ['Date', 'Type', 'Description', 'Debit', 'Credit', 'Balance', 'Reference'];
+                  const rows = data.transactions.map(t => [new Date(t.date).toLocaleDateString(), t.type, t.description, t.debit > 0 ? `Rs ${t.debit.toLocaleString()}` : '-', t.credit > 0 ? `Rs ${t.credit.toLocaleString()}` : '-', `Rs ${t.runningBalance.toLocaleString()}`, t.reference || '-']);
+                  exportToPDF(cols, rows, `Customer-Ledger-${data.customerName}`, `Customer Ledger - ${data.customerName}`, [
+                    { label: 'Customer', value: data.customerName },
+                    { label: 'Phone', value: data.phone || '-' },
+                    { label: 'Total Purchases', value: `Rs ${data.totalPurchases.toLocaleString()}` },
+                    { label: 'Total Paid', value: `Rs ${data.totalPaid.toLocaleString()}` },
+                    { label: 'Remaining Balance', value: `Rs ${data.remainingBalance.toLocaleString()}` },
+                  ]);
+                }}
+              />}
             </div>
           </div>
           {error && <div className="text-danger mt-2">{error}</div>}

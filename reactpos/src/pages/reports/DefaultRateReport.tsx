@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getDefaultRateReport, DefaultRateReport as IReport } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const DefaultRateReport: React.FC = () => {
   const [data, setData] = useState<IReport | null>(null);
@@ -16,6 +18,29 @@ const DefaultRateReport: React.FC = () => {
   return (
     <>
       <PageHeader title="Default Rate Report" breadcrumbs={[{ title: 'Installment Reports' }, { title: 'Risk & Compliance' }]} />
+
+      {data && (
+        <div className="d-flex justify-content-end mb-3">
+          <ExportButtons
+            onExportExcel={() => {
+              const cols = ['Month', 'Total Active', 'New Defaults', 'Default Rate (%)'];
+              const rows = data.monthlyTrend.map(m => [m.month, m.totalActive, m.newDefaults, m.defaultRate.toFixed(1)]);
+              exportToExcel(cols, rows, 'Default-Rate-Report');
+            }}
+            onExportPDF={() => {
+              const cols = ['Month', 'Total Active', 'New Defaults', 'Default Rate (%)'];
+              const rows = data.monthlyTrend.map(m => [m.month, m.totalActive, m.newDefaults, `${m.defaultRate.toFixed(1)}%`]);
+              exportToPDF(cols, rows, 'Default-Rate-Report', 'Default Rate Report', [
+                { label: 'Total Financed Customers', value: data.totalFinancedCustomers },
+                { label: 'Number of Defaulters', value: data.numberOfDefaulters },
+                { label: 'Default Rate', value: `${data.defaultPercentage.toFixed(1)}%` },
+                { label: 'Total Financed Amount', value: `Rs ${data.totalFinancedAmount.toLocaleString()}` },
+                { label: 'Defaulted Amount', value: `Rs ${data.defaultedAmount.toLocaleString()}` },
+              ]);
+            }}
+          />
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-5"><div className="spinner-border text-primary" /></div>

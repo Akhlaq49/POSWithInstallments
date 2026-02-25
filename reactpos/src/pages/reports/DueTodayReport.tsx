@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getDueTodayReport, DueTodayReport as IReport } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const DueTodayReport: React.FC = () => {
   const [data, setData] = useState<IReport | null>(null);
@@ -54,6 +56,21 @@ const DueTodayReport: React.FC = () => {
               <button className="btn btn-sm btn-outline-primary" onClick={fetchData}>
                 <i className="ti ti-refresh me-1"></i>Refresh
               </button>
+              <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Plan ID', 'Customer', 'Phone', 'Address', 'Product', 'Inst #', 'Amount Due', 'Status'];
+                  const rows = data.items.map(item => [item.planId, item.customerName, item.phone || '-', item.address || '-', item.productName, item.installmentNo, item.amountDue, item.status]);
+                  exportToExcel(cols, rows, 'Due-Today-Report');
+                }}
+                onExportPDF={() => {
+                  const cols = ['Plan ID', 'Customer', 'Phone', 'Product', 'Inst #', 'Amount Due', 'Status'];
+                  const rows = data.items.map(item => [item.planId, item.customerName, item.phone || '-', item.productName, item.installmentNo, `Rs ${item.amountDue.toLocaleString()}`, item.status]);
+                  exportToPDF(cols, rows, 'Due-Today-Report', 'Due Today Report', [
+                    { label: 'Total Due Today', value: data.totalDueToday },
+                    { label: 'Total Amount Due', value: `Rs ${data.totalAmountDue.toLocaleString()}` },
+                  ]);
+                }}
+              />
             </div>
             <div className="card-body">
               <div className="table-responsive">

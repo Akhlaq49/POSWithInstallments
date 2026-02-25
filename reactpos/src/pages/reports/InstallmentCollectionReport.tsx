@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getInstallmentCollectionReport, InstallmentCollectionReport as IReport } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const InstallmentCollectionReport: React.FC = () => {
   const [data, setData] = useState<IReport | null>(null);
@@ -40,6 +42,27 @@ const InstallmentCollectionReport: React.FC = () => {
             </div>
             <div className="col-md-3">
               <button className="btn btn-primary" onClick={fetchData}>Apply Filter</button>
+            </div>
+            <div className="col-md-3 ms-auto">
+              {data && <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Date', 'Count', 'Amount'];
+                  const rows = data.collectionByDate.map(r => [new Date(r.date).toLocaleDateString(), r.count, r.amount]);
+                  exportToExcel(cols, rows, 'Installment-Collection-Report');
+                }}
+                onExportPDF={() => {
+                  const cols = ['Date', 'Count', 'Amount'];
+                  const rows = data.collectionByDate.map(r => [new Date(r.date).toLocaleDateString(), r.count, r.amount]);
+                  exportToPDF(cols, rows, 'Installment-Collection-Report', 'Installment Collection Report', [
+                    { label: 'Total Due', value: data.totalInstallmentsDue },
+                    { label: 'Total Collected', value: data.totalCollected },
+                    { label: 'Pending', value: data.pendingCount },
+                    { label: 'Late Payments', value: data.latePayments },
+                    { label: 'Amount Due', value: `Rs ${data.totalAmountDue.toLocaleString()}` },
+                    { label: 'Amount Collected', value: `Rs ${data.totalAmountCollected.toLocaleString()}` },
+                  ]);
+                }}
+              />}
             </div>
           </div>
         </div>

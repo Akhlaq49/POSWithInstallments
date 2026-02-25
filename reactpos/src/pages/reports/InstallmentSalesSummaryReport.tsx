@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getInstallmentSalesSummary, InstallmentSalesSummary } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const InstallmentSalesSummaryReport: React.FC = () => {
   const [data, setData] = useState<InstallmentSalesSummary | null>(null);
@@ -34,6 +36,26 @@ const InstallmentSalesSummaryReport: React.FC = () => {
             </div>
             <div className="col-md-3">
               <button className="btn btn-primary" onClick={fetchData}>Apply Filter</button>
+            </div>
+            <div className="col-md-3 ms-auto">
+              {data && <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Month', 'Contracts', 'Down Payments', 'Financed Amount'];
+                  const rows = data.monthlySales.map(m => [m.month, m.contracts, m.downPayments, m.financedAmount]);
+                  exportToExcel(cols, rows, 'Installment-Sales-Summary');
+                }}
+                onExportPDF={() => {
+                  const cols = ['Month', 'Contracts', 'Down Payments', 'Financed Amount'];
+                  const rows = data.monthlySales.map(m => [m.month, m.contracts, `Rs ${m.downPayments.toLocaleString()}`, `Rs ${m.financedAmount.toLocaleString()}`]);
+                  exportToPDF(cols, rows, 'Installment-Sales-Summary', 'Installment Sales Summary', [
+                    { label: 'Total Contracts', value: data.totalContracts },
+                    { label: 'Active', value: data.activeContracts },
+                    { label: 'Completed', value: data.completedContracts },
+                    { label: 'Total Down Payments', value: `Rs ${data.totalDownPayments.toLocaleString()}` },
+                    { label: 'Total Revenue', value: `Rs ${data.totalRevenue.toLocaleString()}` },
+                  ]);
+                }}
+              />}
             </div>
           </div>
         </div>

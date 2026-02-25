@@ -130,4 +130,13 @@ public class ReportsController : ControllerBase
         var report = await _reportService.GetLateFeeReportAsync(from, to);
         return Ok(report);
     }
+
+    // ── Product Profit Report ──
+
+    [HttpGet("product-profit")]
+    public async Task<IActionResult> GetProductProfit([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var report = await _reportService.GetProductProfitReportAsync(from, to);
+        return Ok(report);
+    }
 }

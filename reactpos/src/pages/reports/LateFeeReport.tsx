@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getLateFeeReport, LateFeeReport as IReport } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const LateFeeReport: React.FC = () => {
   const [data, setData] = useState<IReport | null>(null);
@@ -34,6 +36,25 @@ const LateFeeReport: React.FC = () => {
             </div>
             <div className="col-md-3">
               <button className="btn btn-primary" onClick={fetchData}>Apply Filter</button>
+            </div>
+            <div className="col-md-3 ms-auto">
+              {data && <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Plan ID', 'Customer', 'Phone', 'Inst #', 'Due Date', 'Paid Date', 'Days Late', 'Late Fee', 'Status'];
+                  const rows = data.items.map(item => [item.planId, item.customerName, item.phone || '-', item.installmentNo, new Date(item.dueDate).toLocaleDateString(), item.paidDate ? new Date(item.paidDate).toLocaleDateString() : '-', item.daysLate, item.lateFeeAmount, item.isPaid ? 'Paid' : 'Unpaid']);
+                  exportToExcel(cols, rows, 'Late-Fee-Report');
+                }}
+                onExportPDF={() => {
+                  const cols = ['Plan ID', 'Customer', 'Phone', 'Inst #', 'Due Date', 'Paid Date', 'Days Late', 'Late Fee', 'Status'];
+                  const rows = data.items.map(item => [item.planId, item.customerName, item.phone || '-', item.installmentNo, new Date(item.dueDate).toLocaleDateString(), item.paidDate ? new Date(item.paidDate).toLocaleDateString() : '-', item.daysLate, `Rs ${item.lateFeeAmount.toLocaleString()}`, item.isPaid ? 'Paid' : 'Unpaid']);
+                  exportToPDF(cols, rows, 'Late-Fee-Report', 'Late Fee Report', [
+                    { label: 'Total Late Fees', value: `Rs ${data.totalLateFees.toLocaleString()}` },
+                    { label: 'Paid Late Fees', value: `Rs ${data.paidLateFees.toLocaleString()}` },
+                    { label: 'Unpaid Late Fees', value: `Rs ${data.unpaidLateFees.toLocaleString()}` },
+                    { label: 'Total Late Entries', value: data.totalLateEntries },
+                  ]);
+                }}
+              />}
             </div>
           </div>
         </div>

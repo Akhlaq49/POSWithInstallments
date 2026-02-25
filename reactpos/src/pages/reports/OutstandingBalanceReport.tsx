@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getOutstandingBalanceReport, OutstandingBalanceReport as IReport } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const OutstandingBalanceReport: React.FC = () => {
   const [data, setData] = useState<IReport | null>(null);
@@ -16,6 +18,27 @@ const OutstandingBalanceReport: React.FC = () => {
   return (
     <>
       <PageHeader title="Outstanding Balance Report" breadcrumbs={[{ title: 'Installment Reports' }, { title: 'Financial' }]} />
+
+      {data && (
+        <div className="d-flex justify-content-end mb-3">
+          <ExportButtons
+            onExportExcel={() => {
+              const cols = ['Customer', 'Phone', 'Product', 'Remaining Balance', 'Overdue Amount', 'Max Days Overdue'];
+              const rows = data.customers.map(c => [c.customerName, c.phone || '-', c.productName, c.remainingBalance, c.overdueAmount, c.maxDaysOverdue]);
+              exportToExcel(cols, rows, 'Outstanding-Balance-Report');
+            }}
+            onExportPDF={() => {
+              const cols = ['Customer', 'Phone', 'Product', 'Remaining Balance', 'Overdue Amount', 'Max Days Overdue'];
+              const rows = data.customers.map(c => [c.customerName, c.phone || '-', c.productName, `Rs ${c.remainingBalance.toLocaleString()}`, `Rs ${c.overdueAmount.toLocaleString()}`, c.maxDaysOverdue]);
+              exportToPDF(cols, rows, 'Outstanding-Balance-Report', 'Outstanding Balance Report', [
+                { label: 'Total Outstanding', value: `Rs ${data.totalOutstanding.toLocaleString()}` },
+                { label: 'Total Overdue', value: `Rs ${data.totalOverdue.toLocaleString()}` },
+                { label: 'Total Customers', value: data.totalCustomers },
+              ]);
+            }}
+          />
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-5"><div className="spinner-border text-primary" /></div>

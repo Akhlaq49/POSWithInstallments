@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getRecoveryPerformance, RecoveryPerformance } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const RecoveryPerformanceReport: React.FC = () => {
   const [data, setData] = useState<RecoveryPerformance | null>(null);
@@ -34,6 +36,24 @@ const RecoveryPerformanceReport: React.FC = () => {
             </div>
             <div className="col-md-3">
               <button className="btn btn-primary" onClick={fetchData}>Apply Filter</button>
+            </div>
+            <div className="col-md-3 ms-auto">
+              {data && <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Month', 'Overdue Amount', 'Recovered', 'Recovery Rate (%)'];
+                  const rows = data.monthlyRecovery.map(m => [m.month, m.overdueAmount, m.recovered, m.recoveryRate.toFixed(1)]);
+                  exportToExcel(cols, rows, 'Recovery-Performance-Report');
+                }}
+                onExportPDF={() => {
+                  const cols = ['Month', 'Overdue Amount', 'Recovered', 'Recovery Rate (%)'];
+                  const rows = data.monthlyRecovery.map(m => [m.month, `Rs ${m.overdueAmount.toLocaleString()}`, `Rs ${m.recovered.toLocaleString()}`, `${m.recoveryRate.toFixed(1)}%`]);
+                  exportToPDF(cols, rows, 'Recovery-Performance-Report', 'Recovery Performance Report', [
+                    { label: 'Total Overdue', value: `Rs ${data.totalOverdueAmount.toLocaleString()}` },
+                    { label: 'Amount Recovered', value: `Rs ${data.amountRecovered.toLocaleString()}` },
+                    { label: 'Recovery Rate', value: `${data.recoveryRate.toFixed(1)}%` },
+                  ]);
+                }}
+              />}
             </div>
           </div>
         </div>

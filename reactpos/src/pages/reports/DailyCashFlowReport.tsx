@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getDailyCashFlowReport, DailyCashFlowReport as IReport } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const DailyCashFlowReport: React.FC = () => {
   const [data, setData] = useState<IReport | null>(null);
@@ -34,6 +36,24 @@ const DailyCashFlowReport: React.FC = () => {
             </div>
             <div className="col-md-3">
               <button className="btn btn-primary" onClick={fetchData}>Apply Filter</button>
+            </div>
+            <div className="col-md-3 ms-auto">
+              {data && <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Date', 'Cash Collected', 'Online Payments', 'Down Payments', 'Expenses', 'Net Flow'];
+                  const rows = data.dailyEntries.map(e => [new Date(e.date).toLocaleDateString(), e.cashCollected, e.onlinePayments, e.downPayments, e.expenses, e.netFlow]);
+                  exportToExcel(cols, rows, 'Daily-Cash-Flow-Report');
+                }}
+                onExportPDF={() => {
+                  const cols = ['Date', 'Cash Collected', 'Online Payments', 'Down Payments', 'Expenses', 'Net Flow'];
+                  const rows = data.dailyEntries.map(e => [new Date(e.date).toLocaleDateString(), `Rs ${e.cashCollected.toLocaleString()}`, `Rs ${e.onlinePayments.toLocaleString()}`, `Rs ${e.downPayments.toLocaleString()}`, `Rs ${e.expenses.toLocaleString()}`, `Rs ${e.netFlow.toLocaleString()}`]);
+                  exportToPDF(cols, rows, 'Daily-Cash-Flow-Report', 'Daily Cash Flow Report', [
+                    { label: 'Opening Balance', value: `Rs ${data.openingBalance.toLocaleString()}` },
+                    { label: 'Cash Collected', value: `Rs ${data.cashCollected.toLocaleString()}` },
+                    { label: 'Closing Balance', value: `Rs ${data.closingBalance.toLocaleString()}` },
+                  ]);
+                }}
+              />}
             </div>
           </div>
         </div>

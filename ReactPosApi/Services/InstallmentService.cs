@@ -53,6 +53,13 @@ public class InstallmentService : IInstallmentService
         var product = await _db.Products.Include(p => p.Images).FirstOrDefaultAsync(p => p.Id == dto.ProductId)
             ?? throw new KeyNotFoundException("Product not found");
 
+        if (product.Quantity < 1)
+            throw new InvalidOperationException("Insufficient product quantity in inventory");
+
+        // Deduct one unit from inventory
+        product.Quantity -= 1;
+        product.UpdatedAt = DateTime.UtcNow;
+
         var productPrice = product.Price;
         var baseAmount = dto.FinanceAmount.HasValue && dto.FinanceAmount.Value > 0
             ? dto.FinanceAmount.Value

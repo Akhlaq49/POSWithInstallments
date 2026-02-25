@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getPaymentHistoryReport, PaymentHistoryReport as IReport } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const PaymentHistoryReport: React.FC = () => {
   const [data, setData] = useState<IReport | null>(null);
@@ -41,6 +43,23 @@ const PaymentHistoryReport: React.FC = () => {
             </div>
             <div className="col-md-3">
               <button className="btn btn-primary" onClick={fetchData}>Apply Filter</button>
+            </div>
+            <div className="col-md-3 ms-auto">
+              {data && <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Date', 'Customer', 'Phone', 'Product', 'Installment #', 'Amount', 'Method'];
+                  const rows = data.payments.map(p => [new Date(p.paidDate).toLocaleDateString(), p.customerName, p.phone || '-', p.productName, p.installmentNo, p.amount, p.paymentMethod]);
+                  exportToExcel(cols, rows, 'Payment-History-Report');
+                }}
+                onExportPDF={() => {
+                  const cols = ['Date', 'Customer', 'Phone', 'Product', 'Inst #', 'Amount', 'Method'];
+                  const rows = data.payments.map(p => [new Date(p.paidDate).toLocaleDateString(), p.customerName, p.phone || '-', p.productName, p.installmentNo, `Rs ${p.amount.toLocaleString()}`, p.paymentMethod]);
+                  exportToPDF(cols, rows, 'Payment-History-Report', 'Payment History Report', [
+                    { label: 'Total Payments', value: data.totalPayments },
+                    { label: 'Total Amount', value: `Rs ${data.totalAmount.toLocaleString()}` },
+                  ]);
+                }}
+              />}
             </div>
           </div>
         </div>

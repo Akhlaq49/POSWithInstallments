@@ -134,6 +134,7 @@ const RecoveryPerformanceReport = lazy(() => import('./pages/reports/RecoveryPer
 const DueTodayReport = lazy(() => import('./pages/reports/DueTodayReport'))
 const UpcomingDueReport = lazy(() => import('./pages/reports/UpcomingDueReport'))
 const LateFeeReport = lazy(() => import('./pages/reports/LateFeeReport'))
+const ProductProfitReport = lazy(() => import('./pages/reports/ProductProfitReport'))
 
 // CMS
 const CmsPages = lazy(() => import('./pages/cms/Pages'))
@@ -468,6 +469,7 @@ function App() {
           <Route path="/inst-due-today" element={<DueTodayReport />} />
           <Route path="/inst-upcoming-due" element={<UpcomingDueReport />} />
           <Route path="/inst-late-fees" element={<LateFeeReport />} />
+          <Route path="/inst-product-profit" element={<ProductProfitReport />} />
 
           {/* CMS */}
           <Route path="/pages" element={<CmsPages />} />

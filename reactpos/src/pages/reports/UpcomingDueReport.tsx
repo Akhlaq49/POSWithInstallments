@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getUpcomingDueReport, UpcomingDueReport as IReport } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const UpcomingDueReport: React.FC = () => {
   const [data, setData] = useState<IReport | null>(null);
@@ -40,6 +42,23 @@ const UpcomingDueReport: React.FC = () => {
             </div>
             <div className="col-md-3">
               <button className="btn btn-primary" onClick={fetchData}>Apply</button>
+            </div>
+            <div className="col-md-3 ms-auto">
+              {data && <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Due Date', 'Customer', 'Phone', 'Address', 'Product', 'Inst #', 'Amount', 'Status'];
+                  const rows = data.items.map(item => [new Date(item.dueDate).toLocaleDateString(), item.customerName, item.phone || '-', item.address || '-', item.productName, item.installmentNo, item.amountDue, item.status]);
+                  exportToExcel(cols, rows, 'Upcoming-Due-Report');
+                }}
+                onExportPDF={() => {
+                  const cols = ['Due Date', 'Customer', 'Phone', 'Product', 'Inst #', 'Amount', 'Status'];
+                  const rows = data.items.map(item => [new Date(item.dueDate).toLocaleDateString(), item.customerName, item.phone || '-', item.productName, item.installmentNo, `Rs ${item.amountDue.toLocaleString()}`, item.status]);
+                  exportToPDF(cols, rows, 'Upcoming-Due-Report', `Upcoming Due Report (Next ${days} Days)`, [
+                    { label: 'Upcoming Installments', value: data.totalUpcoming },
+                    { label: 'Total Amount Due', value: `Rs ${data.totalAmountDue.toLocaleString()}` },
+                  ]);
+                }}
+              />}
             </div>
           </div>
         </div>

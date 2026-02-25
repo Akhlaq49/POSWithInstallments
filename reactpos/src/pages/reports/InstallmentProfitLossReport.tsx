@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getInstallmentProfitLoss, InstallmentProfitLoss } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const InstallmentProfitLossReport: React.FC = () => {
   const [data, setData] = useState<InstallmentProfitLoss | null>(null);
@@ -34,6 +36,25 @@ const InstallmentProfitLossReport: React.FC = () => {
             </div>
             <div className="col-md-3">
               <button className="btn btn-primary" onClick={fetchData}>Apply Filter</button>
+            </div>
+            <div className="col-md-3 ms-auto">
+              {data && <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Month', 'Collections', 'Interest', 'Down Payments', 'Expenses', 'Net Profit'];
+                  const rows = data.monthlyBreakdown.map(m => [m.month, m.collections, m.interest, m.downPayments, m.expenses, m.netProfit]);
+                  exportToExcel(cols, rows, 'Installment-Profit-Loss-Report');
+                }}
+                onExportPDF={() => {
+                  const cols = ['Month', 'Collections', 'Interest', 'Down Payments', 'Expenses', 'Net Profit'];
+                  const rows = data.monthlyBreakdown.map(m => [m.month, `Rs ${m.collections.toLocaleString()}`, `Rs ${m.interest.toLocaleString()}`, `Rs ${m.downPayments.toLocaleString()}`, `Rs ${m.expenses.toLocaleString()}`, `Rs ${m.netProfit.toLocaleString()}`]);
+                  exportToPDF(cols, rows, 'Installment-Profit-Loss-Report', 'Installment Profit & Loss', [
+                    { label: 'Gross Revenue', value: `Rs ${data.grossRevenue.toLocaleString()}` },
+                    { label: 'Total Collected', value: `Rs ${data.totalCollected.toLocaleString()}` },
+                    { label: 'Interest Earned', value: `Rs ${data.interestEarned.toLocaleString()}` },
+                    { label: 'Net Profit', value: `Rs ${data.netProfit.toLocaleString()}` },
+                  ]);
+                }}
+              />}
             </div>
           </div>
         </div>

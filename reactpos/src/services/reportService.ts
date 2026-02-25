@@ -341,3 +341,41 @@ export const getUpcomingDueReport = (days = 7) =>
 
 export const getLateFeeReport = (from?: string, to?: string) =>
   api.get<LateFeeReport>('/reports/late-fees', dateParams(from, to)).then(r => r.data);
+
+
+// ═══════════════════════════════════════
+// Product Profit Report
+// ═══════════════════════════════════════
+
+export interface ProductProfitItem {
+  planId: number;
+  customerName: string;
+  phone?: string;
+  productName: string;
+  productImage?: string;
+  productPrice: number;
+  financedAmount: number;
+  totalPayable: number;
+  downPayment: number;
+  interestEarned: number;
+  profit: number;
+  profitPercentage: number;
+  status: string;
+  startDate: string;
+  tenure: number;
+  interestRate: number;
+}
+
+export interface ProductProfitReport {
+  totalPlans: number;
+  totalProductCost: number;
+  totalFinancedAmount: number;
+  totalProfit: number;
+  totalInterestEarned: number;
+  totalDownPayments: number;
+  averageProfitPerPlan: number;
+  plans: ProductProfitItem[];
+}
+
+export const getProductProfitReport = (from?: string, to?: string) =>
+  api.get<ProductProfitReport>('/reports/product-profit', dateParams(from, to)).then(r => r.data);

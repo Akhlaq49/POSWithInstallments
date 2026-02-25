@@ -27,4 +27,7 @@ public interface IReportService
     Task<DueTodayReportDto> GetDueTodayReportAsync();
     Task<UpcomingDueReportDto> GetUpcomingDueReportAsync(int days = 7);
     Task<LateFeeReportDto> GetLateFeeReportAsync(DateTime? from, DateTime? to);
+
+    // Product Profit Report
+    Task<ProductProfitReportDto> GetProductProfitReportAsync(DateTime? from, DateTime? to);
 }

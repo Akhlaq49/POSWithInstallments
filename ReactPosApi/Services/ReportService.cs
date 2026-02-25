@@ -856,4 +856,66 @@ public class ReportService : IReportService
             Items = items
         };
     }
+
+
+    // ═══════════════════════════════════════════════════════════
+    // PRODUCT PROFIT REPORT
+    // ═══════════════════════════════════════════════════════════
+
+    public async Task<ProductProfitReportDto> GetProductProfitReportAsync(DateTime? from, DateTime? to)
+    {
+        var query = _db.InstallmentPlans
+            .Include(p => p.Customer)
+            .Include(p => p.Product).ThenInclude(pr => pr!.Images)
+            .AsQueryable();
+
+        if (from.HasValue)
+            query = query.Where(p => p.CreatedAt >= from.Value);
+        if (to.HasValue)
+            query = query.Where(p => p.CreatedAt <= to.Value.AddDays(1));
+
+        var plans = await query.OrderByDescending(p => p.CreatedAt).ToListAsync();
+
+        var items = plans.Select(p =>
+        {
+            var profit = p.TotalPayable - p.ProductPrice;
+            var profitPct = p.ProductPrice > 0 ? Math.Round((profit / p.ProductPrice) * 100, 2) : 0;
+            var image = p.Product?.Images?.FirstOrDefault()?.ImageUrl;
+            return new ProductProfitItemDto
+            {
+                PlanId = p.Id,
+                CustomerName = p.Customer?.Name ?? "Unknown",
+                Phone = p.Customer?.Phone,
+                ProductName = p.Product?.ProductName ?? "Unknown",
+                ProductImage = image,
+                ProductPrice = p.ProductPrice,
+                FinancedAmount = p.FinancedAmount,
+                TotalPayable = p.TotalPayable,
+                DownPayment = p.DownPayment,
+                InterestEarned = p.TotalInterest,
+                Profit = profit,
+                ProfitPercentage = profitPct,
+                Status = p.Status,
+                StartDate = p.StartDate,
+                Tenure = p.Tenure,
+                InterestRate = p.InterestRate
+            };
+        }).ToList();
+
+        var totalProductCost = items.Sum(i => i.ProductPrice);
+        var totalFinanced = items.Sum(i => i.TotalPayable);
+        var totalProfit = items.Sum(i => i.Profit);
+
+        return new ProductProfitReportDto
+        {
+            TotalPlans = items.Count,
+            TotalProductCost = totalProductCost,
+            TotalFinancedAmount = totalFinanced,
+            TotalProfit = totalProfit,
+            TotalInterestEarned = items.Sum(i => i.InterestEarned),
+            TotalDownPayments = items.Sum(i => i.DownPayment),
+            AverageProfitPerPlan = items.Count > 0 ? Math.Round(totalProfit / items.Count, 2) : 0,
+            Plans = items
+        };
+    }
 }

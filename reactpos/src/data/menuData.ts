@@ -157,6 +157,7 @@ const menuData: MenuSection[] = [
           { title: 'Outstanding Balance', path: '/inst-outstanding-balance' },
           { title: 'Daily Cash Flow', path: '/inst-daily-cashflow' },
           { title: 'Profit & Loss', path: '/inst-profit-loss' },
+          { title: 'Product Profit', path: '/inst-product-profit' },
         ],
       },
       {

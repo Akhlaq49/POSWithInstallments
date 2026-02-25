@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getDefaultersReport, DefaultersReport as IReport } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const DefaultersReport: React.FC = () => {
   const [data, setData] = useState<IReport | null>(null);
@@ -21,6 +23,26 @@ const DefaultersReport: React.FC = () => {
   return (
     <>
       <PageHeader title="Defaulters Report" breadcrumbs={[{ title: 'Installment Reports' }, { title: 'Customer' }]} />
+
+      {data && (
+        <div className="d-flex justify-content-end mb-3">
+          <ExportButtons
+            onExportExcel={() => {
+              const cols = ['Customer', 'Phone', 'Product', 'Missed', 'Overdue Amount', 'Days Overdue', 'Last Paid', 'Status'];
+              const rows = data.defaulters.map(d => [d.customerName, d.phone || '-', d.productName, d.missedInstallments, d.overdueAmount, d.maxDaysOverdue, d.lastPaidDate ? new Date(d.lastPaidDate).toLocaleDateString() : 'Never', d.status]);
+              exportToExcel(cols, rows, 'Defaulters-Report');
+            }}
+            onExportPDF={() => {
+              const cols = ['Customer', 'Phone', 'Product', 'Missed', 'Overdue Amount', 'Days Overdue', 'Last Paid', 'Status'];
+              const rows = data.defaulters.map(d => [d.customerName, d.phone || '-', d.productName, d.missedInstallments, `Rs ${d.overdueAmount.toLocaleString()}`, d.maxDaysOverdue, d.lastPaidDate ? new Date(d.lastPaidDate).toLocaleDateString() : 'Never', d.status]);
+              exportToPDF(cols, rows, 'Defaulters-Report', 'Defaulters Report', [
+                { label: 'Total Defaulters', value: data.totalDefaulters },
+                { label: 'Total Defaulted Amount', value: `Rs ${data.totalDefaultedAmount.toLocaleString()}` },
+              ]);
+            }}
+          />
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-5"><div className="spinner-border text-primary" /></div>

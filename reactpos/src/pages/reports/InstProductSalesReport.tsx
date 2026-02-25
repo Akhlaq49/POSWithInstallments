@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader';
 import { getProductSalesReport, ProductSalesReport as IReport } from '../../services/reportService';
+import ExportButtons from '../../components/ExportButtons';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 const ProductSalesReport: React.FC = () => {
   const [data, setData] = useState<IReport | null>(null);
@@ -34,6 +36,24 @@ const ProductSalesReport: React.FC = () => {
             </div>
             <div className="col-md-3">
               <button className="btn btn-primary" onClick={fetchData}>Apply Filter</button>
+            </div>
+            <div className="col-md-3 ms-auto">
+              {data && <ExportButtons
+                onExportExcel={() => {
+                  const cols = ['Product', 'Units Sold', 'Total Revenue', 'Avg Price', 'Down Payment Collected'];
+                  const rows = data.products.map(p => [p.productName, p.unitsSold, p.totalRevenue, p.averagePrice, p.downPaymentCollected]);
+                  exportToExcel(cols, rows, 'Product-Sales-Report');
+                }}
+                onExportPDF={() => {
+                  const cols = ['Product', 'Units Sold', 'Total Revenue', 'Avg Price', 'Down Payment'];
+                  const rows = data.products.map(p => [p.productName, p.unitsSold, `Rs ${p.totalRevenue.toLocaleString()}`, `Rs ${p.averagePrice.toLocaleString()}`, `Rs ${p.downPaymentCollected.toLocaleString()}`]);
+                  exportToPDF(cols, rows, 'Product-Sales-Report', 'Product-wise Sales Report', [
+                    { label: 'Total Products', value: data.totalProducts },
+                    { label: 'Total Units Sold', value: data.totalUnitsSold },
+                    { label: 'Total Revenue', value: `Rs ${data.totalRevenue.toLocaleString()}` },
+                  ]);
+                }}
+              />}
             </div>
           </div>
         </div>

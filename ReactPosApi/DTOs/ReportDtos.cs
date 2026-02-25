@@ -344,3 +344,40 @@ public class LateFeeItemDto
     public decimal LateFeeAmount { get; set; }
     public bool IsPaid { get; set; }
 }
+
+
+// ═══════════════════════════════════════════════════════════
+// 6. PRODUCT PROFIT REPORT
+// ═══════════════════════════════════════════════════════════
+
+public class ProductProfitReportDto
+{
+    public int TotalPlans { get; set; }
+    public decimal TotalProductCost { get; set; }
+    public decimal TotalFinancedAmount { get; set; }
+    public decimal TotalProfit { get; set; }
+    public decimal TotalInterestEarned { get; set; }
+    public decimal TotalDownPayments { get; set; }
+    public decimal AverageProfitPerPlan { get; set; }
+    public List<ProductProfitItemDto> Plans { get; set; } = new();
+}
+
+public class ProductProfitItemDto
+{
+    public int PlanId { get; set; }
+    public string CustomerName { get; set; } = "";
+    public string? Phone { get; set; }
+    public string ProductName { get; set; } = "";
+    public string? ProductImage { get; set; }
+    public decimal ProductPrice { get; set; }
+    public decimal FinancedAmount { get; set; }
+    public decimal TotalPayable { get; set; }
+    public decimal DownPayment { get; set; }
+    public decimal InterestEarned { get; set; }
+    public decimal Profit { get; set; }
+    public decimal ProfitPercentage { get; set; }
+    public string Status { get; set; } = "";
+    public string StartDate { get; set; } = "";
+    public int Tenure { get; set; }
+    public decimal InterestRate { get; set; }
+}
