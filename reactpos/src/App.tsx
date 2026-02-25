@@ -185,6 +185,7 @@ const TaxRates = lazy(() => import('./pages/settings/TaxRates'))
 const CurrencySettings = lazy(() => import('./pages/settings/CurrencySettings'))
 const StorageSettings = lazy(() => import('./pages/settings/StorageSettings'))
 const BanIPAddress = lazy(() => import('./pages/settings/BanIPAddress'))
+const WhatsAppSettings = lazy(() => import('./pages/settings/WhatsAppSettings'))
 
 // Auth
 const SignIn = lazy(() => import('./pages/auth/SignIn'))
@@ -512,6 +513,7 @@ function App() {
           <Route path="/email-templates" element={<EmailTemplates />} />
           <Route path="/sms-settings" element={<SMSSettings />} />
           <Route path="/sms-templates" element={<SMSTemplates />} />
+          <Route path="/whatsapp-settings" element={<WhatsAppSettings />} />
           <Route path="/otp-settings" element={<OTPSettings />} />
           <Route path="/gdpr-settings" element={<GDPRSettings />} />
           <Route path="/payment-gateway-settings" element={<PaymentGatewaySettings />} />

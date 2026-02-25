@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { InstallmentPlan, RepaymentEntry } from '../services/installmentService';
 import { MEDIA_BASE_URL } from '../services/api';
-import { downloadPdf, shareViaWhatsApp } from '../utils/pdfWhatsappShare';
+import { downloadPdf, shareViaWhatsApp, sendViaWhatsAppCloudApi, isWhatsAppCloudConfigured } from '../utils/pdfWhatsappShare';
 
 interface DepositSlipProps {
   plan: InstallmentPlan;
@@ -13,6 +13,13 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
   const slipRef = useRef<HTMLDivElement>(null);
   const [sharing, setSharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [sendingCloud, setSendingCloud] = useState(false);
+  const [cloudConfigured, setCloudConfigured] = useState(false);
+  const [cloudResult, setCloudResult] = useState<{ success: boolean; error?: string } | null>(null);
+
+  useEffect(() => {
+    isWhatsAppCloudConfigured().then(setCloudConfigured).catch(() => setCloudConfigured(false));
+  }, []);
 
   const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
@@ -111,17 +118,39 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
     }
   };
 
+  const buildMessage = () => {
+    return `📄 *Deposit Slip*\n\n👤 Customer: ${plan.customerName}\n📦 Product: ${plan.productName}\n💰 Installment #${entry.installmentNo}\n💵 Amount: Rs ${fmt((entry.actualPaidAmount || 0) + (entry.miscAdjustedAmount || 0))}\n📅 Date: ${entry.paidDate || '-'}`;
+  };
+
   const handleShareWhatsApp = async () => {
     const content = slipRef.current;
     if (!content) return;
     setSharing(true);
     try {
-      const message = `📄 *Deposit Slip*\n\n👤 Customer: ${plan.customerName}\n📦 Product: ${plan.productName}\n💰 Installment #${entry.installmentNo}\n💵 Amount: Rs ${fmt((entry.actualPaidAmount || 0) + (entry.miscAdjustedAmount || 0))}\n📅 Date: ${entry.paidDate || '-'}`;
-      await shareViaWhatsApp(content, pdfFilename, message, plan.customerPhone, { width: 400 });
+      await shareViaWhatsApp(content, pdfFilename, buildMessage(), plan.customerPhone, { width: 400 });
     } catch (err) {
       console.error('WhatsApp share error:', err);
     } finally {
       setSharing(false);
+    }
+  };
+
+  const handleSendWhatsAppCloud = async () => {
+    const content = slipRef.current;
+    if (!content) return;
+    setSendingCloud(true);
+    setCloudResult(null);
+    try {
+      const result = await sendViaWhatsAppCloudApi(content, pdfFilename, buildMessage(), plan.customerPhone, { width: 400 });
+      setCloudResult(result);
+      if (result.success) {
+        setTimeout(() => setCloudResult(null), 4000);
+      }
+    } catch (err) {
+      console.error('WhatsApp Cloud API error:', err);
+      setCloudResult({ success: false, error: 'Failed to send' });
+    } finally {
+      setSendingCloud(false);
     }
   };
 
@@ -141,9 +170,19 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
               <button className="btn btn-sm btn-success" onClick={handleShareWhatsApp} disabled={sharing} title="Share via WhatsApp">
                 {sharing ? <span className="spinner-border spinner-border-sm"></span> : <><i className="ti ti-brand-whatsapp me-1"></i>WhatsApp</>}
               </button>
+              {cloudConfigured && (
+                <button className="btn btn-sm btn-outline-success" onClick={handleSendWhatsAppCloud} disabled={sendingCloud} title="Send via WhatsApp Cloud API">
+                  {sendingCloud ? <span className="spinner-border spinner-border-sm"></span> : <><i className="ti ti-send me-1"></i>Send</>}
+                </button>
+              )}
               <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
             </div>
           </div>
+          {cloudResult && (
+            <div className={`alert ${cloudResult.success ? 'alert-success' : 'alert-danger'} mb-0 py-2 rounded-0 text-center small`}>
+              {cloudResult.success ? <><i className="ti ti-check me-1"></i>Sent via WhatsApp Cloud API!</> : <><i className="ti ti-alert-triangle me-1"></i>{cloudResult.error}</>}
+            </div>
+          )}
           <div className="modal-body p-0">
             <div ref={slipRef}>
               <div className="slip" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", maxWidth: 400, margin: '0 auto', padding: 20 }}>

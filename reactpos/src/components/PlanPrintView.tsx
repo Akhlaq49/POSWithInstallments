@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { InstallmentPlan } from '../services/installmentService';
 import { MEDIA_BASE_URL } from '../services/api';
-import { downloadPdf, shareViaWhatsApp } from '../utils/pdfWhatsappShare';
+import { downloadPdf, shareViaWhatsApp, sendViaWhatsAppCloudApi, isWhatsAppCloudConfigured } from '../utils/pdfWhatsappShare';
 
 interface PlanPrintViewProps {
   plan: InstallmentPlan;
@@ -12,6 +12,13 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
   const printRef = useRef<HTMLDivElement>(null);
   const [sharing, setSharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [sendingCloud, setSendingCloud] = useState(false);
+  const [cloudConfigured, setCloudConfigured] = useState(false);
+  const [cloudResult, setCloudResult] = useState<{ success: boolean; error?: string } | null>(null);
+
+  useEffect(() => {
+    isWhatsAppCloudConfigured().then(setCloudConfigured).catch(() => setCloudConfigured(false));
+  }, []);
 
   const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const fmt2 = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -112,21 +119,43 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
     }
   };
 
+  const buildMessage = () => {
+    const totalPaidAmt = plan.schedule
+      .filter((e) => e.status === 'paid' || e.status === 'partial')
+      .reduce((s, e) => s + (e.actualPaidAmount || 0) + (e.miscAdjustedAmount || 0), 0) + plan.downPayment;
+    const outstanding = plan.totalPayable - totalPaidAmt;
+    return `📋 *Repayment Plan*\n\n👤 Customer: ${plan.customerName}\n📦 Product: ${plan.productName}\n💰 Total Payable: Rs ${fmt(plan.totalPayable)}\n✅ Paid: Rs ${fmt(totalPaidAmt)}\n⏳ Outstanding: Rs ${fmt(outstanding > 0 ? outstanding : 0)}\n📅 Tenure: ${plan.tenure} months (${plan.paidInstallments}/${plan.tenure} paid)`;
+  };
+
   const handleShareWhatsApp = async () => {
     const content = printRef.current;
     if (!content) return;
     setSharing(true);
     try {
-      const totalPaidAmt = plan.schedule
-        .filter((e) => e.status === 'paid' || e.status === 'partial')
-        .reduce((s, e) => s + (e.actualPaidAmount || 0) + (e.miscAdjustedAmount || 0), 0) + plan.downPayment;
-      const outstanding = plan.totalPayable - totalPaidAmt;
-      const message = `📋 *Repayment Plan*\n\n👤 Customer: ${plan.customerName}\n📦 Product: ${plan.productName}\n💰 Total Payable: Rs ${fmt(plan.totalPayable)}\n✅ Paid: Rs ${fmt(totalPaidAmt)}\n⏳ Outstanding: Rs ${fmt(outstanding > 0 ? outstanding : 0)}\n📅 Tenure: ${plan.tenure} months (${plan.paidInstallments}/${plan.tenure} paid)`;
-      await shareViaWhatsApp(content, pdfFilename, message, plan.customerPhone, { width: 800, orientation: 'portrait' });
+      await shareViaWhatsApp(content, pdfFilename, buildMessage(), plan.customerPhone, { width: 800, orientation: 'portrait' });
     } catch (err) {
       console.error('WhatsApp share error:', err);
     } finally {
       setSharing(false);
+    }
+  };
+
+  const handleSendWhatsAppCloud = async () => {
+    const content = printRef.current;
+    if (!content) return;
+    setSendingCloud(true);
+    setCloudResult(null);
+    try {
+      const result = await sendViaWhatsAppCloudApi(content, pdfFilename, buildMessage(), plan.customerPhone, { width: 800, orientation: 'portrait' });
+      setCloudResult(result);
+      if (result.success) {
+        setTimeout(() => setCloudResult(null), 4000);
+      }
+    } catch (err) {
+      console.error('WhatsApp Cloud API error:', err);
+      setCloudResult({ success: false, error: 'Failed to send' });
+    } finally {
+      setSendingCloud(false);
     }
   };
 
@@ -156,9 +185,19 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
               <button className="btn btn-sm btn-success" onClick={handleShareWhatsApp} disabled={sharing} title="Share via WhatsApp">
                 {sharing ? <span className="spinner-border spinner-border-sm"></span> : <><i className="ti ti-brand-whatsapp me-1"></i>WhatsApp</>}
               </button>
+              {cloudConfigured && (
+                <button className="btn btn-sm btn-outline-success" onClick={handleSendWhatsAppCloud} disabled={sendingCloud} title="Send via WhatsApp Cloud API">
+                  {sendingCloud ? <span className="spinner-border spinner-border-sm"></span> : <><i className="ti ti-send me-1"></i>Send</>}
+                </button>
+              )}
               <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
             </div>
           </div>
+          {cloudResult && (
+            <div className={`alert ${cloudResult.success ? 'alert-success' : 'alert-danger'} mb-0 py-2 rounded-0 text-center small`}>
+              {cloudResult.success ? <><i className="ti ti-check me-1"></i>Sent via WhatsApp Cloud API!</> : <><i className="ti ti-alert-triangle me-1"></i>{cloudResult.error}</>}
+            </div>
+          )}
           <div className="modal-body p-0" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
             <div ref={printRef}>
               <div style={{ maxWidth: 800, margin: '0 auto', padding: 24, fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", color: '#333' }}>

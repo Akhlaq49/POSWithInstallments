@@ -41,6 +41,9 @@ builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<ICouponService, CouponService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 
+// WhatsApp Cloud API
+builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
+
 // EF Core - SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

@@ -562,6 +562,7 @@ const menuData: MenuSection[] = [
               { title: 'SMS Template', path: '/sms-templates' },
             ],
           },
+          { title: 'WhatsApp Cloud API', path: '/whatsapp-settings' },
           { title: 'OTP', path: '/otp-settings' },
           { title: 'GDPR Cookies', path: '/gdpr-settings' },
         ],

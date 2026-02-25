@@ -8,8 +8,6 @@ import {
   RepaymentEntry,
   previewInstallment,
   InstallmentPreview,
-  searchParties,
-  PartySearchResult,
 } from '../../services/installmentService';
 import { getProducts, ProductResponse } from '../../services/productService';
 import { getCustomers, Customer, createCustomer, uploadCustomerPicture } from '../../services/customerService';
@@ -82,7 +80,6 @@ const CreateInstallment: React.FC = () => {
 
   // Guarantors local state
   interface LocalGuarantor {
-    partyId: number | null;
     name: string;
     so: string;
     phone: string;
@@ -92,70 +89,9 @@ const CreateInstallment: React.FC = () => {
     pictureFile: File | null;
     picturePreview: string;
   }
-  const emptyGuarantor: LocalGuarantor = { partyId: null, name: '', so: '', phone: '', cnic: '', address: '', relationship: '', pictureFile: null, picturePreview: '' };
+  const emptyGuarantor: LocalGuarantor = { name: '', so: '', phone: '', cnic: '', address: '', relationship: '', pictureFile: null, picturePreview: '' };
   const [guarantors, setGuarantors] = useState<LocalGuarantor[]>([]);
   const [activeGuarantorTab, setActiveGuarantorTab] = useState(0);
-
-  // Party search state for guarantors
-  const [partySearchResults, setPartySearchResults] = useState<PartySearchResult[]>([]);
-  const [partySearchTerm, setPartySearchTerm] = useState('');
-  const [showPartyDropdown, setShowPartyDropdown] = useState(false);
-  const [partySearchLoading, setPartySearchLoading] = useState(false);
-  const partySearchRef = useRef<HTMLDivElement>(null);
-  const partySearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Debounced party search
-  const handlePartySearch = useCallback((term: string) => {
-    setPartySearchTerm(term);
-    setShowPartyDropdown(true);
-    if (partySearchTimer.current) clearTimeout(partySearchTimer.current);
-    partySearchTimer.current = setTimeout(async () => {
-      if (!term.trim()) {
-        setPartySearchResults([]);
-        return;
-      }
-      setPartySearchLoading(true);
-      try {
-        const results = await searchParties(term);
-        setPartySearchResults(results);
-      } catch {
-        setPartySearchResults([]);
-      } finally {
-        setPartySearchLoading(false);
-      }
-    }, 300);
-  }, []);
-
-  const handleSelectParty = useCallback((party: PartySearchResult, guarantorIdx: number) => {
-    setGuarantors(prev => prev.map((item, i) => i === guarantorIdx ? {
-      ...item,
-      partyId: party.id,
-      name: party.name,
-      so: party.so || '',
-      phone: party.phone || '',
-      cnic: party.cnic || '',
-      address: party.address || '',
-      picturePreview: party.picture ? `${MEDIA_BASE_URL}${party.picture}` : '',
-    } : item));
-    setPartySearchTerm(party.name);
-    setShowPartyDropdown(false);
-  }, []);
-
-  const handleClearParty = useCallback((guarantorIdx: number) => {
-    setGuarantors(prev => prev.map((item, i) => i === guarantorIdx ? { ...emptyGuarantor } : item));
-    setPartySearchTerm('');
-  }, []);
-
-  // Close party dropdown on outside click
-  useEffect(() => {
-    const handleClickOutsideParty = (e: MouseEvent) => {
-      if (partySearchRef.current && !partySearchRef.current.contains(e.target as Node)) {
-        setShowPartyDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutsideParty);
-    return () => document.removeEventListener('mousedown', handleClickOutsideParty);
-  }, []);
 
   // Preview data via API
   const productPrice = selectedProduct?.price ?? 0;
@@ -357,7 +293,6 @@ const CreateInstallment: React.FC = () => {
         fd.append('cnic', g.cnic);
         fd.append('address', g.address);
         fd.append('relationship', g.relationship);
-        if (g.partyId) fd.append('partyId', g.partyId.toString());
         if (g.pictureFile) fd.append('picture', g.pictureFile);
         await addGuarantor(result.id, fd);
       }
@@ -566,11 +501,7 @@ const CreateInstallment: React.FC = () => {
                             <button
                               type="button"
                               className={`nav-link ${activeGuarantorTab === idx ? 'active' : ''}`}
-                              onClick={() => {
-                                setActiveGuarantorTab(idx);
-                                setPartySearchTerm(guarantors[idx]?.partyId ? guarantors[idx].name : '');
-                                setShowPartyDropdown(false);
-                              }}
+                              onClick={() => setActiveGuarantorTab(idx)}
                             >
                               Guarantor {idx + 1}
                             </button>
@@ -587,101 +518,25 @@ const CreateInstallment: React.FC = () => {
                               <i className="ti ti-trash me-1"></i>Remove
                             </button>
                           </div>
-
-                          {/* Party Search */}
-                          <div className="mb-3">
-                            <label className="form-label">Search Existing Person</label>
-                            <div ref={activeGuarantorTab === idx ? partySearchRef : undefined} style={{ position: 'relative' }}>
-                              <div className="input-group">
-                                <span className="input-group-text"><i className="ti ti-search"></i></span>
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  placeholder="Type name, phone, CNIC or email to search..."
-                                  value={activeGuarantorTab === idx ? partySearchTerm : ''}
-                                  onChange={(e) => {
-                                    if (activeGuarantorTab === idx) {
-                                      handlePartySearch(e.target.value);
-                                      if (g.partyId) {
-                                        setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, partyId: null } : item));
-                                      }
-                                    }
-                                  }}
-                                  onFocus={() => {
-                                    if (activeGuarantorTab === idx) {
-                                      setShowPartyDropdown(true);
-                                      if (partySearchTerm.trim()) handlePartySearch(partySearchTerm);
-                                    }
-                                  }}
-                                />
-                                {g.partyId && (
-                                  <button type="button" className="btn btn-outline-secondary" onClick={() => handleClearParty(idx)}>
-                                    <i className="ti ti-x"></i>
-                                  </button>
-                                )}
-                              </div>
-                              {showPartyDropdown && activeGuarantorTab === idx && (
-                                <div className="border rounded shadow-sm bg-white" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1050, maxHeight: 300, overflowY: 'auto' }}>
-                                  {partySearchLoading ? (
-                                    <div className="text-center p-3"><span className="spinner-border spinner-border-sm text-primary"></span> Searching...</div>
-                                  ) : !partySearchTerm.trim() ? (
-                                    <div className="text-center p-3 text-muted">Type to search for an existing person</div>
-                                  ) : partySearchResults.length === 0 ? (
-                                    <div className="text-center p-3 text-muted">No results found — fill in details manually</div>
-                                  ) : (
-                                    partySearchResults.map((party) => (
-                                      <div
-                                        key={party.id}
-                                        className="d-flex align-items-center p-2 border-bottom"
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() => handleSelectParty(party, idx)}
-                                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
-                                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '')}
-                                      >
-                                        {party.picture ? (
-                                          <img src={`${MEDIA_BASE_URL}${party.picture}`} alt={party.name} className="rounded-circle border me-2" style={{ width: 36, height: 36, objectFit: 'cover' }} />
-                                        ) : (
-                                          <span className="avatar avatar-sm me-2 bg-primary-transparent text-primary d-flex align-items-center justify-content-center rounded-circle fw-bold">
-                                            {party.name.charAt(0).toUpperCase()}
-                                          </span>
-                                        )}
-                                        <div className="flex-grow-1">
-                                          <h6 className="mb-0 fs-13 fw-medium">{party.name}</h6>
-                                          <small className="text-muted">{party.phone || '-'} &bull; {party.cnic || '-'}</small>
-                                        </div>
-                                        <div className="text-end">
-                                          <span className="badge bg-light text-dark">{party.role}</span>
-                                        </div>
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            {g.partyId && (
-                              <small className="text-success"><i className="ti ti-check me-1"></i>Linked to existing person (ID: {g.partyId})</small>
-                            )}
-                          </div>
-
                           <div className="row">
                             <div className="col-md-6 mb-3">
                               <label className="form-label">Full Name<span className="text-danger ms-1">*</span></label>
-                              <input type="text" className="form-control" placeholder="Guarantor name" value={g.name} readOnly={!!g.partyId}
+                              <input type="text" className="form-control" placeholder="Guarantor name" value={g.name}
                                 onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, name: e.target.value } : item))} />
                             </div>
                             <div className="col-md-6 mb-3">
                               <label className="form-label">S/O (Father's Name)</label>
-                              <input type="text" className="form-control" placeholder="Son/Daughter of" value={g.so} readOnly={!!g.partyId}
+                              <input type="text" className="form-control" placeholder="Son/Daughter of" value={g.so}
                                 onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, so: e.target.value } : item))} />
                             </div>
                             <div className="col-md-6 mb-3">
                               <label className="form-label">Phone</label>
-                              <input type="text" className="form-control" placeholder="Phone number" value={g.phone} readOnly={!!g.partyId}
+                              <input type="text" className="form-control" placeholder="Phone number" value={g.phone}
                                 onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, phone: e.target.value } : item))} />
                             </div>
                             <div className="col-md-6 mb-3">
                               <label className="form-label">CNIC / ID Number</label>
-                              <input type="text" className="form-control" placeholder="CNIC or ID number" value={g.cnic} readOnly={!!g.partyId}
+                              <input type="text" className="form-control" placeholder="CNIC or ID number" value={g.cnic}
                                 onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, cnic: e.target.value } : item))} />
                             </div>
                             <div className="col-md-6 mb-3">
@@ -701,23 +556,21 @@ const CreateInstallment: React.FC = () => {
                             </div>
                             <div className="col-12 mb-3">
                               <label className="form-label">Address</label>
-                              <textarea className="form-control" rows={2} placeholder="Full address" value={g.address} readOnly={!!g.partyId}
+                              <textarea className="form-control" rows={2} placeholder="Full address" value={g.address}
                                 onChange={e => setGuarantors(prev => prev.map((item, i) => i === idx ? { ...item, address: e.target.value } : item))} />
                             </div>
                             <div className="col-12 mb-0">
                               <label className="form-label">Photo / ID Picture</label>
                               <div className="d-flex align-items-center gap-3">
-                                {!g.partyId && (
-                                  <input type="file" className="form-control" accept="image/*"
-                                    onChange={e => {
-                                      const file = e.target.files?.[0] || null;
-                                      setGuarantors(prev => prev.map((item, i) => i === idx ? {
-                                        ...item,
-                                        pictureFile: file,
-                                        picturePreview: file ? URL.createObjectURL(file) : ''
-                                      } : item));
-                                    }} />
-                                )}
+                                <input type="file" className="form-control" accept="image/*"
+                                  onChange={e => {
+                                    const file = e.target.files?.[0] || null;
+                                    setGuarantors(prev => prev.map((item, i) => i === idx ? {
+                                      ...item,
+                                      pictureFile: file,
+                                      picturePreview: file ? URL.createObjectURL(file) : ''
+                                    } : item));
+                                  }} />
                                 {g.picturePreview && (
                                   <img src={g.picturePreview} alt="Preview" className="rounded border" style={{ width: 60, height: 60, objectFit: 'cover' }} />
                                 )}
