@@ -3,18 +3,21 @@ import { InstallmentPlan, RepaymentEntry } from '../services/installmentService'
 import { MEDIA_BASE_URL } from '../services/api';
 import { downloadPdf, shareViaWhatsApp } from '../utils/pdfWhatsappShare';
 
-interface DepositSlipProps {
+interface DueInstallmentSlipProps {
   plan: InstallmentPlan;
   entry: RepaymentEntry;
   onClose: () => void;
 }
 
-const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
+const DueInstallmentSlip: React.FC<DueInstallmentSlipProps> = ({ plan, entry, onClose }) => {
   const slipRef = useRef<HTMLDivElement>(null);
   const [sharing, setSharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
   const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+  const previouslyPaid = (entry.actualPaidAmount || 0) + (entry.miscAdjustedAmount || 0);
+  const remainingForEntry = entry.emiAmount - previouslyPaid;
 
   const totalDeposited =
     plan.schedule
@@ -22,30 +25,13 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
       .reduce((s, e) => s + (e.actualPaidAmount || 0) + (e.miscAdjustedAmount || 0), 0) + plan.downPayment;
 
   const totalAmount = plan.totalPayable;
-  const remaining = totalAmount - totalDeposited;
+  const totalRemaining = totalAmount - totalDeposited;
 
-  const paidCount = plan.paidInstallments;
-  const remainingCount = plan.remainingInstallments;
+  const isOverdue = entry.status === 'overdue';
+  const isPartial = entry.status === 'partial';
 
-  const depositAmount = (entry.actualPaidAmount || 0) + (entry.miscAdjustedAmount || 0);
-
-  const paymentMode =
-    entry.miscAdjustedAmount && entry.miscAdjustedAmount > 0 && (!entry.actualPaidAmount || entry.actualPaidAmount === 0)
-      ? 'Misc Balance'
-      : entry.miscAdjustedAmount && entry.miscAdjustedAmount > 0
-        ? 'Cash + Misc'
-        : 'Cash';
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '-';
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
-        ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    } catch {
-      return dateStr;
-    }
-  };
+  const statusLabel = isOverdue ? 'OVERDUE' : isPartial ? 'PARTIALLY PAID' : 'DUE';
+  const statusColor = isOverdue ? '#dc3545' : isPartial ? '#17a2b8' : '#ffc107';
 
   const handlePrint = () => {
     const content = slipRef.current;
@@ -58,33 +44,11 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Deposit Slip - ${plan.customerName}</title>
+        <title>Due Installment - ${plan.customerName}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; margin: 0; }
-          .slip { width: 100%; max-width: 400px; margin: 0 auto; padding: 20px; }
-          .slip-header { text-align: center; padding-bottom: 15px; border-bottom: 2px solid #e0e0e0; margin-bottom: 15px; }
-          .slip-header .logo-area { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px; }
-          .slip-header .logo-area img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #4a90d9; }
-          .slip-header .logo-area .logo-placeholder { width: 50px; height: 50px; border-radius: 50%; background: #4a90d9; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }
-          .slip-header h2 { font-size: 18px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
-          .slip-header .address { font-size: 11px; color: #666; margin-top: 2px; }
-          .slip-header .slip-title { display: inline-block; background: #4a90d9; color: white; padding: 4px 20px; border-radius: 4px; font-weight: 700; font-size: 14px; margin-top: 8px; }
-          .section-title { font-weight: 800; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 4px; margin: 15px 0 10px; }
-          .info-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
-          .info-row .label { color: #555; font-weight: 600; }
-          .info-row .value { font-weight: 500; text-align: right; }
-          .deposit-amount { font-size: 22px; font-weight: 800; text-align: right; }
-          .summary-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
-          .summary-table th, .summary-table td { border: 1px solid #ccc; padding: 6px 10px; text-align: center; }
-          .summary-table th { background: #f5f5f5; font-weight: 700; font-size: 11px; text-transform: uppercase; }
-          .summary-table .green { color: #28a745; font-weight: 700; }
-          .summary-table .orange { color: #e0a800; font-weight: 600; }
-          .monthly-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; border-top: 1px solid #eee; }
-          .monthly-row .label { font-weight: 600; }
-          .monthly-row .value { font-weight: 700; }
-          .footer-bar { text-align: center; background: #333; color: #fff; padding: 8px; border-radius: 4px; font-size: 11px; margin-top: 12px; font-weight: 600; }
-          @media print { body { padding: 0; } .slip { max-width: 100%; } }
+          @media print { body { padding: 0; } }
         </style>
       </head>
       <body>
@@ -96,7 +60,7 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
     printWindow.document.close();
   };
 
-  const pdfFilename = `Deposit-Slip-${plan.customerName.replace(/\s+/g, '-')}-Inst${entry.installmentNo}`;
+  const pdfFilename = `Due-Installment-${plan.customerName.replace(/\s+/g, '-')}-Inst${entry.installmentNo}`;
 
   const handleDownloadPdf = async () => {
     const content = slipRef.current;
@@ -116,7 +80,8 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
     if (!content) return;
     setSharing(true);
     try {
-      const message = `📄 *Deposit Slip*\n\n👤 Customer: ${plan.customerName}\n📦 Product: ${plan.productName}\n💰 Installment #${entry.installmentNo}\n💵 Amount: Rs ${fmt((entry.actualPaidAmount || 0) + (entry.miscAdjustedAmount || 0))}\n📅 Date: ${entry.paidDate || '-'}`;
+      const emoji = isOverdue ? '🔴' : '🟡';
+      const message = `${emoji} *${statusLabel} Installment Reminder*\n\n👤 Customer: ${plan.customerName}\n📦 Product: ${plan.productName}\n📋 Installment #${entry.installmentNo}\n💰 Amount Due: Rs ${fmt(remainingForEntry > 0 ? remainingForEntry : entry.emiAmount)}\n📅 Due Date: ${entry.dueDate}\n\nPlease make the payment at your earliest convenience.`;
       await shareViaWhatsApp(content, pdfFilename, message, plan.customerPhone, { width: 400 });
     } catch (err) {
       console.error('WhatsApp share error:', err);
@@ -129,10 +94,10 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
     <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} tabIndex={-1} onClick={onClose}>
       <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-content border-0 shadow-lg">
-          <div className="modal-header bg-primary text-white py-2">
-            <h6 className="modal-title fw-bold mb-0"><i className="ti ti-receipt me-2"></i>Deposit Slip</h6>
+          <div className="modal-header text-white py-2" style={{ background: statusColor }}>
+            <h6 className="modal-title fw-bold mb-0"><i className="ti ti-alert-circle me-2"></i>{statusLabel} Installment</h6>
             <div className="d-flex gap-2">
-              <button className="btn btn-sm btn-light" onClick={handlePrint} title="Print Slip">
+              <button className="btn btn-sm btn-light" onClick={handlePrint} title="Print">
                 <i className="ti ti-printer me-1"></i>Print
               </button>
               <button className="btn btn-sm btn-light" onClick={handleDownloadPdf} disabled={downloading} title="Download PDF">
@@ -146,7 +111,7 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
           </div>
           <div className="modal-body p-0">
             <div ref={slipRef}>
-              <div className="slip" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", maxWidth: 400, margin: '0 auto', padding: 20 }}>
+              <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", maxWidth: 400, margin: '0 auto', padding: 20 }}>
                 {/* Header */}
                 <div style={{ textAlign: 'center', paddingBottom: 15, borderBottom: '2px solid #e0e0e0', marginBottom: 15 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 10 }}>
@@ -154,28 +119,28 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
                       <img
                         src={`${MEDIA_BASE_URL}${plan.customerImage}`}
                         alt=""
-                        style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '2px solid #4a90d9' }}
+                        style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${statusColor}` }}
                       />
                     ) : (
-                      <div style={{ width: 50, height: 50, borderRadius: '50%', background: '#4a90d9', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 'bold' }}>
+                      <div style={{ width: 50, height: 50, borderRadius: '50%', background: statusColor, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 'bold' }}>
                         {plan.customerName.charAt(0).toUpperCase()}
                       </div>
                     )}
                     <div>
                       <h2 style={{ fontSize: 18, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>
-                        Asyentyx 
+                        Asyentyx
                       </h2>
                       <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>Lahore</div>
                     </div>
                   </div>
-                  <div style={{ display: 'inline-block', background: '#4a90d9', color: 'white', padding: '4px 20px', borderRadius: 4, fontWeight: 700, fontSize: 14, marginTop: 8 }}>
-                    DEPOSIT SLIP
+                  <div style={{ display: 'inline-block', background: statusColor, color: 'white', padding: '4px 20px', borderRadius: 4, fontWeight: 700, fontSize: 14, marginTop: 8 }}>
+                    {statusLabel} INSTALLMENT
                   </div>
                 </div>
 
-                {/* Buyer Information */}
+                {/* Customer Information */}
                 <div style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', borderBottom: '2px solid #333', paddingBottom: 4, margin: '15px 0 10px' }}>
-                  BUYER INFORMATION
+                  CUSTOMER INFORMATION
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
                   <span style={{ color: '#555', fontWeight: 600 }}>Name:</span>
@@ -189,54 +154,81 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
                   <span style={{ color: '#555', fontWeight: 600 }}>Product:</span>
                   <span style={{ fontWeight: 500 }}>{plan.productName}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
-                  <span style={{ color: '#555', fontWeight: 600 }}>Sale Date:</span>
-                  <span style={{ fontWeight: 500 }}>{plan.startDate || '-'}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
-                  <span style={{ color: '#555', fontWeight: 600 }}>Down Payment:</span>
-                  <span style={{ fontWeight: 500 }}>Rs {fmt(plan.downPayment)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
-                  <span style={{ color: '#555', fontWeight: 600 }}>Installment Type:</span>
-                  <span style={{ fontWeight: 500 }}>{plan.tenure} months</span>
-                </div>
 
-                {/* Deposit Information */}
+                {/* Due Installment Details */}
                 <div style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', borderBottom: '2px solid #333', paddingBottom: 4, margin: '15px 0 10px' }}>
-                  DEPOSIT INFORMATION
+                  INSTALLMENT DETAILS
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
                   <span style={{ color: '#555', fontWeight: 600 }}>Installment #:</span>
                   <span style={{ fontWeight: 700 }}>{entry.installmentNo}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
-                  <span style={{ color: '#555', fontWeight: 600 }}>Deposit Date:</span>
-                  <span style={{ fontWeight: 500 }}>{formatDate(entry.paidDate)}</span>
+                  <span style={{ color: '#555', fontWeight: 600 }}>Due Date:</span>
+                  <span style={{ fontWeight: 500 }}>{entry.dueDate}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
-                  <span style={{ color: '#555', fontWeight: 600 }}>Payment Type:</span>
-                  <span style={{ fontWeight: 500 }}>Installment</span>
+                  <span style={{ color: '#555', fontWeight: 600 }}>EMI Amount:</span>
+                  <span style={{ fontWeight: 500 }}>Rs {fmt(entry.emiAmount)}</span>
                 </div>
+                {isPartial && previouslyPaid > 0 && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
+                      <span style={{ color: '#555', fontWeight: 600 }}>Already Paid:</span>
+                      <span style={{ fontWeight: 500, color: '#28a745' }}>Rs {fmt(previouslyPaid)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
+                      <span style={{ color: '#555', fontWeight: 600 }}>Remaining:</span>
+                      <span style={{ fontWeight: 700, color: '#dc3545' }}>Rs {fmt(remainingForEntry)}</span>
+                    </div>
+                  </>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
-                  <span style={{ color: '#555', fontWeight: 600 }}>Payment Mode:</span>
-                  <span style={{ fontWeight: 500 }}>{paymentMode}</span>
+                  <span style={{ color: '#555', fontWeight: 600 }}>Status:</span>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '2px 12px',
+                    borderRadius: 4,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: '#fff',
+                    background: statusColor
+                  }}>
+                    {statusLabel}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13 }}>
-                  <span style={{ color: '#555', fontWeight: 600 }}>Deposit Amount:</span>
-                  <span style={{ fontSize: 22, fontWeight: 800 }}>Rs {fmt(depositAmount)}</span>
+
+                {/* Amount Due Highlight */}
+                <div style={{
+                  background: isOverdue ? '#fff5f5' : '#fffbe6',
+                  border: `2px solid ${statusColor}`,
+                  borderRadius: 8,
+                  padding: 16,
+                  margin: '15px 0',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: 12, color: '#555', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                    Amount Due
+                  </div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: statusColor }}>
+                    Rs {fmt(remainingForEntry > 0 ? remainingForEntry : entry.emiAmount)}
+                  </div>
+                  {isOverdue && (
+                    <div style={{ fontSize: 11, color: '#dc3545', fontWeight: 600, marginTop: 4 }}>
+                      ⚠ This installment is overdue. Please pay immediately.
+                    </div>
+                  )}
                 </div>
 
                 {/* Financial Summary */}
                 <div style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', borderBottom: '2px solid #333', paddingBottom: 4, margin: '15px 0 10px' }}>
-                  FINANCIAL SUMMARY
+                  OVERALL SUMMARY
                 </div>
-
                 <table style={{ width: '100%', borderCollapse: 'collapse', margin: '8px 0', fontSize: 12 }}>
                   <thead>
                     <tr>
                       <th style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', background: '#f5f5f5', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>TOTAL AMOUNT</th>
-                      <th style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', background: '#f5f5f5', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>TOTAL DEPOSITED</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', background: '#f5f5f5', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>TOTAL PAID</th>
                       <th style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', background: '#f5f5f5', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>REMAINING</th>
                     </tr>
                   </thead>
@@ -244,7 +236,7 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
                     <tr>
                       <td style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center' }}>Rs {fmt(totalAmount)}</td>
                       <td style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', color: '#28a745', fontWeight: 700 }}>Rs {fmt(totalDeposited)}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', color: '#e0a800', fontWeight: 600 }}>Rs {fmt(remaining > 0 ? remaining : 0)}</td>
+                      <td style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', color: '#e0a800', fontWeight: 600 }}>Rs {fmt(totalRemaining > 0 ? totalRemaining : 0)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -260,20 +252,20 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
                   <tbody>
                     <tr>
                       <td style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center' }}>{plan.tenure}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', color: '#28a745', fontWeight: 700 }}>{paidCount}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', color: '#e0a800', fontWeight: 600 }}>{remainingCount}</td>
+                      <td style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', color: '#28a745', fontWeight: 700 }}>{plan.paidInstallments}</td>
+                      <td style={{ border: '1px solid #ccc', padding: '6px 10px', textAlign: 'center', color: '#e0a800', fontWeight: 600 }}>{plan.remainingInstallments}</td>
                     </tr>
                   </tbody>
                 </table>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 13, borderTop: '1px solid #eee' }}>
-                  <span style={{ fontWeight: 600 }}>Monthly Amount:</span>
+                  <span style={{ fontWeight: 600 }}>Monthly EMI:</span>
                   <span style={{ fontWeight: 700 }}>Rs {fmt(plan.emiAmount)}</span>
                 </div>
 
                 {/* Footer */}
-                <div style={{ textAlign: 'center', background: '#333', color: '#fff', padding: 8, borderRadius: 4, fontSize: 11, marginTop: 12, fontWeight: 600 }}>
-                  {remainingCount} installment{remainingCount !== 1 ? 's' : ''} remaining — Rs {fmt(remaining > 0 ? remaining : 0)} outstanding
+                <div style={{ textAlign: 'center', background: statusColor, color: '#fff', padding: 8, borderRadius: 4, fontSize: 11, marginTop: 12, fontWeight: 600 }}>
+                  Please pay Rs {fmt(remainingForEntry > 0 ? remainingForEntry : entry.emiAmount)} for installment #{entry.installmentNo} by {entry.dueDate}
                 </div>
               </div>
             </div>
@@ -284,4 +276,4 @@ const DepositSlip: React.FC<DepositSlipProps> = ({ plan, entry, onClose }) => {
   );
 };
 
-export default DepositSlip;
+export default DueInstallmentSlip;

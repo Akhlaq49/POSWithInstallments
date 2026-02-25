@@ -12,6 +12,7 @@ import {
 import { getCustomerMiscBalance } from '../../services/miscService';
 import DepositSlip from '../../components/DepositSlip';
 import PlanPrintView from '../../components/PlanPrintView';
+import DueInstallmentSlip from '../../components/DueInstallmentSlip';
 
 const InstallmentDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +28,7 @@ const InstallmentDetails: React.FC = () => {
   const [customerMiscBalance, setCustomerMiscBalance] = useState(0);
   const [slipEntry, setSlipEntry] = useState<RepaymentEntry | null>(null);
   const [showPlanPrint, setShowPlanPrint] = useState(false);
+  const [dueSlipEntry, setDueSlipEntry] = useState<RepaymentEntry | null>(null);
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -174,6 +176,9 @@ const InstallmentDetails: React.FC = () => {
           </button>
           <button className="btn btn-outline-primary" onClick={() => setShowPlanPrint(true)}>
             <i className="ti ti-printer me-1"></i>Print Plan
+          </button>
+          <button className="btn btn-outline-success" onClick={() => setShowPlanPrint(true)} title="Share Repayment Plan via WhatsApp">
+            <i className="ti ti-brand-whatsapp me-1"></i>Share Plan
           </button>
         </div>
       </div>
@@ -408,6 +413,15 @@ const InstallmentDetails: React.FC = () => {
                               )}
                             </button>
                           )}
+                          {(entry.status === 'due' || entry.status === 'overdue' || entry.status === 'partial') && (
+                            <button
+                              className="btn btn-sm btn-outline-warning ms-1"
+                              title="Share Due Installment via WhatsApp"
+                              onClick={() => setDueSlipEntry(entry)}
+                            >
+                              <i className="ti ti-brand-whatsapp me-1"></i>Share
+                            </button>
+                          )}
                           {(entry.status === 'paid' || entry.status === 'partial') && (
                             <button
                               className="btn btn-sm btn-outline-info ms-1"
@@ -596,6 +610,11 @@ const InstallmentDetails: React.FC = () => {
       {/* Full Plan Print View */}
       {showPlanPrint && plan && (
         <PlanPrintView plan={plan} onClose={() => setShowPlanPrint(false)} />
+      )}
+
+      {/* Due Installment Slip Modal */}
+      {dueSlipEntry && plan && (
+        <DueInstallmentSlip plan={plan} entry={dueSlipEntry} onClose={() => setDueSlipEntry(null)} />
       )}
 
       {/* Customer Detail Modal */}

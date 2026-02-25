@@ -1,6 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { InstallmentPlan } from '../services/installmentService';
 import { MEDIA_BASE_URL } from '../services/api';
+import { downloadPdf, shareViaWhatsApp } from '../utils/pdfWhatsappShare';
 
 interface PlanPrintViewProps {
   plan: InstallmentPlan;
@@ -9,6 +10,8 @@ interface PlanPrintViewProps {
 
 const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
   const printRef = useRef<HTMLDivElement>(null);
+  const [sharing, setSharing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const fmt2 = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -94,6 +97,39 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
     printWindow.document.close();
   };
 
+  const pdfFilename = `Repayment-Plan-${plan.customerName.replace(/\s+/g, '-')}-Plan${plan.id}`;
+
+  const handleDownloadPdf = async () => {
+    const content = printRef.current;
+    if (!content) return;
+    setDownloading(true);
+    try {
+      await downloadPdf(content, pdfFilename, { width: 800, orientation: 'portrait' });
+    } catch (err) {
+      console.error('PDF download error:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleShareWhatsApp = async () => {
+    const content = printRef.current;
+    if (!content) return;
+    setSharing(true);
+    try {
+      const totalPaidAmt = plan.schedule
+        .filter((e) => e.status === 'paid' || e.status === 'partial')
+        .reduce((s, e) => s + (e.actualPaidAmount || 0) + (e.miscAdjustedAmount || 0), 0) + plan.downPayment;
+      const outstanding = plan.totalPayable - totalPaidAmt;
+      const message = `📋 *Repayment Plan*\n\n👤 Customer: ${plan.customerName}\n📦 Product: ${plan.productName}\n💰 Total Payable: Rs ${fmt(plan.totalPayable)}\n✅ Paid: Rs ${fmt(totalPaidAmt)}\n⏳ Outstanding: Rs ${fmt(outstanding > 0 ? outstanding : 0)}\n📅 Tenure: ${plan.tenure} months (${plan.paidInstallments}/${plan.tenure} paid)`;
+      await shareViaWhatsApp(content, pdfFilename, message, plan.customerPhone, { width: 800, orientation: 'portrait' });
+    } catch (err) {
+      console.error('WhatsApp share error:', err);
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const progressPct = plan.tenure > 0 ? Math.round((plan.paidInstallments / plan.tenure) * 100) : 0;
 
   // Inline style helpers (for printable HTML in ref)
@@ -113,6 +149,12 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
             <div className="d-flex gap-2">
               <button className="btn btn-sm btn-light" onClick={handlePrint} title="Print">
                 <i className="ti ti-printer me-1"></i>Print
+              </button>
+              <button className="btn btn-sm btn-light" onClick={handleDownloadPdf} disabled={downloading} title="Download PDF">
+                {downloading ? <span className="spinner-border spinner-border-sm"></span> : <><i className="ti ti-download me-1"></i>PDF</>}
+              </button>
+              <button className="btn btn-sm btn-success" onClick={handleShareWhatsApp} disabled={sharing} title="Share via WhatsApp">
+                {sharing ? <span className="spinner-border spinner-border-sm"></span> : <><i className="ti ti-brand-whatsapp me-1"></i>WhatsApp</>}
               </button>
               <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
             </div>
