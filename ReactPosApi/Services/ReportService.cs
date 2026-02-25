@@ -126,7 +126,7 @@ public class ReportService : IReportService
                     OverdueAmount = overdueAmt,
                     MaxDaysOverdue = maxDays,
                     PlanId = plan.Id,
-                    ProductName = plan.Product?.Name ?? "Unknown"
+                    ProductName = plan.Product?.ProductName ?? "Unknown"
                 });
             }
         }
@@ -320,7 +320,7 @@ public class ReportService : IReportService
             {
                 Date = plan.StartDate,
                 Type = "Purchase",
-                Description = $"Installment Plan #{plan.Id} - {plan.Product?.Name ?? "Product"}",
+                Description = $"Installment Plan #{plan.Id} - {plan.Product?.ProductName ?? "Product"}",
                 Debit = plan.TotalPayable,
                 Credit = 0,
                 RunningBalance = runningBalance,
@@ -415,7 +415,7 @@ public class ReportService : IReportService
                 Phone = plan.Customer?.Phone,
                 Address = plan.Customer?.Address,
                 PlanId = plan.Id,
-                ProductName = plan.Product?.Name ?? "Unknown",
+                ProductName = plan.Product?.ProductName ?? "Unknown",
                 MissedInstallments = overdueEntries.Count,
                 OverdueAmount = overdueAmt,
                 MaxDaysOverdue = maxDays,
@@ -466,7 +466,7 @@ public class ReportService : IReportService
             Amount = e.ActualPaidAmount ?? 0,
             MiscAmount = e.MiscAdjustedAmount,
             PaymentMethod = "Cash",
-            ProductName = e.Plan.Product?.Name ?? "Unknown"
+            ProductName = e.Plan.Product?.ProductName ?? "Unknown"
         }).OrderByDescending(p => p.PaidDate).ToList();
 
         var methodSummary = payments
@@ -560,11 +560,11 @@ public class ReportService : IReportService
             .Select(g =>
             {
                 var first = g.First();
-                var image = first.Product?.Images?.FirstOrDefault()?.ImageUrl;
+                var image = first.Product?.Images?.FirstOrDefault()?.ImagePath;
                 return new ProductSalesItemDto
                 {
                     ProductId = g.Key,
-                    ProductName = first.Product?.Name ?? "Unknown",
+                    ProductName = first.Product?.ProductName ?? "Unknown",
                     ProductImage = image,
                     UnitsSold = g.Count(),
                     TotalRevenue = g.Sum(p => p.TotalPayable),
@@ -737,7 +737,7 @@ public class ReportService : IReportService
             InstallmentNo = e.InstallmentNo,
             AmountDue = e.EmiAmount - (e.ActualPaidAmount ?? 0) - (e.MiscAdjustedAmount ?? 0),
             DueDate = e.DueDate,
-            ProductName = e.Plan.Product?.Name ?? "Unknown",
+            ProductName = e.Plan.Product?.ProductName ?? "Unknown",
             Status = e.Status
         }).OrderBy(i => i.DueDate).ToList();
 
@@ -778,7 +778,7 @@ public class ReportService : IReportService
             InstallmentNo = e.InstallmentNo,
             AmountDue = e.EmiAmount - (e.ActualPaidAmount ?? 0) - (e.MiscAdjustedAmount ?? 0),
             DueDate = e.DueDate,
-            ProductName = e.Plan.Product?.Name ?? "Unknown",
+            ProductName = e.Plan.Product?.ProductName ?? "Unknown",
             Status = e.Status
         }).OrderBy(i => i.DueDate).ToList();
 
