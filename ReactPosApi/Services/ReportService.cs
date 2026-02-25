@@ -880,11 +880,11 @@ public class ReportService : IReportService
         {
             var profit = p.TotalPayable - p.ProductPrice;
             var profitPct = p.ProductPrice > 0 ? Math.Round((profit / p.ProductPrice) * 100, 2) : 0;
-            var image = p.Product?.Images?.FirstOrDefault()?.ImageUrl;
+            var image = p.Product?.Images?.FirstOrDefault()?.ImagePath;
             return new ProductProfitItemDto
             {
                 PlanId = p.Id,
-                CustomerName = p.Customer?.Name ?? "Unknown",
+                CustomerName = p.Customer?.FullName ?? "Unknown",
                 Phone = p.Customer?.Phone,
                 ProductName = p.Product?.ProductName ?? "Unknown",
                 ProductImage = image,
@@ -908,13 +908,13 @@ public class ReportService : IReportService
 
         return new ProductProfitReportDto
         {
-            TotalPlans = items.Count,
+            TotalPlans = items.Count(),
             TotalProductCost = totalProductCost,
             TotalFinancedAmount = totalFinanced,
             TotalProfit = totalProfit,
             TotalInterestEarned = items.Sum(i => i.InterestEarned),
             TotalDownPayments = items.Sum(i => i.DownPayment),
-            AverageProfitPerPlan = items.Count > 0 ? Math.Round(totalProfit / items.Count, 2) : 0,
+            AverageProfitPerPlan = items.Count() > 0 ? Math.Round(totalProfit / items.Count(), 2) : 0,
             Plans = items
         };
     }

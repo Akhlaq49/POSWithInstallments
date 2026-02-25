@@ -11,11 +11,13 @@ import {
 } from '../../services/installmentService';
 import { getProducts, ProductResponse } from '../../services/productService';
 import { getCustomers, Customer, createCustomer, uploadCustomerPicture } from '../../services/customerService';
+import { useFieldVisibility } from '../../utils/useFieldVisibility';
 
 const CreateInstallment: React.FC = () => {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const { isVisible } = useFieldVisibility('CreateInstallment');
 
   // Collapsible sections state – accordion: only one open at a time
   type SectionKey = 'customer' | 'guarantor' | 'product' | 'financial' | 'plan';
@@ -699,11 +701,13 @@ const CreateInstallment: React.FC = () => {
                     <label className="form-label">Product Price (Rs)<span className="text-danger ms-1">*</span></label>
                     <input type="number" className="form-control" value={productPrice || ''} readOnly placeholder="Auto-filled from product" />
                   </div>
+                  {isVisible('financeAmount') && (
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Finance Amount (Rs)</label>
                     <input type="number" className="form-control" min={0} step="0.01" value={form.financeAmount ?? ''} onChange={(e) => set('financeAmount', parseFloat(e.target.value) || 0)} placeholder="Leave blank to use product price" />
                     <small className="text-muted">Custom finance amount (defaults to product price if blank)</small>
                   </div>
+                  )}
                   </div>
                   <div className="d-flex justify-content-between mt-3">
                     <button type="button" className="btn btn-secondary" onClick={goBack}>
@@ -733,16 +737,21 @@ const CreateInstallment: React.FC = () => {
               <div className={`collapse ${!collapsedSections.financial ? 'show' : ''}`}>
                 <div className="card-body">
                   <div className="row">
+                  {isVisible('downPayment') && (
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Down Payment (Rs)<span className="text-danger ms-1">*</span></label>
                     <input type="number" className="form-control" min={0} step="0.01" value={form.downPayment || ''} onChange={(e) => set('downPayment', parseFloat(e.target.value) || 0)} placeholder="0.00" />
                     {productPrice > 0 && <small className="text-muted">{((form.downPayment / baseAmount) * 100).toFixed(1)}% of {form.financeAmount && form.financeAmount > 0 ? 'finance' : 'product'} amount</small>}
                   </div>
+                  )}
+                  {isVisible('interestRate') && (
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Interest Rate (% per annum)</label>
                     <input type="number" className="form-control" min={0} max={100} step="0.1" value={form.interestRate || ''} onChange={(e) => set('interestRate', parseFloat(e.target.value) || 0)} placeholder="0" />
                     <small className="text-muted">Set 0 for interest-free plan</small>
                   </div>
+                  )}
+                  {isVisible('tenure') && (
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Tenure (Months)<span className="text-danger ms-1">*</span></label>
                     <select className="form-select" value={form.tenure} onChange={(e) => set('tenure', parseInt(e.target.value))}>
@@ -751,10 +760,13 @@ const CreateInstallment: React.FC = () => {
                       ))}
                     </select>
                   </div>
+                  )}
+                  {isVisible('startDate') && (
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Start Date<span className="text-danger ms-1">*</span></label>
                     <input type="date" className="form-control" value={form.startDate} onChange={(e) => set('startDate', e.target.value)} />
                   </div>
+                  )}
                   </div>
                   <div className="d-flex justify-content-between mt-3">
                     <button type="button" className="btn btn-secondary" onClick={goBack}>

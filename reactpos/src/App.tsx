@@ -173,6 +173,7 @@ const InvoiceTemplates = lazy(() => import('./pages/settings/InvoiceTemplates'))
 const PrinterSettings = lazy(() => import('./pages/settings/PrinterSettings'))
 const POSSettings = lazy(() => import('./pages/settings/POSSettings'))
 const CustomFields = lazy(() => import('./pages/settings/CustomFields'))
+const FieldVisibilitySettings = lazy(() => import('./pages/settings/FieldVisibilitySettings'))
 const EmailSettings = lazy(() => import('./pages/settings/EmailSettings'))
 const EmailTemplates = lazy(() => import('./pages/settings/EmailTemplates'))
 const SMSSettings = lazy(() => import('./pages/settings/SMSSettings'))
@@ -509,6 +510,7 @@ function App() {
           <Route path="/printer-settings" element={<PrinterSettings />} />
           <Route path="/pos-settings" element={<POSSettings />} />
           <Route path="/custom-fields" element={<CustomFields />} />
+          <Route path="/field-visibility" element={<FieldVisibilitySettings />} />
           <Route path="/email-settings" element={<EmailSettings />} />
           <Route path="/email-templates" element={<EmailTemplates />} />
           <Route path="/sms-settings" element={<SMSSettings />} />

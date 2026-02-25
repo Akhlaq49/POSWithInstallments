@@ -40,6 +40,7 @@ builder.Services.AddScoped<ISalesReturnService, SalesReturnService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<ICouponService, CouponService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IFormFieldConfigService, FormFieldConfigService>();
 
 // WhatsApp Cloud API
 builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
@@ -116,6 +117,10 @@ using (var scope = app.Services.CreateScope())
         });
         db.SaveChanges();
     }
+
+    // Seed default form field configurations
+    var formFieldConfigService = scope.ServiceProvider.GetRequiredService<IFormFieldConfigService>();
+    formFieldConfigService.SeedDefaultsAsync().GetAwaiter().GetResult();
 }
 
 // Change default port to 3001 to match frontend's VITE_API_BASE_URL
