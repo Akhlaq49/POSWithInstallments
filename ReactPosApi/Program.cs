@@ -116,4 +116,4 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Change default port to 3001 to match frontend's VITE_API_BASE_URL
-app.Run("http://localhost:3001");
+app.Run("http://0.0.0.0:5000");
