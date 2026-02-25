@@ -146,6 +146,60 @@ const menuData: MenuSection[] = [
     ],
   },
   {
+    header: 'Installment Reports',
+    items: [
+      {
+        title: 'Financial Reports',
+        icon: 'ti-report-money',
+        iconType: 'tabler',
+        children: [
+          { title: 'Installment Collection', path: '/inst-collection-report' },
+          { title: 'Outstanding Balance', path: '/inst-outstanding-balance' },
+          { title: 'Daily Cash Flow', path: '/inst-daily-cashflow' },
+          { title: 'Profit & Loss', path: '/inst-profit-loss' },
+        ],
+      },
+      {
+        title: 'Customer Reports',
+        icon: 'ti-users-group',
+        iconType: 'tabler',
+        children: [
+          { title: 'Customer Ledger', path: '/inst-customer-ledger' },
+          { title: 'Defaulters', path: '/inst-defaulters' },
+          { title: 'Payment History', path: '/inst-payment-history' },
+        ],
+      },
+      {
+        title: 'Sales Reports',
+        icon: 'ti-chart-bar',
+        iconType: 'tabler',
+        children: [
+          { title: 'Sales Summary', path: '/inst-sales-summary' },
+          { title: 'Product-wise Sales', path: '/inst-product-sales' },
+        ],
+      },
+      {
+        title: 'Risk & Compliance',
+        icon: 'ti-shield-check',
+        iconType: 'tabler',
+        children: [
+          { title: 'Default Rate', path: '/inst-default-rate' },
+          { title: 'Recovery Performance', path: '/inst-recovery-performance' },
+        ],
+      },
+      {
+        title: 'Operational Reports',
+        icon: 'ti-clipboard-check',
+        iconType: 'tabler',
+        children: [
+          { title: 'Due Today', path: '/inst-due-today' },
+          { title: 'Upcoming Due (7 Days)', path: '/inst-upcoming-due' },
+          { title: 'Late Fee Report', path: '/inst-late-fees' },
+        ],
+      },
+    ],
+  },
+  {
     header: 'Sales',
     items: [
       {

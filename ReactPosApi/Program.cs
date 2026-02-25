@@ -39,6 +39,7 @@ builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<ISalesReturnService, SalesReturnService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<ICouponService, CouponService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // EF Core - SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>

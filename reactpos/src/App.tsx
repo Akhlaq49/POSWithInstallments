@@ -119,6 +119,22 @@ const TaxReports = lazy(() => import('./pages/reports/TaxReports'))
 const ProfitAndLoss = lazy(() => import('./pages/reports/ProfitAndLoss'))
 const AnnualReport = lazy(() => import('./pages/reports/AnnualReport'))
 
+// Installment Reports
+const InstallmentCollectionReport = lazy(() => import('./pages/reports/InstallmentCollectionReport'))
+const OutstandingBalanceReport = lazy(() => import('./pages/reports/OutstandingBalanceReport'))
+const DailyCashFlowReport = lazy(() => import('./pages/reports/DailyCashFlowReport'))
+const InstallmentProfitLossReport = lazy(() => import('./pages/reports/InstallmentProfitLossReport'))
+const CustomerLedgerReport = lazy(() => import('./pages/reports/CustomerLedgerReport'))
+const DefaultersReport = lazy(() => import('./pages/reports/DefaultersReport'))
+const PaymentHistoryReport = lazy(() => import('./pages/reports/PaymentHistoryReport'))
+const InstallmentSalesSummaryReport = lazy(() => import('./pages/reports/InstallmentSalesSummaryReport'))
+const InstProductSalesReport = lazy(() => import('./pages/reports/InstProductSalesReport'))
+const DefaultRateReport = lazy(() => import('./pages/reports/DefaultRateReport'))
+const RecoveryPerformanceReport = lazy(() => import('./pages/reports/RecoveryPerformanceReport'))
+const DueTodayReport = lazy(() => import('./pages/reports/DueTodayReport'))
+const UpcomingDueReport = lazy(() => import('./pages/reports/UpcomingDueReport'))
+const LateFeeReport = lazy(() => import('./pages/reports/LateFeeReport'))
+
 // CMS
 const CmsPages = lazy(() => import('./pages/cms/Pages'))
 const AllBlog = lazy(() => import('./pages/cms/AllBlog'))
@@ -436,6 +452,22 @@ function App() {
           <Route path="/tax-reports" element={<TaxReports />} />
           <Route path="/profit-and-loss" element={<ProfitAndLoss />} />
           <Route path="/annual-report" element={<AnnualReport />} />
+
+          {/* Installment Reports */}
+          <Route path="/inst-collection-report" element={<InstallmentCollectionReport />} />
+          <Route path="/inst-outstanding-balance" element={<OutstandingBalanceReport />} />
+          <Route path="/inst-daily-cashflow" element={<DailyCashFlowReport />} />
+          <Route path="/inst-profit-loss" element={<InstallmentProfitLossReport />} />
+          <Route path="/inst-customer-ledger" element={<CustomerLedgerReport />} />
+          <Route path="/inst-defaulters" element={<DefaultersReport />} />
+          <Route path="/inst-payment-history" element={<PaymentHistoryReport />} />
+          <Route path="/inst-sales-summary" element={<InstallmentSalesSummaryReport />} />
+          <Route path="/inst-product-sales" element={<InstProductSalesReport />} />
+          <Route path="/inst-default-rate" element={<DefaultRateReport />} />
+          <Route path="/inst-recovery-performance" element={<RecoveryPerformanceReport />} />
+          <Route path="/inst-due-today" element={<DueTodayReport />} />
+          <Route path="/inst-upcoming-due" element={<UpcomingDueReport />} />
+          <Route path="/inst-late-fees" element={<LateFeeReport />} />
 
           {/* CMS */}
           <Route path="/pages" element={<CmsPages />} />
