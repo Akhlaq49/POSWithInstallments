@@ -773,7 +773,7 @@ const Home = () => {
                               className="default-img"
                               src={product.image}
                               alt={product.name}
-                              style={{ width: '100%', height: 'auto', maxWidth: '100%' }}
+                              style={{ width: '100%', height: '222px', maxWidth: '100%' }}
                               onError={(e) => { e.target.src = getUnsplashFallback(index); }}
                             />
                             <img
@@ -948,6 +948,7 @@ const Home = () => {
                               <Link to={`/shop-product-right?id=${product.id}`}>
                                 <img
                                   className="default-img"
+                                  style={{ width: '100%', height: '222px', maxWidth: '100%' }}
                                   src={product.image}
                                   alt={product.name}
                                   onError={(e) => { e.target.src = getUnsplashFallback(index + 100); }}
@@ -955,6 +956,7 @@ const Home = () => {
                                 <img
                                   className="hover-img"
                                   src={product.hoverImage}
+                                  style={{ width: '100%', height: '222px', maxWidth: '100%' }}
                                   alt={product.name}
                                   onError={(e) => { e.target.src = getUnsplashFallback(index + 101); }}
                                 />
@@ -1036,7 +1038,7 @@ const Home = () => {
                               <div className="product-img-action-wrap" style={{ position: 'relative' }}>
                                 <div className="product-img product-img-zoom">
                                   <Link to={`/shop-product-right?id=${product.id}`}>
-                                    <img className="default-img" src={product.image} alt={product.name} onError={(e) => { e.target.src = getUnsplashFallback(index + 200); }} />
+                                    <img className="default-img" style={{ width: '100%', height: '222px', maxWidth: '100%' }} src={product.image} alt={product.name} onError={(e) => { e.target.src = getUnsplashFallback(index + 200); }} />
                                   </Link>
                                 </div>
                                 <div className="product-action-1">
@@ -1083,7 +1085,7 @@ const Home = () => {
                               <div className="product-img-action-wrap" style={{ position: 'relative' }}>
                                 <div className="product-img product-img-zoom">
                                   <Link to={`/shop-product-right?id=${product.id}`}>
-                                    <img className="default-img" src={product.image} alt={product.name} onError={(e) => { e.target.src = getUnsplashFallback(index + 300); }} />
+                                    <img className="default-img" style={{ width: '100%', height: '222px', maxWidth: '100%' }} src={product.image} alt={product.name} onError={(e) => { e.target.src = getUnsplashFallback(index + 300); }} />
                                   </Link>
                                 </div>
                                 <div className="product-action-1">

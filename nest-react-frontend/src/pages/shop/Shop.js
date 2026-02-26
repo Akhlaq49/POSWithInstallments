@@ -382,12 +382,14 @@ const Shop = () => {
                                     className="default-img"
                                     src={formattedProduct.image}
                                     alt={formattedProduct.name}
+                                    style={{ width: '100%', height: '222px', maxWidth: '100%' }}
                                     onError={(e) => { e.target.src = getUnsplashFallback(0); }}
                                   />
                                   <img
                                     className="hover-img"
                                     src={formattedProduct.hoverImage}
                                     alt={formattedProduct.name}
+                                      style={{ width: '100%', height: '222px', maxWidth: '100%' }}
                                     onError={(e) => { e.target.src = getUnsplashFallback(1); }}
                                   />
                                 </Link>
