@@ -50,7 +50,7 @@ export async function generatePdfFromElement(
   options?: { width?: number; orientation?: 'portrait' | 'landscape' }
 ): Promise<Blob> {
   const canvas = await html2canvas(element, {
-    scale: 2,
+    scale: 1.5,
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
@@ -58,7 +58,8 @@ export async function generatePdfFromElement(
     windowWidth: options?.width || element.scrollWidth,
   });
 
-  const imgData = canvas.toDataURL('image/png');
+  // Use JPEG at 70% quality to keep PDF size small
+  const imgData = canvas.toDataURL('image/jpeg', 0.7);
   const imgWidth = canvas.width;
   const imgHeight = canvas.height;
 
@@ -69,7 +70,7 @@ export async function generatePdfFromElement(
     format: [imgWidth, imgHeight],
   });
 
-  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+  pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
 
   return pdf.output('blob');
 }
@@ -96,8 +97,9 @@ export async function downloadPdf(
 /**
  * Shares a PDF via WhatsApp.
  * 
- * Uploads the PDF to the server, gets a public download link,
- * and opens the recipient's WhatsApp chat with the message + PDF link.
+ * Uses the Web Share API to open the OS share sheet.
+ * User picks WhatsApp and the PDF is attached directly in the chat.
+ * Falls back to upload link approach if Web Share API doesn't support files.
  */
 export async function shareViaWhatsApp(
   element: HTMLElement,
@@ -107,19 +109,40 @@ export async function shareViaWhatsApp(
   options?: { width?: number; orientation?: 'portrait' | 'landscape' }
 ): Promise<void> {
   const blob = await generatePdfFromElement(element, filename, options);
+  const file = new File([blob], `${filename}.pdf`, { type: 'application/pdf' });
   const normalized = phoneNumber ? normalizePhone(phoneNumber) : '';
 
-  // Upload PDF to server and get a public download link
-  const { url: pdfUrl } = await uploadSharePdf(blob, `${filename}.pdf`);
+  // Web Share API — opens OS share sheet → user picks WhatsApp → PDF attached directly in chat
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: filename,
+        text: message,
+        files: [file],
+      });
+      return;
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return; // user cancelled
+    }
+  }
 
-  // Open WhatsApp chat with the message + PDF download link
-  const fullMessage = message + `\n\n📎 *Download PDF:*\n${pdfUrl}`;
-  const encodedMessage = encodeURIComponent(fullMessage);
-  const whatsappUrl = normalized
-    ? `https://wa.me/${normalized}?text=${encodedMessage}`
-    : `https://wa.me/?text=${encodedMessage}`;
-
-  window.open(whatsappUrl, '_blank');
+  // Fallback: upload PDF to server and send link in message
+  try {
+    const { url: pdfUrl } = await uploadSharePdf(blob, `${filename}.pdf`);
+    const fullMessage = message + `\n\n📎 *Download PDF:*\n${pdfUrl}`;
+    const encodedMessage = encodeURIComponent(fullMessage);
+    const whatsappUrl = normalized
+      ? `https://wa.me/${normalized}?text=${encodedMessage}`
+      : `https://wa.me/?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  } catch {
+    // Last resort: just open chat with text
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = normalized
+      ? `https://wa.me/${normalized}?text=${encodedMessage}`
+      : `https://wa.me/?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  }
 }
 
 /**
