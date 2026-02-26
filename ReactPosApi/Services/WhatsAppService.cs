@@ -1,3 +1,4 @@
+using Azure.Core;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -19,7 +20,7 @@ public class WhatsAppService : IWhatsAppService
     private string? _phoneNumberId;
     private string? _businessAccountId;
 
-    private const string GraphApiBaseUrl = "https://graph.facebook.com/v21.0";
+    private const string GraphApiBaseUrl = "https://graph.facebook.com/v22.0";
 
     public WhatsAppService(HttpClient httpClient, ILogger<WhatsAppService> logger, IConfiguration configuration)
     {
@@ -71,14 +72,31 @@ public class WhatsAppService : IWhatsAppService
             var payload = new
             {
                 messaging_product = "whatsapp",
-                recipient_type = "individual",
                 to = phone,
                 type = "text",
-                text = new { preview_url = false, body = message }
+                text = new
+                {
+                    preview_url = false,
+                    body = message
+                }
             };
 
-            var result = await SendApiRequestAsync($"{GraphApiBaseUrl}/{_phoneNumberId}/messages", payload);
-            return result;
+            var json = JsonSerializer.Serialize(payload);
+
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _accessToken);
+
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(
+                $"https://graph.facebook.com/v22.0/{_phoneNumberId}/messages",
+                content);
+
+            var result = await response.Content.ReadAsStringAsync();
+            return response.IsSuccessStatusCode
+                ? new WhatsAppSendResult { Success = true, MessageId = JsonDocument.Parse(result).RootElement.GetProperty("messages")[0].GetProperty("id").GetString() }
+                : new WhatsAppSendResult { Success = false, Error = $"WhatsApp API error: {response.StatusCode} - {result}" };
         }
         catch (Exception ex)
         {
