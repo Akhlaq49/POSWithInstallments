@@ -541,6 +541,7 @@ const menuData: MenuSection[] = [
           { title: 'Printer', path: '/printer-settings' },
           { title: 'POS', path: '/pos-settings' },
           { title: 'Custom Fields', path: '/custom-fields' },
+          { title: 'Field Visibility', path: '/field-visibility' },
         ],
       },
       {

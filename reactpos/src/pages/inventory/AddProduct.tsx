@@ -10,10 +10,12 @@ import {
   getUnits,
   type DropdownOption,
 } from '../../services/productService';
+import { useFieldVisibility } from '../../utils/useFieldVisibility';
 
 const AddProduct: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isVisible } = useFieldVisibility('AddProduct');
 
   // Dropdown options state
   const [stores, setStores] = useState<DropdownOption[]>([]);
@@ -301,6 +303,7 @@ const AddProduct: React.FC = () => {
                   <div className="accordion-body border-top">
                     {/* Store & Warehouse */}
                     <div className="row">
+                      {isVisible('store') && (
                       <div className="col-sm-6 col-12">
                         <div className="mb-3">
                           <label className="form-label">Store<span className="text-danger ms-1">*</span></label>
@@ -312,6 +315,8 @@ const AddProduct: React.FC = () => {
                           </select>
                         </div>
                       </div>
+                      )}
+                      {isVisible('warehouse') && (
                       <div className="col-sm-6 col-12">
                         <div className="mb-3">
                           <label className="form-label">Warehouse<span className="text-danger ms-1">*</span></label>
@@ -323,6 +328,7 @@ const AddProduct: React.FC = () => {
                           </select>
                         </div>
                       </div>
+                      )}
                     </div>
 
                     {/* Product Name & Slug */}
@@ -343,6 +349,7 @@ const AddProduct: React.FC = () => {
 
                     {/* SKU & Selling Type */}
                     <div className="row">
+                      {isVisible('sku') && (
                       <div className="col-sm-6 col-12">
                         <div className="mb-3 list position-relative">
                           <label className="form-label">SKU<span className="text-danger ms-1">*</span></label>
@@ -352,6 +359,8 @@ const AddProduct: React.FC = () => {
                           </button>
                         </div>
                       </div>
+                      )}
+                      {isVisible('sellingType') && (
                       <div className="col-sm-6 col-12">
                         <div className="mb-3">
                           <label className="form-label">Selling Type<span className="text-danger ms-1">*</span></label>
@@ -363,6 +372,7 @@ const AddProduct: React.FC = () => {
                           </select>
                         </div>
                       </div>
+                      )}
                     </div>
 
                     {/* Category & Sub Category */}
@@ -458,6 +468,7 @@ const AddProduct: React.FC = () => {
                     </div>
 
                     {/* Description */}
+                    {isVisible('description') && (
                     <div className="col-lg-12">
                       <div className="summer-description-box">
                         <label className="form-label">Description</label>
@@ -472,6 +483,7 @@ const AddProduct: React.FC = () => {
                         <p className="fs-14 mt-1">Maximum 60 Words</p>
                       </div>
                     </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -529,18 +541,23 @@ const AddProduct: React.FC = () => {
                     {form.productType === 'single' && (
                       <div className="single-product">
                         <div className="row">
+                          {isVisible('quantity') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
                               <label className="form-label">Quantity<span className="text-danger ms-1">*</span></label>
                               <input type="number" className="form-control" name="quantity" value={form.quantity} onChange={handleChange} required />
                             </div>
                           </div>
+                          )}
+                          {isVisible('price') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
                               <label className="form-label">Price<span className="text-danger ms-1">*</span></label>
                               <input type="number" step="0.01" className="form-control" name="price" value={form.price} onChange={handleChange} required />
                             </div>
                           </div>
+                          )}
+                          {isVisible('taxType') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
                               <label className="form-label">Tax Type<span className="text-danger ms-1">*</span></label>
@@ -552,6 +569,8 @@ const AddProduct: React.FC = () => {
                               </select>
                             </div>
                           </div>
+                          )}
+                          {isVisible('tax') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
                               <label className="form-label">Tax<span className="text-danger ms-1">*</span></label>
@@ -563,6 +582,8 @@ const AddProduct: React.FC = () => {
                               </select>
                             </div>
                           </div>
+                          )}
+                          {isVisible('discountType') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
                               <label className="form-label">Discount Type<span className="text-danger ms-1">*</span></label>
@@ -574,18 +595,23 @@ const AddProduct: React.FC = () => {
                               </select>
                             </div>
                           </div>
+                          )}
+                          {isVisible('discountValue') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
                               <label className="form-label">Discount Value<span className="text-danger ms-1">*</span></label>
                               <input className="form-control" type="number" step="0.01" name="discountValue" value={form.discountValue} onChange={handleChange} />
                             </div>
                           </div>
+                          )}
+                          {isVisible('quantityAlert') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
                               <label className="form-label">Quantity Alert<span className="text-danger ms-1">*</span></label>
                               <input type="number" className="form-control" name="quantityAlert" value={form.quantityAlert} onChange={handleChange} />
                             </div>
                           </div>
+                          )}
                         </div>
                       </div>
                     )}

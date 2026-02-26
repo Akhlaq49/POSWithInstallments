@@ -908,13 +908,13 @@ public class ReportService : IReportService
 
         return new ProductProfitReportDto
         {
-            TotalPlans = items.Count,
+            TotalPlans = items.Count(),
             TotalProductCost = totalProductCost,
             TotalFinancedAmount = totalFinanced,
             TotalProfit = totalProfit,
             TotalInterestEarned = items.Sum(i => i.InterestEarned),
             TotalDownPayments = items.Sum(i => i.DownPayment),
-            AverageProfitPerPlan = items.Count > 0 ? Math.Round(totalProfit / items.Count, 2) : 0,
+            AverageProfitPerPlan = items.Count() > 0 ? Math.Round(totalProfit / items.Count(), 2) : 0,
             Plans = items
         };
     }

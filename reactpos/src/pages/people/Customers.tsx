@@ -8,6 +8,7 @@ import {
   deleteCustomer,
   uploadCustomerPicture,
 } from '../../services/customerService';
+import { useFieldVisibility } from '../../utils/useFieldVisibility';
 
 const emptyForm = { name: '', so: '', cnic: '', phone: '', email: '', address: '', city: '', status: 'active' as const };
 
@@ -17,6 +18,7 @@ const Customers: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const { isVisible } = useFieldVisibility('Customer');
 
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -198,30 +200,43 @@ const Customers: React.FC = () => {
 
   const formFields = (
     <div className="row">
+      {isVisible('name') && (
       <div className="col-lg-6 mb-3">
         <label className="form-label">Full Name<span className="text-danger ms-1">*</span></label>
         <input type="text" className="form-control" placeholder="Customer name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </div>
+      )}
+      {isVisible('so') && (
       <div className="col-lg-6 mb-3">
         <label className="form-label">S/O (Father's Name)</label>
         <input type="text" className="form-control" placeholder="Son/Daughter of" value={form.so} onChange={(e) => setForm({ ...form, so: e.target.value })} />
       </div>
+      )}
+      {isVisible('cnic') && (
       <div className="col-lg-6 mb-3">
         <label className="form-label">CNIC</label>
         <input type="text" className="form-control" placeholder="CNIC number" value={form.cnic} onChange={(e) => setForm({ ...form, cnic: e.target.value })} />
       </div>
+      )}
+      {isVisible('phone') && (
       <div className="col-lg-6 mb-3">
         <label className="form-label">Phone</label>
         <input type="text" className="form-control" placeholder="Phone number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
       </div>
+      )}
+      {isVisible('email') && (
       <div className="col-lg-6 mb-3">
         <label className="form-label">Email</label>
         <input type="email" className="form-control" placeholder="Email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
       </div>
+      )}
+      {isVisible('city') && (
       <div className="col-lg-6 mb-3">
         <label className="form-label">City</label>
         <input type="text" className="form-control" placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
       </div>
+      )}
+      {isVisible('status') && (
       <div className="col-lg-6 mb-3">
         <label className="form-label">Status</label>
         <select className="form-select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as 'active' | 'inactive' })}>
@@ -229,6 +244,8 @@ const Customers: React.FC = () => {
           <option value="inactive">Inactive</option>
         </select>
       </div>
+      )}
+      {isVisible('picture') && (
       <div className="col-lg-6 mb-3">
         <label className="form-label">Photo</label>
         <div className="d-flex align-items-center gap-3">
@@ -236,10 +253,13 @@ const Customers: React.FC = () => {
           {picturePreview && <img src={picturePreview} alt="Preview" className="rounded-circle border" style={{ width: 40, height: 40, objectFit: 'cover' }} />}
         </div>
       </div>
+      )}
+      {isVisible('address') && (
       <div className="col-lg-12 mb-0">
         <label className="form-label">Address</label>
         <textarea className="form-control" rows={2} placeholder="Full address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
       </div>
+      )}
     </div>
   );
 

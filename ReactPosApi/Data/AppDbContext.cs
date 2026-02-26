@@ -50,6 +50,9 @@ public class AppDbContext : DbContext
     // Role Permissions
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
+    // Form Field Configurations
+    public DbSet<FormFieldConfig> FormFieldConfigs => Set<FormFieldConfig>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -315,6 +318,13 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<RolePermission>(e =>
         {
             e.HasIndex(rp => new { rp.Role, rp.MenuKey }).IsUnique();
+        });
+
+        // FormFieldConfig
+        modelBuilder.Entity<FormFieldConfig>(e =>
+        {
+            e.HasIndex(f => new { f.FormName, f.FieldName }).IsUnique();
+            e.Property(f => f.IsVisible).HasDefaultValue(true);
         });
     }
 }
