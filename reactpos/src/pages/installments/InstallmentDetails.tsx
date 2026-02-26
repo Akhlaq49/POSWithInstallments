@@ -185,7 +185,7 @@ const InstallmentDetails: React.FC = () => {
             const overdue = plan.schedule.filter(e => e.status === 'overdue');
             const due = plan.schedule.filter(e => e.status === 'due');
             const lines = [
-              `📋 *Installment Plan Summary*`,
+              `📋 *Installment Plan — Full Repayment Schedule*`,
               ``,
               `👤 Customer: ${plan.customerName}`,
               `📦 Product: ${plan.productName}`,
@@ -204,6 +204,15 @@ const InstallmentDetails: React.FC = () => {
             if (due.length > 0) {
               lines.push(``, `🟡 *Next Due:* ${due[0].dueDate} — Rs ${fmt(due[0].emiAmount)}`);
             }
+            // Full repayment schedule
+            lines.push(``, `━━━━━━━━━━━━━━━━━━━━━`, `📄 *Repayment Schedule:*`, ``);
+            plan.schedule.forEach(e => {
+              const statusIcon: Record<string, string> = { paid: '✅', partial: '🟠', due: '🟡', overdue: '🔴', upcoming: '⚪' };
+              const icon = statusIcon[e.status] || '⚪';
+              const paid = e.actualPaidAmount != null && e.actualPaidAmount > 0 ? ` (Paid: Rs ${fmt(e.actualPaidAmount)})` : '';
+              lines.push(`${icon} #${e.installmentNo} | ${e.dueDate} | Rs ${fmt(e.emiAmount)} | ${e.status.toUpperCase()}${paid}`);
+            });
+            lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
             setWhatsAppMessage(lines.join('\n'));
             setShowWhatsAppModal(true);
           }} title="Send Plan Summary via WhatsApp">
@@ -806,6 +815,32 @@ const InstallmentDetails: React.FC = () => {
           recipientName={plan.customerName}
           defaultMessage={whatsAppMessage}
           title="Send WhatsApp Message"
+          planData={{
+            customerName: plan.customerName,
+            customerPhone: plan.customerPhone,
+            customerCnic: plan.customerCnic,
+            productName: plan.productName,
+            productPrice: plan.productPrice,
+            downPayment: plan.downPayment,
+            financeAmount: plan.financeAmount ?? plan.financedAmount,
+            interestRate: plan.interestRate,
+            tenure: plan.tenure,
+            emiAmount: plan.emiAmount,
+            totalPayable: plan.totalPayable,
+            startDate: plan.startDate,
+            status: plan.status,
+            paidInstallments: plan.paidInstallments,
+            remainingInstallments: plan.remainingInstallments,
+            schedule: plan.schedule.map(e => ({
+              installmentNo: e.installmentNo,
+              dueDate: e.dueDate,
+              emiAmount: e.emiAmount,
+              status: e.status,
+              actualPaidAmount: e.actualPaidAmount,
+              paidDate: e.paidDate,
+            })),
+            guarantors: plan.guarantors?.map(g => ({ name: g.name, phone: g.phone })),
+          }}
         />
       )}
     </>

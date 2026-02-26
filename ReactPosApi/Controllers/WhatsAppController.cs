@@ -146,8 +146,8 @@ public class WhatsAppController : ControllerBase
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file provided." });
 
-        if (file.Length > 10 * 1024 * 1024) // 10MB limit
-            return BadRequest(new { error = "File too large. Maximum 10MB." });
+        if (file.Length > 25 * 1024 * 1024) // 25MB limit
+            return BadRequest(new { error = "File too large. Maximum 25MB." });
 
         var sharesDir = Path.Combine(_env.WebRootPath, "shares");
         if (!Directory.Exists(sharesDir))

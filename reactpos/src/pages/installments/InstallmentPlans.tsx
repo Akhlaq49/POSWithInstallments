@@ -64,7 +64,7 @@ const InstallmentPlans: React.FC = () => {
     const overdue = p.schedule.filter(e => e.status === 'overdue');
     const due = p.schedule.filter(e => e.status === 'due');
     const lines = [
-      `📋 *Installment Plan Summary*`,
+      `📋 *Installment Plan — Full Repayment Schedule*`,
       ``,
       `👤 Customer: ${p.customerName}`,
       `📦 Product: ${p.productName}`,
@@ -84,6 +84,15 @@ const InstallmentPlans: React.FC = () => {
     if (p.nextDueDate) {
       lines.push(``, `📅 Next Due Date: ${p.nextDueDate}`);
     }
+    // Full schedule
+    lines.push(``, `━━━━━━━━━━━━━━━━━━━━━`, `📄 *Repayment Schedule:*`, ``);
+    p.schedule.forEach(e => {
+      const statusIcon: Record<string, string> = { paid: '✅', partial: '🟠', due: '🟡', overdue: '🔴', upcoming: '⚪' };
+      const icon = statusIcon[e.status] || '⚪';
+      const paid = e.actualPaidAmount != null && e.actualPaidAmount > 0 ? ` (Paid: Rs ${fmt(e.actualPaidAmount)})` : '';
+      lines.push(`${icon} #${e.installmentNo} | ${e.dueDate} | Rs ${fmt(e.emiAmount)} | ${e.status.toUpperCase()}${paid}`);
+    });
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
     return lines.join('\n');
   };
 
@@ -313,6 +322,32 @@ const InstallmentPlans: React.FC = () => {
         recipientName={whatsappPlan?.customerName || ''}
         defaultMessage={whatsappPlan ? buildWhatsAppMessage(whatsappPlan) : ''}
         title="Send Installment Reminder"
+        planData={whatsappPlan ? {
+          customerName: whatsappPlan.customerName,
+          customerPhone: whatsappPlan.customerPhone,
+          customerCnic: whatsappPlan.customerCnic,
+          productName: whatsappPlan.productName,
+          productPrice: whatsappPlan.productPrice,
+          downPayment: whatsappPlan.downPayment,
+          financeAmount: whatsappPlan.financeAmount ?? whatsappPlan.financedAmount,
+          interestRate: whatsappPlan.interestRate,
+          tenure: whatsappPlan.tenure,
+          emiAmount: whatsappPlan.emiAmount,
+          totalPayable: whatsappPlan.totalPayable,
+          startDate: whatsappPlan.startDate,
+          status: whatsappPlan.status,
+          paidInstallments: whatsappPlan.paidInstallments,
+          remainingInstallments: whatsappPlan.remainingInstallments,
+          schedule: whatsappPlan.schedule.map(e => ({
+            installmentNo: e.installmentNo,
+            dueDate: e.dueDate,
+            emiAmount: e.emiAmount,
+            status: e.status,
+            actualPaidAmount: e.actualPaidAmount,
+            paidDate: e.paidDate,
+          })),
+          guarantors: whatsappPlan.guarantors?.map(g => ({ name: g.name, phone: g.phone })),
+        } : undefined}
       />
     </>
   );
