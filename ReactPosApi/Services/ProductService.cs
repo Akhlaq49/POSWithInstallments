@@ -114,13 +114,22 @@ public class ProductService : IProductService
 
     public async Task<ProductDto> CreateAsync(ProductFormModel form)
     {
+        // Auto-generate defaults for fields that may be hidden via field visibility config
+        var productName = string.IsNullOrWhiteSpace(form.ProductName) ? $"Product-{DateTime.UtcNow:yyyyMMddHHmmss}" : form.ProductName;
+        var slug = string.IsNullOrWhiteSpace(form.Slug)
+            ? productName.ToLower().Replace(" ", "-").Replace("--", "-")
+            : form.Slug;
+        var sku = string.IsNullOrWhiteSpace(form.Sku)
+            ? "PT" + Guid.NewGuid().ToString("N")[..6].ToUpper()
+            : form.Sku;
+
         var entity = new Product
         {
             Store = form.Store,
             Warehouse = form.Warehouse,
-            ProductName = form.ProductName ?? "",
-            Slug = form.Slug,
-            SKU = form.Sku,
+            ProductName = productName,
+            Slug = slug,
+            SKU = sku,
             SellingType = form.SellingType,
             Category = form.Category,
             SubCategory = form.SubCategory,
@@ -129,7 +138,7 @@ public class ProductService : IProductService
             BarcodeSymbology = form.BarcodeSymbology,
             ItemBarcode = form.ItemBarcode,
             Description = form.Description,
-            ProductType = form.ProductType ?? "single",
+            ProductType = string.IsNullOrWhiteSpace(form.ProductType) ? "single" : form.ProductType,
             Quantity = form.Quantity,
             Price = form.Price,
             TaxType = form.TaxType,

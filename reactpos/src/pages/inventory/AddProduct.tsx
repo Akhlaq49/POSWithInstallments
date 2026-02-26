@@ -306,8 +306,8 @@ const AddProduct: React.FC = () => {
                       {isVisible('store') && (
                       <div className="col-sm-6 col-12">
                         <div className="mb-3">
-                          <label className="form-label">Store<span className="text-danger ms-1">*</span></label>
-                          <select className="form-select" name="store" value={form.store} onChange={handleChange} required>
+                          <label className="form-label">Store</label>
+                          <select className="form-select" name="store" value={form.store} onChange={handleChange}>
                             <option value="">Select</option>
                             {stores.map((s) => (
                               <option key={s.value} value={s.value}>{s.label}</option>
@@ -319,8 +319,8 @@ const AddProduct: React.FC = () => {
                       {isVisible('warehouse') && (
                       <div className="col-sm-6 col-12">
                         <div className="mb-3">
-                          <label className="form-label">Warehouse<span className="text-danger ms-1">*</span></label>
-                          <select className="form-select" name="warehouse" value={form.warehouse} onChange={handleChange} required>
+                          <label className="form-label">Warehouse</label>
+                          <select className="form-select" name="warehouse" value={form.warehouse} onChange={handleChange}>
                             <option value="">Select</option>
                             {warehouses.map((w) => (
                               <option key={w.value} value={w.value}>{w.label}</option>
@@ -333,18 +333,22 @@ const AddProduct: React.FC = () => {
 
                     {/* Product Name & Slug */}
                     <div className="row">
+                      {isVisible('productName') && (
                       <div className="col-sm-6 col-12">
                         <div className="mb-3">
-                          <label className="form-label">Product Name<span className="text-danger ms-1">*</span></label>
-                          <input type="text" className="form-control" name="productName" value={form.productName} onChange={handleChange} required />
+                          <label className="form-label">Product Name</label>
+                          <input type="text" className="form-control" name="productName" value={form.productName} onChange={handleChange} />
                         </div>
                       </div>
+                      )}
+                      {isVisible('slug') && (
                       <div className="col-sm-6 col-12">
                         <div className="mb-3">
-                          <label className="form-label">Slug<span className="text-danger ms-1">*</span></label>
-                          <input type="text" className="form-control" name="slug" value={form.slug} onChange={handleChange} required />
+                          <label className="form-label">Slug</label>
+                          <input type="text" className="form-control" name="slug" value={form.slug} onChange={handleChange} />
                         </div>
                       </div>
+                      )}
                     </div>
 
                     {/* SKU & Selling Type */}
@@ -352,8 +356,8 @@ const AddProduct: React.FC = () => {
                       {isVisible('sku') && (
                       <div className="col-sm-6 col-12">
                         <div className="mb-3 list position-relative">
-                          <label className="form-label">SKU<span className="text-danger ms-1">*</span></label>
-                          <input type="text" className="form-control list" name="sku" value={form.sku} onChange={handleChange} required />
+                          <label className="form-label">SKU</label>
+                          <input type="text" className="form-control list" name="sku" value={form.sku} onChange={handleChange} />
                           <button type="button" className="btn btn-primaryadd" onClick={generateSKU}>
                             Generate
                           </button>
@@ -363,8 +367,8 @@ const AddProduct: React.FC = () => {
                       {isVisible('sellingType') && (
                       <div className="col-sm-6 col-12">
                         <div className="mb-3">
-                          <label className="form-label">Selling Type<span className="text-danger ms-1">*</span></label>
-                          <select className="form-select" name="sellingType" value={form.sellingType} onChange={handleChange} required>
+                          <label className="form-label">Selling Type</label>
+                          <select className="form-select" name="sellingType" value={form.sellingType} onChange={handleChange}>
                             <option value="">Select</option>
                             {sellingTypes.map((st) => (
                               <option key={st.value} value={st.value}>{st.label}</option>
@@ -378,16 +382,17 @@ const AddProduct: React.FC = () => {
                     {/* Category & Sub Category */}
                     <div className="addservice-info">
                       <div className="row">
+                        {isVisible('category') && (
                         <div className="col-sm-6 col-12">
                           <div className="mb-3">
                             <div className="add-newplus">
-                              <label className="form-label">Category<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Category</label>
                               <a href="#" onClick={(e) => { e.preventDefault(); setShowCategoryModal(true); }}>
                                 <i data-feather="plus-circle" className="plus-down-add"></i>
                                 <span>Add New</span>
                               </a>
                             </div>
-                            <select className="form-select" name="category" value={form.category} onChange={handleChange} required>
+                            <select className="form-select" name="category" value={form.category} onChange={handleChange}>
                               <option value="">Select</option>
                               {categories.map((c) => (
                                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -395,9 +400,11 @@ const AddProduct: React.FC = () => {
                             </select>
                           </div>
                         </div>
+                        )}
+                        {isVisible('subCategory') && (
                         <div className="col-sm-6 col-12">
                           <div className="mb-3">
-                            <label className="form-label">Sub Category<span className="text-danger ms-1">*</span></label>
+                            <label className="form-label">Sub Category</label>
                             <select className="form-select" name="subCategory" value={form.subCategory} onChange={handleChange}>
                               <option value="">Select</option>
                               {subCategories.map((sc) => (
@@ -406,18 +413,20 @@ const AddProduct: React.FC = () => {
                             </select>
                           </div>
                         </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Brand & Unit */}
                     <div className="add-product-new">
                       <div className="row">
+                        {isVisible('brand') && (
                         <div className="col-sm-6 col-12">
                           <div className="mb-3">
                             <div className="add-newplus">
-                              <label className="form-label">Brand<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Brand</label>
                             </div>
-                            <select className="form-select" name="brand" value={form.brand} onChange={handleChange} required>
+                            <select className="form-select" name="brand" value={form.brand} onChange={handleChange}>
                               <option value="">Select</option>
                               {brands.map((b) => (
                                 <option key={b.value} value={b.value}>{b.label}</option>
@@ -425,12 +434,14 @@ const AddProduct: React.FC = () => {
                             </select>
                           </div>
                         </div>
+                        )}
+                        {isVisible('unit') && (
                         <div className="col-sm-6 col-12">
                           <div className="mb-3">
                             <div className="add-newplus">
-                              <label className="form-label">Unit<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Unit</label>
                             </div>
-                            <select className="form-select" name="unit" value={form.unit} onChange={handleChange} required>
+                            <select className="form-select" name="unit" value={form.unit} onChange={handleChange}>
                               <option value="">Select</option>
                               {units.map((u) => (
                                 <option key={u.value} value={u.value}>{u.label}</option>
@@ -438,15 +449,17 @@ const AddProduct: React.FC = () => {
                             </select>
                           </div>
                         </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Barcode Symbology & Item Barcode */}
                     <div className="row">
+                      {isVisible('barcodeSymbology') && (
                       <div className="col-sm-6">
                         <div className="mb-3">
                           <div className="add-newplus">
-                            <label className="form-label">Barcode Symbology<span className="text-danger ms-1">*</span></label>
+                            <label className="form-label">Barcode Symbology</label>
                           </div>
                           <select className="form-select" name="barcodeSymbology" value={form.barcodeSymbology} onChange={handleChange}>
                             <option value="">Select</option>
@@ -456,15 +469,18 @@ const AddProduct: React.FC = () => {
                           </select>
                         </div>
                       </div>
+                      )}
+                      {isVisible('itemBarcode') && (
                       <div className="col-lg-6 col-sm-6 col-12">
                         <div className="mb-3 list position-relative">
-                          <label className="form-label">Item Barcode<span className="text-danger ms-1">*</span></label>
+                          <label className="form-label">Item Barcode</label>
                           <input type="text" className="form-control list" name="itemBarcode" value={form.itemBarcode} onChange={handleChange} />
                           <button type="button" className="btn btn-primaryadd" onClick={generateBarcode}>
                             Generate
                           </button>
                         </div>
                       </div>
+                      )}
                     </div>
 
                     {/* Description */}
@@ -510,7 +526,7 @@ const AddProduct: React.FC = () => {
                   <div className="accordion-body border-top">
                     {/* Product Type */}
                     <div className="mb-3s">
-                      <label className="form-label">Product Type<span className="text-danger ms-1">*</span></label>
+                      <label className="form-label">Product Type</label>
                       <div className="single-pill-product mb-3">
                         <ul className="nav nav-pills" role="tablist">
                           <li className="nav-item" role="presentation">
@@ -544,23 +560,23 @@ const AddProduct: React.FC = () => {
                           {isVisible('quantity') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
-                              <label className="form-label">Quantity<span className="text-danger ms-1">*</span></label>
-                              <input type="number" className="form-control" name="quantity" value={form.quantity} onChange={handleChange} required />
+                              <label className="form-label">Quantity</label>
+                              <input type="number" className="form-control" name="quantity" value={form.quantity} onChange={handleChange} />
                             </div>
                           </div>
                           )}
                           {isVisible('price') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
-                              <label className="form-label">Price<span className="text-danger ms-1">*</span></label>
-                              <input type="number" step="0.01" className="form-control" name="price" value={form.price} onChange={handleChange} required />
+                              <label className="form-label">Price</label>
+                              <input type="number" step="0.01" className="form-control" name="price" value={form.price} onChange={handleChange} />
                             </div>
                           </div>
                           )}
                           {isVisible('taxType') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
-                              <label className="form-label">Tax Type<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Tax Type</label>
                               <select className="form-select" name="taxType" value={form.taxType} onChange={handleChange}>
                                 <option value="">Select</option>
                                 {taxTypes.map((tt) => (
@@ -573,7 +589,7 @@ const AddProduct: React.FC = () => {
                           {isVisible('tax') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
-                              <label className="form-label">Tax<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Tax</label>
                               <select className="form-select" name="tax" value={form.tax} onChange={handleChange}>
                                 <option value="">Select</option>
                                 {taxes.map((t) => (
@@ -586,7 +602,7 @@ const AddProduct: React.FC = () => {
                           {isVisible('discountType') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
-                              <label className="form-label">Discount Type<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Discount Type</label>
                               <select className="form-select" name="discountType" value={form.discountType} onChange={handleChange}>
                                 <option value="">Select</option>
                                 {discountTypes.map((dt) => (
@@ -599,7 +615,7 @@ const AddProduct: React.FC = () => {
                           {isVisible('discountValue') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
-                              <label className="form-label">Discount Value<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Discount Value</label>
                               <input className="form-control" type="number" step="0.01" name="discountValue" value={form.discountValue} onChange={handleChange} />
                             </div>
                           </div>
@@ -607,7 +623,7 @@ const AddProduct: React.FC = () => {
                           {isVisible('quantityAlert') && (
                           <div className="col-lg-4 col-sm-6 col-12">
                             <div className="mb-3">
-                              <label className="form-label">Quantity Alert<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Quantity Alert</label>
                               <input type="number" className="form-control" name="quantityAlert" value={form.quantityAlert} onChange={handleChange} />
                             </div>
                           </div>
@@ -621,7 +637,7 @@ const AddProduct: React.FC = () => {
                       <div className="row select-color-add">
                         <div className="col-lg-6 col-sm-6 col-12">
                           <div className="mb-3">
-                            <label className="form-label">Variant Attribute <span className="text-danger ms-1">*</span></label>
+                            <label className="form-label">Variant Attribute</label>
                             <select className="form-select" defaultValue="">
                               <option value="">Choose</option>
                               <option value="color">Color</option>
@@ -784,7 +800,7 @@ const AddProduct: React.FC = () => {
                         {customFieldChecks.warranties && (
                           <div className="col-sm-6 col-12">
                             <div className="mb-3">
-                              <label className="form-label">Warranty<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Warranty</label>
                               <select className="form-select" name="warranty" value={form.warranty} onChange={handleChange}>
                                 <option value="">Select</option>
                                 {warranties.map((w) => (
@@ -797,7 +813,7 @@ const AddProduct: React.FC = () => {
                         {customFieldChecks.manufacturer && (
                           <div className="col-sm-6 col-12">
                             <div className="mb-3 add-product">
-                              <label className="form-label">Manufacturer<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Manufacturer</label>
                               <input type="text" className="form-control" name="manufacturer" value={form.manufacturer} onChange={handleChange} />
                             </div>
                           </div>
@@ -809,7 +825,7 @@ const AddProduct: React.FC = () => {
                         <div className="row">
                           <div className="col-sm-6 col-12">
                             <div className="mb-3">
-                              <label className="form-label">Manufactured Date<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Manufactured Date</label>
                               <div className="input-groupicon calender-input">
                                 <i data-feather="calendar" className="info-img"></i>
                                 <input
@@ -824,7 +840,7 @@ const AddProduct: React.FC = () => {
                           </div>
                           <div className="col-sm-6 col-12">
                             <div className="mb-3">
-                              <label className="form-label">Expiry On<span className="text-danger ms-1">*</span></label>
+                              <label className="form-label">Expiry On</label>
                               <div className="input-groupicon calender-input">
                                 <i data-feather="calendar" className="info-img"></i>
                                 <input
