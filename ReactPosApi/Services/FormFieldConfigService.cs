@@ -103,7 +103,7 @@ public class FormFieldConfigService : IFormFieldConfigService
 
     public async Task SeedDefaultsAsync()
     {
-        var anyExist = await _db.FormFieldConfigs.AnyAsync();
+          var anyExist = await _db.FormFieldConfigs.AnyAsync();
         if (anyExist) return; // already seeded
 
         var defaults = new List<FormFieldConfig>
@@ -140,11 +140,6 @@ public class FormFieldConfigService : IFormFieldConfigService
             new() { FormName = "AddProduct", FieldName = "discountType", FieldLabel = "Discount Type", IsVisible = true },
             new() { FormName = "AddProduct", FieldName = "discountValue", FieldLabel = "Discount Value", IsVisible = true },
             new() { FormName = "AddProduct", FieldName = "quantityAlert", FieldLabel = "Quantity Alert", IsVisible = true },
-            new() { FormName = "AddProduct", FieldName = "productType", FieldLabel = "Product Type", IsVisible = true },
-            new() { FormName = "AddProduct", FieldName = "warranty", FieldLabel = "Warranty", IsVisible = true },
-            new() { FormName = "AddProduct", FieldName = "manufacturer", FieldLabel = "Manufacturer", IsVisible = true },
-            new() { FormName = "AddProduct", FieldName = "manufacturedDate", FieldLabel = "Manufactured Date", IsVisible = true },
-            new() { FormName = "AddProduct", FieldName = "expiryDate", FieldLabel = "Expiry Date", IsVisible = true },
             new() { FormName = "AddProduct", FieldName = "warranty", FieldLabel = "Warranty", IsVisible = true },
             new() { FormName = "AddProduct", FieldName = "manufacturer", FieldLabel = "Manufacturer", IsVisible = true },
             new() { FormName = "AddProduct", FieldName = "manufacturedDate", FieldLabel = "Manufactured Date", IsVisible = true },

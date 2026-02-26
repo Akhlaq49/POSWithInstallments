@@ -156,10 +156,10 @@ public class WhatsAppController : ControllerBase
         // Clean up old files (older than 24h)
         try
         {
-            foreach (var oldFile in Directory.GetFiles(sharesDir))
+            foreach (var oldFile in System.IO.Directory.GetFiles(sharesDir))
             {
-                if (File.GetCreationTimeUtc(oldFile) < DateTime.UtcNow.AddHours(-24))
-                    File.Delete(oldFile);
+                if (System.IO.File.GetCreationTimeUtc(oldFile) < DateTime.UtcNow.AddHours(-24))
+                    System.IO.File.Delete(oldFile);
             }
         }
         catch { /* ignore cleanup errors */ }
