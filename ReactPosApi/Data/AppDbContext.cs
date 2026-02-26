@@ -31,6 +31,7 @@ public class AppDbContext : DbContext
     public DbSet<Quotation> Quotations => Set<Quotation>();
     public DbSet<QuotationItem> QuotationItems => Set<QuotationItem>();
     public DbSet<Coupon> Coupons => Set<Coupon>();
+    public DbSet<Purchase> Purchases => Set<Purchase>();
 
     // Inventory
     public DbSet<Category> Categories => Set<Category>();

@@ -117,24 +117,24 @@ const Footer = () => {
             <div className="col">
               <div className="widget-about font-md mb-md-3 mb-lg-3 mb-xl-0 wow animate__animated animate__fadeInUp" data-wow-delay="0">
                 <div className="logo mb-30">
-                  <Link to="/" className="mb-15"><img src="/assets/imgs/theme/logo.svg" alt="logo" /></Link>
-                  <p className="font-lg text-heading">Premium fashion & clothing store</p>
+                  <Link to="/" className="mb-15"><img src="/assets/imgs/theme/logo.svg" alt="Asentyx Consultancy" /></Link>
+                  <p className="font-lg text-heading">Asentyx Consultancy - Your trusted business partner</p>
                 </div>
                 <ul className="contact-infor">
                   <li>
                     <img src="/assets/imgs/theme/icons/icon-location.svg" alt="" />
                     <strong>Address: </strong> 
-                    <span>5171 W Campbell Ave undefined Kent, Utah 53127 United States</span>
+                    <span>Lahore, Pakistan</span>
                   </li>
                   <li>
                     <img src="/assets/imgs/theme/icons/icon-contact.svg" alt="" />
                     <strong>Call Us:</strong>
-                    <span>(+91) - 540-025-124553</span>
+                    <span>03012805749</span>
                   </li>
                   <li>
                     <img src="/assets/imgs/theme/icons/icon-email-2.svg" alt="" />
                     <strong>Email:</strong>
-                    <span>sale@Nest.com</span>
+                    <span>info@asentyx.com</span>
                   </li>
                   <li>
                     <img src="/assets/imgs/theme/icons/icon-clock.svg" alt="" />
@@ -224,7 +224,7 @@ const Footer = () => {
           <div className="col-xl-4 col-lg-6 text-center d-none d-xl-block">
             <div className="hotline d-lg-inline-flex mr-30">
               <img src="/assets/imgs/theme/icons/phone-call.svg" alt="hotline" />
-              <p>1900 - 6666<span>Working 8:00 - 22:00</span></p>
+              <p>03012805749<span>24/7 Support - Asentyx Consultancy</span></p>
             </div>
             <div className="hotline d-lg-inline-flex">
               <img src="/assets/imgs/theme/icons/phone-call.svg" alt="hotline" />

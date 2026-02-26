@@ -1,8 +1,8 @@
 // API configuration and base functions
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://192.168.1.5:5000/api/storefront';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://192.168.1.7:5000/api/storefront';
 
 // Media base URL for product images served by ReactPosApi
-export const MEDIA_BASE_URL = process.env.REACT_APP_MEDIA_URL || 'http://192.168.1.5:5000';
+export const MEDIA_BASE_URL = process.env.REACT_APP_MEDIA_URL || 'http://192.168.1.7:5000';
 
 // Get auth token from localStorage
 const getAuthToken = () => {

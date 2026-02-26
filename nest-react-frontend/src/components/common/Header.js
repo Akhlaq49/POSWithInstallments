@@ -211,7 +211,7 @@ const Header = () => {
         <div className="container">
           <div className="header-wrap">
             <div className="logo logo-width-1">
-              <Link to="/"><img src="/assets/imgs/theme/logo.svg" alt="logo" /></Link>
+              <Link to="/"><img src="/assets/imgs/theme/logo.svg" alt="Asentyx Consultancy" /></Link>
             </div>
             <div className="header-right">
               <div className="search-style-2">
@@ -647,7 +647,7 @@ const Header = () => {
             </div>
             <div className="hotline d-none d-lg-flex">
               <img src="/assets/imgs/theme/icons/icon-headphone.svg" alt="hotline" />
-              <p>1900 - 888<span>24/7 Support Center</span></p>
+              <p>03012805749<span>24/7 Support - Asentyx Consultancy</span></p>
             </div>
             <div className="header-action-icon-2 d-block d-lg-none">
               <Link className="mini-cart-icon" to="/shop-cart">
