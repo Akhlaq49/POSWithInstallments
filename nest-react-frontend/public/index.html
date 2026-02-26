@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <meta name="description" content="Nest - Multipurpose eCommerce React Application" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta property="og:title" content="" />
+    <meta property="og:type" content="" />
+    <meta property="og:url" content="" />
+    <meta property="og:image" content="" />
+    <meta name="theme-color" content="#000000" />
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" type="image/x-icon" href="%PUBLIC_URL%/assets/imgs/theme/favicon.svg" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Template CSS - Load vendors first -->
+    <link rel="stylesheet" href="%PUBLIC_URL%/assets/css/vendors/normalize.css" />
+    <link rel="stylesheet" href="%PUBLIC_URL%/assets/css/vendors/bootstrap.min.css" />
+    <link rel="stylesheet" href="%PUBLIC_URL%/assets/css/vendors/uicons-regular-straight.css" />
+    
+    <!-- Plugin CSS -->
+    <link rel="stylesheet" href="%PUBLIC_URL%/assets/css/plugins/animate.min.css" />
+    <link rel="stylesheet" href="%PUBLIC_URL%/assets/css/plugins/magnific-popup.css" />
+    <link rel="stylesheet" href="%PUBLIC_URL%/assets/css/plugins/select2.min.css" />
+    <link rel="stylesheet" href="%PUBLIC_URL%/assets/css/plugins/slick.css" />
+    <link rel="stylesheet" href="%PUBLIC_URL%/assets/css/plugins/perfect-scrollbar.css" />
+    
+    <!-- Main CSS - Load last to override other styles -->
+    <link rel="stylesheet" href="%PUBLIC_URL%/assets/css/main.css?v=6.1" />
+    
+    <title>Nest - Multipurpose eCommerce HTML Template</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    
+    <!-- Lightweight Preloader - Removed quickly by ProgressiveLoader -->
+    <div id="preloader-active" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;">
+      <div class="preloader-inner">
+        <div class="text-center">
+          <img src="%PUBLIC_URL%/assets/imgs/theme/loading.gif" alt="Loading" style="max-width:80px;" />
+        </div>
+      </div>
+    </div>
+    
+    <!-- Inline script for instant preloader removal on fast connections -->
+    <script>
+      // Remove preloader when DOM is ready (before React loads)
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          setTimeout(function() {
+            var preloader = document.getElementById('preloader-active');
+            if (preloader && document.getElementById('root').children.length > 0) {
+              preloader.style.transition = 'opacity 0.3s';
+              preloader.style.opacity = '0';
+              setTimeout(function() { preloader.style.display = 'none'; }, 300);
+            }
+          }, 100);
+        });
+      }
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,448 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ReactPosApi.Data;
+using ReactPosApi.DTOs;
+using ReactPosApi.Models;
+using System.Text.Json;
+
+namespace ReactPosApi.Controllers;
+
+/// <summary>
+/// Public storefront API — no authentication required.
+/// Used by the online store (nest-react-frontend).
+/// </summary>
+[ApiController]
+[Route("api/storefront")]
+public class StorefrontController : ControllerBase
+{
+    private readonly AppDbContext _db;
+
+    public StorefrontController(AppDbContext db) => _db = db;
+
+    // ──────────────────────────────────────────
+    // CATEGORIES
+    // ──────────────────────────────────────────
+
+    /// <summary>
+    /// GET /api/storefront/categories/all
+    /// Returns categories with nested subcategories (hierarchical).
+    /// Shape matches what nest-react-frontend expects.
+    /// </summary>
+    [HttpGet("categories/all")]
+    public async Task<IActionResult> GetAllCategories()
+    {
+        var categories = await _db.Categories
+            .Where(c => c.Status == "active")
+            .Include(c => c.SubCategories)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+
+        var result = categories.Select(c => new
+        {
+            id = c.Id.ToString(),
+            categoryName = c.Name,
+            categorySlug = c.Slug,
+            isActive = c.Status == "active",
+            subCategories = c.SubCategories
+                .Where(sc => sc.Status == "active")
+                .Select(sc => new
+                {
+                    id = sc.Id.ToString(),
+                    subCategoryName = sc.SubCategoryName,
+                    categoryCode = sc.CategoryCode ?? "",
+                    isActive = sc.Status == "active",
+                    subCategory1s = new object[] { } // no third level in ReactPosApi
+                }).ToList()
+        }).ToList();
+
+        return Ok(new { success = true, data = result });
+    }
+
+    /// <summary>
+    /// GET /api/storefront/categories/:id
+    /// </summary>
+    [HttpGet("categories/{id}")]
+    public async Task<IActionResult> GetCategoryById(int id)
+    {
+        var c = await _db.Categories
+            .Include(c => c.SubCategories)
+            .FirstOrDefaultAsync(c => c.Id == id);
+        if (c == null) return NotFound(new { success = false, message = "Category not found" });
+
+        var result = new
+        {
+            id = c.Id.ToString(),
+            categoryName = c.Name,
+            categorySlug = c.Slug,
+            isActive = c.Status == "active",
+            subCategories = c.SubCategories.Where(sc => sc.Status == "active").Select(sc => new
+            {
+                id = sc.Id.ToString(),
+                subCategoryName = sc.SubCategoryName,
+                categoryCode = sc.CategoryCode ?? "",
+                isActive = sc.Status == "active"
+            }).ToList()
+        };
+
+        return Ok(new { success = true, data = result });
+    }
+
+    // ──────────────────────────────────────────
+    // PRODUCTS
+    // ──────────────────────────────────────────
+
+    /// <summary>
+    /// GET /api/storefront/products/all
+    /// Returns all active products in the shape nest-react-frontend expects.
+    /// </summary>
+    [HttpGet("products/all")]
+    public async Task<IActionResult> GetAllProducts()
+    {
+        var products = await _db.Products
+            .Include(p => p.Images)
+            .Where(p => p.Quantity > 0)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+
+        var result = products.Select((p, idx) => MapProduct(p)).ToList();
+        return Ok(new { success = true, data = result });
+    }
+
+    /// <summary>
+    /// GET /api/storefront/products/:id
+    /// </summary>
+    [HttpGet("products/{id}")]
+    public async Task<IActionResult> GetProductById(int id)
+    {
+        var p = await _db.Products.Include(p => p.Images).FirstOrDefaultAsync(p => p.Id == id);
+        if (p == null) return NotFound(new { success = false, message = "Product not found" });
+        return Ok(new { success = true, data = MapProduct(p) });
+    }
+
+    /// <summary>
+    /// GET /api/storefront/products/category/:categoryId
+    /// Filter products by category name (resolved from category ID).
+    /// </summary>
+    [HttpGet("products/category/{categoryId}")]
+    public async Task<IActionResult> GetProductsByCategory(int categoryId)
+    {
+        var category = await _db.Categories.FindAsync(categoryId);
+        if (category == null) return Ok(new { success = true, data = new List<object>() });
+
+        var products = await _db.Products
+            .Include(p => p.Images)
+            .Where(p => p.Category == category.Name && p.Quantity > 0)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+
+        var result = products.Select(p => MapProduct(p)).ToList();
+        return Ok(new { success = true, data = result });
+    }
+
+    /// <summary>
+    /// GET /api/storefront/products/subcategory/:subCategoryId
+    /// Filter products by subcategory name (resolved from subcategory ID).
+    /// </summary>
+    [HttpGet("products/subcategory/{subCategoryId}")]
+    public async Task<IActionResult> GetProductsBySubCategory(int subCategoryId)
+    {
+        var subCategory = await _db.SubCategories.FindAsync(subCategoryId);
+        if (subCategory == null) return Ok(new { success = true, data = new List<object>() });
+
+        var products = await _db.Products
+            .Include(p => p.Images)
+            .Where(p => p.SubCategory == subCategory.SubCategoryName && p.Quantity > 0)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+
+        var result = products.Select(p => MapProduct(p)).ToList();
+        return Ok(new { success = true, data = result });
+    }
+
+    // ──────────────────────────────────────────
+    // ORDERS (Online)
+    // ──────────────────────────────────────────
+
+    /// <summary>
+    /// POST /api/storefront/orders
+    /// Creates an order with OrderSource = "Online".
+    /// Accepts the shape the nest-react-frontend checkout sends.
+    /// </summary>
+    [HttpPost("orders")]
+    public async Task<IActionResult> CreateOrder([FromBody] StorefrontOrderDto dto)
+    {
+        // Serialize addresses as JSON strings for storage
+        var billingJson = dto.BillingAddress != null ? JsonSerializer.Serialize(dto.BillingAddress) : null;
+        var shippingJson = dto.ShippingAddress != null ? JsonSerializer.Serialize(dto.ShippingAddress) : null;
+
+        var order = new Order
+        {
+            OrderNumber = $"ONL-{new Random().Next(1000000, 9999999)}",
+            CustomerId = dto.CustomerId,
+            CustomerName = dto.CustomerName,
+            CustomerEmail = dto.CustomerEmail,
+            CustomerPhone = dto.CustomerPhone,
+            PaymentType = dto.PaymentMethod ?? "cash_on_delivery",
+            Amount = dto.GrandTotal,
+            SubTotal = dto.SubTotal,
+            Shipping = dto.Shipping,
+            Discount = dto.Discount,
+            Tax = dto.Tax,
+            Status = "Pending",
+            OrderSource = "Online",
+            BillingAddress = billingJson,
+            ShippingAddress = shippingJson,
+            Notes = dto.Notes,
+            OrderDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            Items = dto.Items.Select(i => new OrderItem
+            {
+                ProductId = i.ProductId,
+                ProductName = i.ProductName ?? "",
+                Quantity = i.Quantity,
+                Price = i.Price
+            }).ToList()
+        };
+
+        // Resolve product names if not provided
+        foreach (var item in order.Items)
+        {
+            if (string.IsNullOrEmpty(item.ProductName))
+            {
+                var product = await _db.Products.FindAsync(item.ProductId);
+                if (product != null) item.ProductName = product.ProductName;
+            }
+        }
+
+        _db.Orders.Add(order);
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            data = new { id = order.Id, orderNumber = order.OrderNumber },
+            message = "Order placed successfully"
+        });
+    }
+
+    /// <summary>
+    /// GET /api/storefront/orders/email/:email
+    /// Get orders by customer email.
+    /// </summary>
+    [HttpGet("orders/email/{email}")]
+    public async Task<IActionResult> GetOrdersByEmail(string email)
+    {
+        var orders = await _db.Orders
+            .Include(o => o.Items)
+            .Where(o => o.CustomerEmail == email)
+            .OrderByDescending(o => o.CreatedAt)
+            .Select(o => new
+            {
+                id = o.Id,
+                orderNumber = o.OrderNumber,
+                customerName = o.CustomerName,
+                amount = o.Amount,
+                status = o.Status,
+                orderSource = o.OrderSource,
+                orderDate = o.OrderDate.ToString("dd MMM yyyy, hh:mm tt"),
+                itemCount = o.Items.Count
+            })
+            .ToListAsync();
+
+        return Ok(new { success = true, data = orders });
+    }
+
+    // ──────────────────────────────────────────
+    // AUTH (for online customers)
+    // ──────────────────────────────────────────
+
+    /// <summary>
+    /// POST /api/storefront/auth/register
+    /// Register a new online customer.
+    /// </summary>
+    [HttpPost("auth/register")]
+    public async Task<IActionResult> Register([FromBody] StorefrontRegisterDto dto)
+    {
+        if (await _db.Parties.AnyAsync(p => p.Email == dto.Email))
+            return Conflict(new { success = false, message = "Email already registered" });
+
+        var party = new Party
+        {
+            FullName = dto.CustomerName,
+            Email = dto.Email,
+            Phone = dto.Phone,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            Role = "Customer",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Parties.Add(party);
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            data = new
+            {
+                id = party.Id,
+                customerName = party.FullName,
+                customerEmail = party.Email,
+                customerPhone = party.Phone
+            },
+            message = "Registration successful"
+        });
+    }
+
+    /// <summary>
+    /// POST /api/storefront/auth/login
+    /// Login an online customer.
+    /// </summary>
+    [HttpPost("auth/login")]
+    public async Task<IActionResult> Login([FromBody] StorefrontLoginDto dto)
+    {
+        var party = await _db.Parties.FirstOrDefaultAsync(p => p.Email == dto.Email && p.Role == "Customer");
+        if (party == null || !BCrypt.Net.BCrypt.Verify(dto.Password, party.PasswordHash))
+            return Unauthorized(new { success = false, message = "Invalid email or password" });
+
+        return Ok(new
+        {
+            success = true,
+            data = new
+            {
+                id = party.Id,
+                customerName = party.FullName,
+                customerEmail = party.Email,
+                customerPhone = party.Phone
+            },
+            message = "Login successful"
+        });
+    }
+
+    /// <summary>
+    /// GET /api/storefront/customers/email/:email
+    /// Get customer by email for checkout pre-fill.
+    /// </summary>
+    [HttpGet("customers/email/{email}")]
+    public async Task<IActionResult> GetCustomerByEmail(string email)
+    {
+        var party = await _db.Parties.FirstOrDefaultAsync(p => p.Email == email && p.Role == "Customer");
+        if (party == null) return NotFound(new { success = false, message = "Customer not found" });
+
+        return Ok(new
+        {
+            success = true,
+            data = new
+            {
+                id = party.Id,
+                customerName = party.FullName,
+                customerEmail = party.Email,
+                customerPhone = party.Phone,
+                address = party.Address,
+                city = party.City
+            }
+        });
+    }
+
+    // ──────────────────────────────────────────
+    // HELPER
+    // ──────────────────────────────────────────
+
+    private object MapProduct(Product p)
+    {
+        // Resolve categoryId from category name
+        var categoryId = _db.Categories
+            .Where(c => c.Name == p.Category)
+            .Select(c => c.Id)
+            .FirstOrDefault();
+
+        var subCategoryId = _db.SubCategories
+            .Where(sc => sc.SubCategoryName == p.SubCategory)
+            .Select(sc => sc.Id)
+            .FirstOrDefault();
+
+        var images = p.Images?.Select(i => i.ImagePath).ToArray() ?? Array.Empty<string>();
+
+        return new
+        {
+            id = p.Id.ToString(),
+            productName = p.ProductName,
+            price = p.Price,
+            description = p.Description ?? "",
+            sku = p.SKU ?? "",
+            stock = p.Quantity,
+            imagePath = images.Length > 0 ? images[0] : null,
+            imagePaths = images,
+            categoryId = categoryId > 0 ? categoryId.ToString() : null,
+            subCategoryId = subCategoryId > 0 ? subCategoryId.ToString() : null,
+            category = new { id = categoryId.ToString(), categoryName = p.Category ?? "" },
+            brand = new { brandName = p.Brand ?? "" },
+            unit = p.Unit ?? "",
+            discountType = p.DiscountType ?? "",
+            discountValue = p.DiscountValue,
+            createdOn = p.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss")
+        };
+    }
+}
+
+// ──────────────────────────────────────────
+// DTOs for the storefront
+// ──────────────────────────────────────────
+
+public class StorefrontOrderDto
+{
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerEmail { get; set; }
+    public string? CustomerPhone { get; set; }
+    public StorefrontAddressDto? BillingAddress { get; set; }
+    public StorefrontAddressDto? ShippingAddress { get; set; }
+    public List<StorefrontOrderItemDto> Items { get; set; } = new();
+    public string? PaymentMethod { get; set; }
+    public decimal SubTotal { get; set; }
+    public decimal Shipping { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Tax { get; set; }
+    public decimal GrandTotal { get; set; }
+    public string? Notes { get; set; }
+    public string? AdditionalInfo { get; set; }
+    public bool CreateAccount { get; set; }
+    public string? AccountPassword { get; set; }
+}
+
+public class StorefrontOrderItemDto
+{
+    public int ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public int Quantity { get; set; } = 1;
+    public decimal Price { get; set; }
+}
+
+public class StorefrontAddressDto
+{
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? AddressLine1 { get; set; }
+    public string? AddressLine2 { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? PostalCode { get; set; }
+    public string? Country { get; set; }
+    public string? CompanyName { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+}
+
+public class StorefrontRegisterDto
+{
+    public string CustomerName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+}
+
+public class StorefrontLoginDto
+{
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}

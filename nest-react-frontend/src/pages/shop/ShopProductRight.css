@@ -1,0 +1,432 @@
+/* Shop Product Right Page Styles */
+
+.button-add-to-cart.success {
+  background-color: #3BB77E !important;
+  color: white !important;
+}
+
+.button-add-to-cart.success:hover {
+  background-color: #2a9d6a !important;
+}
+
+/* Product Image Hover Zoom Effect - Fixed Image Display */
+.product-image-slider {
+  position: relative;
+  overflow: hidden !important;
+  border-radius: 10px;
+  cursor: zoom-in;
+  background: #f5f5f5;
+  width: 100%;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-image-slider figure {
+  position: relative;
+  overflow: hidden !important;
+  margin: 0;
+  padding: 0;
+  border-radius: 10px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-image-slider img,
+.product-image-slider .product-main-image {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center center;
+  will-change: transform;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Prevent image overflow on hover - constrain within container */
+.product-image-slider:hover img,
+.product-image-slider:hover .product-main-image {
+  transform: scale(1.05);
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.product-image-slider figure {
+  overflow: hidden !important;
+}
+
+.product-image-slider,
+.product-image-slider figure,
+.product-image-slider .slick-slide {
+  overflow: hidden !important;
+}
+
+/* Zoom indicator */
+.zoom-icon {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.zoom-icon:hover {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transform: scale(1.1);
+}
+
+.zoom-icon i {
+  color: #3BB77E;
+  font-size: 18px;
+}
+
+/* Smooth zoom overlay */
+.product-image-slider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 10px;
+}
+
+.product-image-slider:hover::before {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Detail Gallery Container */
+.detail-gallery {
+  position: relative;
+  width: 100%;
+  overflow: hidden !important;
+  z-index: 1;
+  isolation: isolate;
+  contain: layout style paint !important;
+  max-width: 100% !important;
+}
+
+/* Ensure parent column also constrains overflow */
+.col-md-6 .detail-gallery,
+.col-sm-12 .detail-gallery {
+  overflow: hidden !important;
+  position: relative !important;
+  max-width: 100% !important;
+}
+
+/* Product detail page specific - don't apply overflow hidden to all columns */
+.product-detail .col-md-6 {
+  overflow: visible !important;
+}
+
+/* Only apply overflow hidden to the image column */
+.product-detail .col-md-6:first-child {
+  overflow: visible !important;
+}
+
+.detail-gallery .product-image-slider {
+  width: 100%;
+  min-height: 450px;
+  max-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f8f8;
+  border-radius: 10px;
+  overflow: hidden !important;
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  contain: layout style paint !important;
+  max-width: 100% !important;
+  clip-path: inset(0 round 10px) !important;
+}
+
+.detail-gallery .product-image-slider figure {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 20px;
+  overflow: hidden !important;
+  position: relative !important;
+  contain: layout style paint !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  clip-path: inset(0) !important;
+}
+
+/* Inner wrapper for zoom - critical for clipping */
+.detail-gallery .product-image-slider figure > div,
+.detail-gallery .product-image-slider .zoom-image-container {
+  overflow: hidden !important;
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  clip-path: inset(0 round 10px) !important;
+  contain: layout style paint !important;
+  isolation: isolate !important;
+}
+
+/* Zoom image container - ensure scaled image stays within bounds */
+.zoom-image-container {
+  overflow: hidden !important;
+  clip-path: inset(0 round 10px) !important;
+  contain: layout style paint !important;
+  isolation: isolate !important;
+}
+
+.zoom-image-container img,
+.zoom-image-container .product-main-image {
+  position: relative !important;
+  will-change: transform;
+}
+
+.detail-gallery .product-image-slider img,
+.detail-gallery .product-main-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  overflow: hidden !important;
+}
+
+/* Ensure all parent containers constrain overflow */
+.detail-gallery .slick-list,
+.detail-gallery .slick-track,
+.detail-gallery .slick-slide {
+  overflow: hidden !important;
+}
+
+.detail-gallery .slick-slide > div {
+  overflow: hidden !important;
+}
+
+/* Thumbnail Images */
+.slider-nav-thumbnails {
+  margin-top: 15px;
+  padding: 0;
+}
+
+.slider-nav-thumbnails .slick-slide {
+  padding: 0 5px;
+  margin: 0;
+}
+
+.slider-nav-thumbnails .slick-slide > div {
+  border-radius: 8px;
+  overflow: hidden;
+  width: 60px !important;
+  height: 60px !important;
+  min-width: 60px !important;
+  min-height: 60px !important;
+  max-width: 60px !important;
+  max-height: 60px !important;
+  position: relative;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+  background: #f8f8f8;
+  flex-shrink: 0;
+}
+
+.slider-nav-thumbnails .slick-slide > div:hover {
+  border-color: #3BB77E;
+}
+
+.slider-nav-thumbnails .slick-current > div {
+  border-color: #3BB77E !important;
+  box-shadow: 0 0 10px rgba(59, 183, 126, 0.3) !important;
+}
+
+.slider-nav-thumbnails img,
+.slider-nav-thumbnails .product-main-image {
+  width: 60px !important;
+  height: 60px !important;
+  min-width: 60px !important;
+  min-height: 60px !important;
+  max-width: 60px !important;
+  max-height: 60px !important;
+  object-fit: cover !important;
+  display: block !important;
+  overflow: hidden !important;
+}
+
+/* Ensure VideoImage component renders properly */
+.product-main-image {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  display: block !important;
+  object-fit: contain !important;
+}
+
+/* Responsive image sizing */
+@media (max-width: 768px) {
+  .detail-gallery .product-image-slider {
+    min-height: 350px;
+    max-height: 450px;
+  }
+  
+  .slider-nav-thumbnails .slick-slide > div {
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    max-width: 50px !important;
+    max-height: 50px !important;
+  }
+  
+  .slider-nav-thumbnails img,
+  .slider-nav-thumbnails .product-main-image {
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    max-width: 50px !important;
+    max-height: 50px !important;
+  }
+}
+
+/* Prevent zoom window overflow */
+.zoomContainer,
+.zoomWindow,
+.zoomWindowContainer {
+  overflow: hidden !important;
+  max-width: 100% !important;
+}
+
+.zoomWindow {
+  border-radius: 15px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Ensure zoom stays within viewport */
+.detail-gallery .zoomContainer {
+  position: absolute !important;
+  overflow: hidden !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+  contain: layout style paint !important;
+  clip-path: inset(0) !important;
+}
+
+.detail-gallery .zoomWindow {
+  overflow: hidden !important;
+  border: 2px solid #e0e0e0 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 3 !important;
+  contain: layout style paint !important;
+  clip-path: inset(0) !important;
+}
+
+.detail-gallery .zoomWindow img {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+.detail-gallery .zoomLens {
+  position: absolute !important;
+  z-index: 4 !important;
+  cursor: crosshair !important;
+}
+
+/* Additional constraints for zoom elements */
+.detail-gallery .zoomContainer {
+  contain: layout style paint !important;
+  clip-path: inset(0) !important;
+}
+
+.detail-gallery .zoomWindowContainer {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+  contain: layout style paint !important;
+  clip-path: inset(0) !important;
+}
+
+/* Additional wrapper constraints */
+.detail-gallery .zoomWrap {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  contain: layout style paint !important;
+}
+
+/* Prevent zoom from going above navigation - limit z-index */
+.detail-gallery {
+  z-index: 1 !important;
+}
+
+.detail-gallery .zoomContainer,
+.detail-gallery .zoomWindow,
+.detail-gallery .zoomWindowContainer,
+.detail-gallery .zoomLens {
+  z-index: 2 !important;
+}
+
+/* Ensure thumbnails stay below zoom */
+.slider-nav-thumbnails {
+  position: relative !important;
+  z-index: 10 !important;
+  margin-top: 15px;
+  padding: 0;
+}
+

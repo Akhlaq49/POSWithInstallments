@@ -1,0 +1,83 @@
+/* Login Page Styles */
+
+/* Custom Checkbox */
+.custome-checkbox {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.custome-checkbox .form-check-input {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #BCE3C9;
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  margin: 0;
+  margin-right: 10px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #fff;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.custome-checkbox .form-check-input:hover {
+  border-color: #3BB77E;
+  box-shadow: 0 0 0 3px rgba(59, 183, 126, 0.1);
+}
+
+.custome-checkbox .form-check-input:checked {
+  background-color: #3BB77E;
+  border-color: #3BB77E;
+}
+
+.custome-checkbox .form-check-input:checked::after {
+  content: '\2713';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.custome-checkbox .form-check-label {
+  margin: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.custome-checkbox .form-check-label span {
+  font-size: 14px;
+  color: #7E7E7E;
+}
+
+/* Login Footer */
+.login_footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.login_footer .chek-form {
+  display: flex;
+  align-items: center;
+}
+
+.login_footer a {
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.login_footer a:hover {
+  color: #3BB77E !important;
+}

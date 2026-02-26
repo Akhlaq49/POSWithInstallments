@@ -1,0 +1,224 @@
+/* Checkout Page Styles */
+
+/* Apply Coupon Form */
+.apply-coupon {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.apply-coupon input[type="text"] {
+  flex: 1;
+  height: 50px;
+  padding: 0 25px;
+  border: 1px solid #ececec;
+  border-radius: 5px;
+  font-size: 14px;
+  color: #253D4E;
+  transition: all 0.3s;
+}
+
+.apply-coupon input[type="text"]:focus {
+  border-color: #3BB77E;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 183, 126, 0.1);
+}
+
+.apply-coupon input[type="text"]::placeholder {
+  color: #adadad;
+}
+
+.apply-coupon .btn {
+  height: 50px;
+  padding: 0 30px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 5px;
+  transition: all 0.3s;
+}
+
+.apply-coupon .btn-md {
+  background-color: #3BB77E;
+  color: #fff;
+  border: 1px solid #3BB77E;
+}
+
+.apply-coupon .btn-md:hover {
+  background-color: #29a56c;
+  border-color: #29a56c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(59, 183, 126, 0.3);
+}
+
+/* Order Summary */
+.cart-totals {
+  background-color: #F2F3F4;
+  padding: 30px;
+  border-radius: 5px;
+}
+
+.cart-totals h4 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #253D4E;
+  margin-bottom: 20px;
+}
+
+/* Billing Details */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #253D4E;
+  font-size: 14px;
+}
+
+.form-group label span.required {
+  color: #F74B81;
+  margin-left: 3px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 10px;
+  border: 1px solid #ececec;
+  border-radius: 5px;
+  font-size: 14px;
+  color: #253D4E;
+  transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #3BB77E;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 183, 126, 0.1);
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Validation error styling */
+input.error,
+select.error,
+textarea.error {
+  border-color: #dc3545 !important;
+}
+
+input.error:focus,
+select.error:focus,
+textarea.error:focus {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1) !important;
+}
+
+.text-danger {
+  color: #dc3545;
+}
+
+/* Custom Checkbox Styles - Override main.css */
+.custome-checkbox {
+  display: inline-flex !important;
+  align-items: center !important;
+  position: relative;
+  width: auto !important;
+}
+
+.custome-checkbox .form-check-input {
+  display: block !important;
+  width: 10px !important;
+  height: 10px !important;
+  border: 2px solid #BCE3C9 !important;
+  border-radius: 3px !important;
+  cursor: pointer;
+  position: relative;
+  margin: 0 !important;
+  margin-right: 10px !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: #fff !important;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  outline: none !important;
+}
+
+.custome-checkbox .form-check-input:hover {
+  border-color: #3BB77E !important;
+  box-shadow: 0 0 0 3px rgba(59, 183, 126, 0.1) !important;
+}
+
+.custome-checkbox .form-check-input:checked {
+  background-color: #3BB77E !important;
+  border-color: #3BB77E !important;
+}
+
+.custome-checkbox .form-check-input:checked::after {
+  content: '\2713';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Disable the main.css pseudo-element checkbox */
+.custome-checkbox .form-check-label::before,
+.custome-checkbox .form-check-label::after {
+  display: none !important;
+  content: none !important;
+}
+
+.custome-checkbox .form-check-label {
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex !important;
+  align-items: center;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.custome-checkbox .form-check-label span {
+  font-size: 14px;
+  color: #253D4E;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Checkbox wrapper containers */
+.checkbox {
+  display: inline-block;
+  width: auto;
+}
+
+/* Shipping Checkbox */
+.chek-form {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: auto !important;
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+  .apply-coupon {
+    flex-direction: column;
+  }
+
+  .apply-coupon .btn {
+    width: 100%;
+  }
+}

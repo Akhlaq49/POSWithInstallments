@@ -100,24 +100,25 @@ const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
       const pdfFilename = `${recipientName.replace(/\s+/g, '-')}-plan.pdf`;
       const file = new File([blob], pdfFilename, { type: 'application/pdf' });
 
-      // Web Share API — opens OS share sheet where user picks WhatsApp.
-      // The PDF is attached directly in the WhatsApp chat.
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      // Try Web Share API first — works on mobile + Chrome 93+ / Edge desktop
+      // Skip canShare() check because some browsers support sharing but return false for canShare
+      if (navigator.share) {
         try {
           await navigator.share({
             title: recipientName,
             text: message,
             files: [file],
           });
-          return;
+          return; // Successfully shared
         } catch (err: any) {
           if (err?.name === 'AbortError') return; // user cancelled
-          // fall through to download fallback
+          // Browser doesn't support file sharing or something else failed — fall through
+          console.log('Web Share API failed, using fallback:', err?.message);
         }
       }
 
-      // Desktop fallback: auto-download the PDF file + open WhatsApp with text
-      // User can then drag-drop or attach the downloaded PDF in WhatsApp Web
+      // Fallback: download PDF + copy message to clipboard + open WhatsApp Web directly
+      // Step 1: Auto-download the PDF
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -127,14 +128,18 @@ const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      // Open WhatsApp with text message
-      const encodedMessage = encodeURIComponent(message);
+      // Step 2: Copy message to clipboard
+      try {
+        await navigator.clipboard.writeText(message);
+      } catch { /* clipboard not available, user will type */ }
+
+      // Step 3: Open WhatsApp Web directly with the contact
       const whatsappUrl = normalized
-        ? `https://wa.me/${normalized}?text=${encodedMessage}`
-        : `https://wa.me/?text=${encodedMessage}`;
+        ? `https://web.whatsapp.com/send?phone=${normalized}`
+        : `https://web.whatsapp.com/`;
       window.open(whatsappUrl, '_blank');
 
-      // Show hint to user
+      // Show step-by-step instructions
       setDownloadHint(true);
     } catch (err) {
       console.error('WhatsApp share error:', err);
@@ -203,9 +208,15 @@ const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
           )}
 
           {downloadHint && (
-            <div className="alert alert-info mb-0 py-2 rounded-0 text-center small">
-              <i className="ti ti-download me-1"></i>
-              PDF downloaded! Open WhatsApp Web and <strong>attach the downloaded file</strong> in the chat using the <i className="ti ti-paperclip"></i> icon.
+            <div className="alert alert-success mb-0 py-2 rounded-0 small">
+              <div className="fw-bold mb-1"><i className="ti ti-check me-1"></i>PDF Downloaded & Message Copied!</div>
+              <div>WhatsApp Web is opening. Follow these steps:</div>
+              <ol className="mb-0 ps-3 mt-1" style={{ fontSize: 12 }}>
+                <li>Click the <i className="ti ti-paperclip"></i> <strong>attach</strong> icon in WhatsApp Web</li>
+                <li>Select <strong>Document</strong> and choose the downloaded PDF</li>
+                <li>Paste the message with <strong>Ctrl+V</strong></li>
+                <li>Press <strong>Send</strong></li>
+              </ol>
             </div>
           )}
 

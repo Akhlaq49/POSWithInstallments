@@ -341,9 +341,19 @@ public class OrderDto
     public int? CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string? CustomerImage { get; set; }
+    public string? CustomerEmail { get; set; }
+    public string? CustomerPhone { get; set; }
     public string PaymentType { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+    public decimal SubTotal { get; set; }
+    public decimal Shipping { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Tax { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string OrderSource { get; set; } = "POS";
+    public string? ShippingAddress { get; set; }
+    public string? BillingAddress { get; set; }
+    public string? Notes { get; set; }
     public string OrderDate { get; set; } = string.Empty;
     public List<OrderItemDto> Items { get; set; } = new();
 }
@@ -362,9 +372,19 @@ public class CreateOrderDto
     public int? CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string? CustomerImage { get; set; }
+    public string? CustomerEmail { get; set; }
+    public string? CustomerPhone { get; set; }
     public string PaymentType { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+    public decimal SubTotal { get; set; }
+    public decimal Shipping { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Tax { get; set; }
     public string Status { get; set; } = "Pending";
+    public string OrderSource { get; set; } = "POS";
+    public string? ShippingAddress { get; set; }
+    public string? BillingAddress { get; set; }
+    public string? Notes { get; set; }
     public List<CreateOrderItemDto> Items { get; set; } = new();
 }
 

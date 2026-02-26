@@ -13,3 +13,13 @@ obj/
 
 # Environment files
 .env
+
+# Large static assets (served separately, not needed in repo)
+nest-react-frontend/public/assets/images/
+nest-react-frontend/public/assets/imgs/
+nest-react-frontend/public/assets/fonts/
+nest-react-frontend/public/assets/videos/
+nest-react-frontend/public/assets/css/
+nest-react-frontend/public/assets/sass/
+nest-react-frontend/public/assets/js/plugins/
+nest-react-frontend/public/assets/js/vendor/

@@ -1,0 +1,119 @@
+/* Shop Grid Right Page Styles */
+
+.product-cart-wrap .product-img-action-wrap {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.product-cart-wrap {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.product-cart-wrap .product-action-1 {
+  z-index: 1000 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+.product-cart-wrap .product-action-1 a.action-btn {
+  display: inline-block !important;
+  position: relative !important;
+  z-index: 1001 !important;
+  overflow: visible !important;
+  width: 40px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  min-width: 40px !important;
+  min-height: 36px !important;
+}
+
+/* Override small class to ensure same size */
+.product-cart-wrap .product-action-1 a.action-btn.small {
+  width: 40px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  min-width: 40px !important;
+  min-height: 36px !important;
+}
+
+.product-cart-wrap .product-action-1 a.action-btn:after {
+  z-index: 10000 !important;
+  position: absolute !important;
+}
+
+.product-cart-wrap .product-action-1 a.action-btn:before {
+  z-index: 10000 !important;
+  position: absolute !important;
+}
+
+/* Style add to cart buttons to look like links */
+.add-cart button.add {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.add-cart button.add:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* No Products Found Styles */
+.no-products-container {
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.no-products-box {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 40px;
+  border: 1px dashed #ddd;
+  border-radius: 10px;
+  background-color: #f8f9fa;
+}
+
+.no-products-icon {
+  font-size: 64px;
+  color: #bbb;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.no-products-title {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.no-products-message {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.clear-filters-btn {
+  background-color: #3BB77E;
+  color: #fff;
+  padding: 10px 30px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.clear-filters-btn:hover {
+  background-color: #2a9d65;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 183, 126, 0.3);
+}
+

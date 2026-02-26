@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { InstallmentPlan } from '../services/installmentService';
-import { MEDIA_BASE_URL } from '../services/api';
+
 import { downloadPdf, shareViaWhatsApp, sendViaWhatsAppCloudApi, isWhatsAppCloudConfigured } from '../utils/pdfWhatsappShare';
 
 interface PlanPrintViewProps {
@@ -65,34 +65,11 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; margin: 0; color: #333; }
-          .print-wrap { max-width: 800px; margin: 0 auto; padding: 24px; }
-          .header { text-align: center; border-bottom: 3px solid #4a90d9; padding-bottom: 16px; margin-bottom: 20px; }
-          .header h1 { font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
-          .header .sub { font-size: 12px; color: #666; margin-top: 2px; }
-          .header .title-badge { display: inline-block; background: #4a90d9; color: #fff; padding: 5px 24px; border-radius: 4px; font-weight: 700; font-size: 14px; margin-top: 10px; }
-          .section { margin-bottom: 18px; }
-          .section-title { font-weight: 800; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 4px; margin-bottom: 10px; letter-spacing: 0.5px; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 24px; }
-          .info-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 13px; }
-          .info-row .label { color: #555; font-weight: 600; }
-          .info-row .value { font-weight: 500; }
-          .guarantor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-          .guarantor-card { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; }
-          .guarantor-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-          .guarantor-card p { font-size: 12px; color: #555; margin: 2px 0; }
-          .schedule-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-          .schedule-table th { background: #4a90d9; color: #fff; padding: 7px 6px; text-align: center; font-weight: 700; font-size: 10px; text-transform: uppercase; }
-          .schedule-table td { border: 1px solid #ddd; padding: 5px 6px; text-align: center; }
-          .schedule-table tr:nth-child(even) { background: #f9f9f9; }
-          .schedule-table .down-row { background: #e8f4fd !important; }
-          .status-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; color: #fff; }
-          .summary-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
-          .summary-row .label { font-weight: 600; color: #555; }
-          .summary-row .value { font-weight: 700; }
-          .footer { text-align: center; border-top: 2px solid #e0e0e0; padding-top: 12px; margin-top: 16px; font-size: 11px; color: #888; }
-          .progress-bar-outer { width: 100%; height: 14px; background: #e8e8e8; border-radius: 7px; overflow: hidden; margin: 6px 0; }
-          .progress-bar-inner { height: 100%; background: #28a745; border-radius: 7px; text-align: center; color: #fff; font-size: 10px; font-weight: 700; line-height: 14px; }
-          @media print { body { padding: 0; } .print-wrap { max-width: 100%; } }
+          table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          @media print {
+            body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { size: A4; margin: 10mm; }
+          }
         </style>
       </head>
       <body>
@@ -111,7 +88,7 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
     if (!content) return;
     setDownloading(true);
     try {
-      await downloadPdf(content, pdfFilename, { width: 800, orientation: 'portrait' });
+      await downloadPdf(content, pdfFilename, { width: 1100, orientation: 'portrait' });
     } catch (err) {
       console.error('PDF download error:', err);
     } finally {
@@ -132,7 +109,7 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
     if (!content) return;
     setSharing(true);
     try {
-      await shareViaWhatsApp(content, pdfFilename, buildMessage(), plan.customerPhone, { width: 800, orientation: 'portrait' });
+      await shareViaWhatsApp(content, pdfFilename, buildMessage(), plan.customerPhone, { width: 1100, orientation: 'portrait' });
     } catch (err) {
       console.error('WhatsApp share error:', err);
     } finally {
@@ -146,7 +123,7 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
     setSendingCloud(true);
     setCloudResult(null);
     try {
-      const result = await sendViaWhatsAppCloudApi(content, pdfFilename, buildMessage(), plan.customerPhone, { width: 800, orientation: 'portrait' });
+      const result = await sendViaWhatsAppCloudApi(content, pdfFilename, buildMessage(), plan.customerPhone, { width: 1100, orientation: 'portrait' });
       setCloudResult(result);
       if (result.success) {
         setTimeout(() => setCloudResult(null), 4000);
@@ -166,8 +143,8 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
   const sRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 13 };
   const sLabel: React.CSSProperties = { color: '#555', fontWeight: 600 };
   const sValue: React.CSSProperties = { fontWeight: 500 };
-  const sTh: React.CSSProperties = { background: '#4a90d9', color: '#fff', padding: '7px 6px', textAlign: 'center', fontWeight: 700, fontSize: 10, textTransform: 'uppercase' };
-  const sTd: React.CSSProperties = { border: '1px solid #ddd', padding: '5px 6px', textAlign: 'center', fontSize: 11 };
+  const sTh: React.CSSProperties = { background: '#4a90d9', color: '#fff', padding: '7px 8px', textAlign: 'center', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', border: '1px solid #3a7bc8', whiteSpace: 'nowrap' };
+  const sTd: React.CSSProperties = { border: '1px solid #ddd', padding: '6px 8px', textAlign: 'center', fontSize: 12 };
 
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} tabIndex={-1} onClick={onClose}>
@@ -198,9 +175,9 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
               {cloudResult.success ? <><i className="ti ti-check me-1"></i>Sent via WhatsApp Cloud API!</> : <><i className="ti ti-alert-triangle me-1"></i>{cloudResult.error}</>}
             </div>
           )}
-          <div className="modal-body p-0" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+          <div className="modal-body p-0" style={{ maxHeight: '85vh', overflowY: 'auto' }}>
             <div ref={printRef}>
-              <div style={{ maxWidth: 800, margin: '0 auto', padding: 24, fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", color: '#333' }}>
+              <div style={{ width: '100%', padding: '20px 28px', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", color: '#333' }}>
 
                 {/* Header */}
                 <div style={{ textAlign: 'center', borderBottom: '3px solid #4a90d9', paddingBottom: 16, marginBottom: 20 }}>
@@ -211,44 +188,53 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
                   </div>
                 </div>
 
-                {/* Customer + Product side by side */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 18 }}>
-                  {/* Customer */}
-                  <div>
-                    <div style={sTitle}>CUSTOMER INFORMATION</div>
-                    <div style={sRow}><span style={sLabel}>Name:</span><span style={sValue}>{plan.customerName}</span></div>
-                    {plan.customerSo && <div style={sRow}><span style={sLabel}>S/O:</span><span style={sValue}>{plan.customerSo}</span></div>}
-                    <div style={sRow}><span style={sLabel}>Mobile:</span><span style={sValue}>{plan.customerPhone || '-'}</span></div>
-                    {plan.customerCnic && <div style={sRow}><span style={sLabel}>CNIC:</span><span style={sValue}>{plan.customerCnic}</span></div>}
-                    <div style={sRow}><span style={sLabel}>Address:</span><span style={sValue}>{plan.customerAddress || '-'}</span></div>
-                  </div>
-
-                  {/* Product */}
-                  <div>
-                    <div style={sTitle}>PRODUCT INFORMATION</div>
-                    <div style={sRow}><span style={sLabel}>Product:</span><span style={sValue}>{plan.productName}</span></div>
-                    <div style={sRow}><span style={sLabel}>Price:</span><span style={sValue}>Rs {fmt(plan.productPrice)}</span></div>
-                    {plan.financeAmount != null && plan.financeAmount > 0 && plan.financeAmount !== plan.productPrice && (
-                      <div style={sRow}><span style={sLabel}>Finance Amount:</span><span style={sValue}>Rs {fmt(plan.financeAmount)}</span></div>
-                    )}
-                    <div style={sRow}><span style={sLabel}>Down Payment:</span><span style={sValue}>Rs {fmt(plan.downPayment)}</span></div>
-                    <div style={sRow}><span style={sLabel}>Financed:</span><span style={sValue}>Rs {fmt(plan.financedAmount)}</span></div>
-                  </div>
-                </div>
+                {/* Customer + Product side by side using table */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 18 }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ width: '50%', verticalAlign: 'top', paddingRight: 16 }}>
+                        <div style={sTitle}>CUSTOMER INFORMATION</div>
+                        <div style={sRow}><span style={sLabel}>Name:</span><span style={sValue}>{plan.customerName}</span></div>
+                        {plan.customerSo && <div style={sRow}><span style={sLabel}>S/O:</span><span style={sValue}>{plan.customerSo}</span></div>}
+                        <div style={sRow}><span style={sLabel}>Mobile:</span><span style={sValue}>{plan.customerPhone || '-'}</span></div>
+                        {plan.customerCnic && <div style={sRow}><span style={sLabel}>CNIC:</span><span style={sValue}>{plan.customerCnic}</span></div>}
+                        <div style={sRow}><span style={sLabel}>Address:</span><span style={sValue}>{plan.customerAddress || '-'}</span></div>
+                      </td>
+                      <td style={{ width: '50%', verticalAlign: 'top', paddingLeft: 16 }}>
+                        <div style={sTitle}>PRODUCT INFORMATION</div>
+                        <div style={sRow}><span style={sLabel}>Product:</span><span style={sValue}>{plan.productName}</span></div>
+                        <div style={sRow}><span style={sLabel}>Price:</span><span style={sValue}>Rs {fmt(plan.productPrice)}</span></div>
+                        {plan.financeAmount != null && plan.financeAmount > 0 && plan.financeAmount !== plan.productPrice && (
+                          <div style={sRow}><span style={sLabel}>Finance Amount:</span><span style={sValue}>Rs {fmt(plan.financeAmount)}</span></div>
+                        )}
+                        <div style={sRow}><span style={sLabel}>Down Payment:</span><span style={sValue}>Rs {fmt(plan.downPayment)}</span></div>
+                        <div style={sRow}><span style={sLabel}>Financed:</span><span style={sValue}>Rs {fmt(plan.financedAmount)}</span></div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
 
                 {/* Plan Details */}
                 <div style={{ marginBottom: 18 }}>
                   <div style={sTitle}>PLAN DETAILS</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 24px' }}>
-                    <div style={sRow}><span style={sLabel}>Start Date:</span><span style={sValue}>{plan.startDate}</span></div>
-                    <div style={sRow}><span style={sLabel}>Tenure:</span><span style={sValue}>{plan.tenure} months</span></div>
-                    <div style={sRow}><span style={sLabel}>Interest Rate:</span><span style={sValue}>{plan.interestRate}% p.a.</span></div>
-                    <div style={sRow}><span style={sLabel}>Monthly EMI:</span><span style={{ fontWeight: 700, color: '#4a90d9' }}>Rs {fmt(plan.emiAmount)}</span></div>
-                    <div style={sRow}><span style={sLabel}>Total Interest:</span><span style={{ fontWeight: 600, color: '#dc3545' }}>Rs {fmt(plan.totalInterest)}</span></div>
-                    <div style={sRow}><span style={sLabel}>Total Payable:</span><span style={{ fontWeight: 700 }}>Rs {fmt(plan.totalPayable)}</span></div>
-                    <div style={sRow}><span style={sLabel}>Total Paid:</span><span style={{ fontWeight: 700, color: '#28a745' }}>Rs {fmt(totalPaid)}</span></div>
-                    <div style={sRow}><span style={sLabel}>Outstanding:</span><span style={{ fontWeight: 700, color: totalRemaining > 0 ? '#dc3545' : '#28a745' }}>Rs {fmt(totalRemaining > 0 ? totalRemaining : 0)}</span></div>
-                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ width: '50%', verticalAlign: 'top', paddingRight: 16 }}>
+                          <div style={sRow}><span style={sLabel}>Start Date:</span><span style={sValue}>{plan.startDate}</span></div>
+                          <div style={sRow}><span style={sLabel}>Tenure:</span><span style={sValue}>{plan.tenure} months</span></div>
+                          <div style={sRow}><span style={sLabel}>Interest Rate:</span><span style={sValue}>{plan.interestRate}% p.a.</span></div>
+                          <div style={sRow}><span style={sLabel}>Monthly EMI:</span><span style={{ fontWeight: 700, color: '#4a90d9' }}>Rs {fmt(plan.emiAmount)}</span></div>
+                        </td>
+                        <td style={{ width: '50%', verticalAlign: 'top', paddingLeft: 16 }}>
+                          <div style={sRow}><span style={sLabel}>Total Interest:</span><span style={{ fontWeight: 600, color: '#dc3545' }}>Rs {fmt(plan.totalInterest)}</span></div>
+                          <div style={sRow}><span style={sLabel}>Total Payable:</span><span style={{ fontWeight: 700 }}>Rs {fmt(plan.totalPayable)}</span></div>
+                          <div style={sRow}><span style={sLabel}>Total Paid:</span><span style={{ fontWeight: 700, color: '#28a745' }}>Rs {fmt(totalPaid)}</span></div>
+                          <div style={sRow}><span style={sLabel}>Outstanding:</span><span style={{ fontWeight: 700, color: totalRemaining > 0 ? '#dc3545' : '#28a745' }}>Rs {fmt(totalRemaining > 0 ? totalRemaining : 0)}</span></div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
                   {/* Progress bar */}
                   <div style={{ marginTop: 10 }}>
@@ -268,36 +254,37 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
                 {plan.guarantors && plan.guarantors.length > 0 && (
                   <div style={{ marginBottom: 18 }}>
                     <div style={sTitle}>GUARANTOR{plan.guarantors.length > 1 ? 'S' : ''} ({plan.guarantors.length})</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: plan.guarantors.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
-                      {plan.guarantors.map((g) => (
-                        <div key={g.id} style={{ border: '1px solid #ddd', borderRadius: 6, padding: '10px 14px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                            {g.picture ? (
-                              <img src={`${MEDIA_BASE_URL}${g.picture}`} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid #4a90d9' }} />
-                            ) : (
-                              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#4a90d9', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>
-                                {g.name.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: 14 }}>{g.name}</div>
-                              {g.relationship && <div style={{ fontSize: 11, color: '#4a90d9', fontWeight: 600 }}>{g.relationship}</div>}
-                            </div>
-                          </div>
-                          {g.so && <div style={{ fontSize: 12, color: '#555', marginBottom: 2 }}>S/O: {g.so}</div>}
-                          {g.phone && <div style={{ fontSize: 12, color: '#555', marginBottom: 2 }}>Phone: {g.phone}</div>}
-                          {g.cnic && <div style={{ fontSize: 12, color: '#555', marginBottom: 2 }}>CNIC: {g.cnic}</div>}
-                          {g.address && <div style={{ fontSize: 12, color: '#555' }}>Address: {g.address}</div>}
-                        </div>
-                      ))}
-                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th style={sTh}>Name</th>
+                          <th style={sTh}>S/O</th>
+                          <th style={sTh}>Phone</th>
+                          <th style={sTh}>CNIC</th>
+                          <th style={sTh}>Address</th>
+                          <th style={sTh}>Relationship</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {plan.guarantors.map((g) => (
+                          <tr key={g.id}>
+                            <td style={{ ...sTd, fontWeight: 700, textAlign: 'left' }}>{g.name}</td>
+                            <td style={sTd}>{g.so || '—'}</td>
+                            <td style={sTd}>{g.phone || '—'}</td>
+                            <td style={sTd}>{g.cnic || '—'}</td>
+                            <td style={{ ...sTd, textAlign: 'left' }}>{g.address || '—'}</td>
+                            <td style={sTd}>{g.relationship || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
 
                 {/* Repayment Schedule */}
                 <div style={{ marginBottom: 18 }}>
                   <div style={sTitle}>REPAYMENT SCHEDULE</div>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                     <thead>
                       <tr>
                         <th style={sTh}>#</th>
@@ -363,21 +350,56 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
                   </table>
                 </div>
 
-                {/* Summary */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 10 }}>
-                  <div style={{ textAlign: 'center', border: '1px solid #ddd', borderRadius: 6, padding: 10 }}>
-                    <div style={{ fontSize: 11, color: '#555', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Total Payable</div>
-                    <div style={{ fontSize: 18, fontWeight: 800 }}>Rs {fmt(plan.totalPayable)}</div>
-                  </div>
-                  <div style={{ textAlign: 'center', border: '1px solid #ddd', borderRadius: 6, padding: 10 }}>
-                    <div style={{ fontSize: 11, color: '#555', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Total Paid</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#28a745' }}>Rs {fmt(totalPaid)}</div>
-                  </div>
-                  <div style={{ textAlign: 'center', border: '1px solid #ddd', borderRadius: 6, padding: 10 }}>
-                    <div style={{ fontSize: 11, color: '#555', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Outstanding</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: totalRemaining > 0 ? '#dc3545' : '#28a745' }}>Rs {fmt(totalRemaining > 0 ? totalRemaining : 0)}</div>
-                  </div>
+                {/* Payment Record (empty rows for manual entry) */}
+                <div style={{ marginBottom: 18 }}>
+                  <div style={sTitle}>PAYMENT RECORD</div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                    <thead>
+                      <tr>
+                        <th style={sTh}>#</th>
+                        <th style={sTh}>Date</th>
+                        <th style={sTh}>Amount Received</th>
+                        <th style={sTh}>Payment Method</th>
+                        <th style={sTh}>Received By</th>
+                        <th style={sTh}>Signature</th>
+                        <th style={sTh}>Remarks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <tr key={`empty-${i}`}>
+                          <td style={{ ...sTd, fontWeight: 600 }}>{i + 1}</td>
+                          <td style={{ ...sTd, minWidth: 90, height: 28 }}>&nbsp;</td>
+                          <td style={{ ...sTd, minWidth: 100 }}>&nbsp;</td>
+                          <td style={{ ...sTd, minWidth: 90 }}>&nbsp;</td>
+                          <td style={{ ...sTd, minWidth: 90 }}>&nbsp;</td>
+                          <td style={{ ...sTd, minWidth: 90 }}>&nbsp;</td>
+                          <td style={{ ...sTd, minWidth: 100 }}>&nbsp;</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
+
+                {/* Summary */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 10 }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ width: '33.33%', textAlign: 'center', border: '1px solid #ddd', padding: 10 }}>
+                        <div style={{ fontSize: 11, color: '#555', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Total Payable</div>
+                        <div style={{ fontSize: 18, fontWeight: 800 }}>Rs {fmt(plan.totalPayable)}</div>
+                      </td>
+                      <td style={{ width: '33.33%', textAlign: 'center', border: '1px solid #ddd', padding: 10 }}>
+                        <div style={{ fontSize: 11, color: '#555', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Total Paid</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: '#28a745' }}>Rs {fmt(totalPaid)}</div>
+                      </td>
+                      <td style={{ width: '33.33%', textAlign: 'center', border: '1px solid #ddd', padding: 10 }}>
+                        <div style={{ fontSize: 11, color: '#555', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Outstanding</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: totalRemaining > 0 ? '#dc3545' : '#28a745' }}>Rs {fmt(totalRemaining > 0 ? totalRemaining : 0)}</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
 
                 {/* Footer */}
                 <div style={{ textAlign: 'center', borderTop: '2px solid #e0e0e0', paddingTop: 12, marginTop: 16, fontSize: 11, color: '#888' }}>

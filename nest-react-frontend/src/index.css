@@ -1,0 +1,382 @@
+/* Global styles - Main CSS is loaded via public/index.html */
+
+/* Prevent horizontal scrollbar */
+body, html {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+}
+
+/* Ensure React root takes full height */
+#root {
+  min-height: 100vh;
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+}
+
+/* Make button elements styled like links for footer and other places */
+button.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+button.link-button:hover {
+  text-decoration: underline;
+}
+
+/* Ensure buttons in dropdowns look like links */
+.sort-by-dropdown button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+  width: 100%;
+  text-align: left;
+}
+
+.sort-by-dropdown button:hover {
+  text-decoration: underline;
+}
+
+/* Pagination buttons */
+.pagination button.page-link {
+  background: none;
+  border: none;
+  padding: inherit;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* Fix for React rendering - ensure proper display */
+main {
+  min-height: 100vh;
+}
+
+/* Categories button styling - ensure it looks like the original */
+.categories-button-active {
+  display: inline-block;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.categories-button-active:hover {
+  text-decoration: none;
+}
+
+/* Ensure categories dropdown is properly positioned */
+.main-categori-wrap {
+  position: relative;
+}
+
+.categories-dropdown-wrap {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+}
+
+.categories-dropdown-wrap.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.categories-button-active.open {
+  color: inherit;
+}
+
+/* Install App section - ensure proper sizing */
+.download-app {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 25px 0 33px;
+}
+
+.download-app a {
+  display: block;
+  margin-right: 12px;
+  text-decoration: none;
+}
+
+.download-app a:hover {
+  text-decoration: none;
+  transform: translateY(-3px);
+  transition: all 0.3s ease;
+}
+
+.download-app a img {
+  display: block;
+  max-width: 128px !important;
+  width: 128px;
+  height: auto;
+}
+
+/* Follow Us social icons - footer specific */
+footer .mobile-social-icon {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  align-self: center;
+}
+
+footer .mobile-social-icon h6 {
+  display: inline-block;
+  margin-right: 15px;
+  margin-bottom: 0;
+}
+
+.mobile-social-icon a {
+  text-align: center;
+  font-size: 14px;
+  margin-right: 5px;
+  transition-duration: 0.5s;
+  height: 30px;
+  width: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  background: #3BB77E;
+  border-radius: 30px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.mobile-social-icon a:hover {
+  transform: translateY(-2px);
+  transition-duration: 0.5s;
+  margin-top: -2px;
+}
+
+.mobile-social-icon a img {
+  max-width: 16px;
+}
+
+.mobile-social-icon a img:hover {
+  opacity: 0.8;
+}
+
+.mobile-social-icon a:last-child {
+  margin-right: 0;
+}
+
+/* About page specific styles */
+.main.pages {
+  min-height: auto;
+}
+
+.page-header.breadcrumb-wrap {
+  background-color: #f4f6fa;
+  padding: 20px 0;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.breadcrumb span {
+  color: #999;
+}
+
+/* Ensure carousel images display properly */
+.carausel-3-columns-cover {
+  margin-top: 30px;
+}
+
+.carausel-3-columns img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* Featured cards styling */
+.featured-card {
+  text-align: center;
+  padding: 30px 20px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.featured-card:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+}
+
+.featured-card img {
+  margin-bottom: 20px;
+  width: 60px;
+  height: 60px;
+}
+
+.featured-card h4 {
+  margin-bottom: 15px;
+  font-size: 18px;
+}
+
+.featured-card p {
+  color: #666;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.featured-card a {
+  color: #3BB77E;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.featured-card a:hover {
+  text-decoration: underline;
+}
+
+/* Team cards */
+.team-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.team-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.team-card .content {
+  padding: 20px;
+  background: #fff;
+}
+
+.team-card h4 {
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.team-card span {
+  color: #666;
+  font-size: 14px;
+}
+
+.social-network {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.social-network a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: #f4f6fa;
+  transition: all 0.3s ease;
+}
+
+.social-network a:hover {
+  background: #3BB77E;
+  transform: translateY(-3px);
+}
+
+.social-network a img {
+  width: 18px;
+  height: 18px;
+}
+
+/* Statistics counter */
+.about-count {
+  padding: 50px 0;
+}
+
+.about-count h1 {
+  font-size: 48px;
+  font-weight: 700;
+  color: #3BB77E;
+  margin-bottom: 10px;
+}
+
+.about-count h4 {
+  font-size: 16px;
+  color: #666;
+  font-weight: 400;
+}
+
+/* Contact page specific styles */
+.leaflet-map {
+  width: 100%;
+  height: 400px;
+  z-index: 1;
+}
+
+#map-panes {
+  width: 100%;
+  height: 100%;
+}
+
+.contact-from-area {
+  background: #fff;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.input-style input,
+.textarea-style textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e5e5e5;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.input-style input:focus,
+.textarea-style textarea:focus {
+  outline: none;
+  border-color: #3BB77E;
+  box-shadow: 0 0 0 2px rgba(59, 183, 126, 0.1);
+}
+
+.textarea-style textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.submit {
+  background: #3BB77E;
+  color: #fff;
+  padding: 12px 30px;
+  border: none;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submit:hover {
+  background: #2a9d6a;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(59, 183, 126, 0.3);
+}
+

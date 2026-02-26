@@ -1,0 +1,1233 @@
+/* Home Page Styles */
+
+/* Prevent horizontal scrollbar */
+body, html {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+}
+
+/* Elegant Hero Carousel Styles - No Cropping */
+.single-hero-slider {
+  position: relative;
+  overflow: visible !important; /* Allow video to show fully */
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 500px;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Video Background Styles - 100% Width - No Cropping */
+.hero-video-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  transform: none !important;
+  object-fit: fill !important; /* Fill container completely without cropping */
+  object-position: center;
+  z-index: 0;
+  /* Ensure video doesn't overflow container */
+  overflow: visible !important;
+  /* Prevent video from breaking layout */
+  display: block;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure video maintains full width on large screens */
+@media (min-width: 1200px) {
+  .hero-video-bg {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+  }
+}
+
+/* Video container constraints - 100% width - No cropping */
+.home-slide-cover {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important; /* Allow video to show fully */
+  position: relative;
+  /* Ensure container takes full width */
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.hero-slider-1 {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important; /* Allow video to show fully */
+  /* Ensure slider takes full width */
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure column takes full width */
+.col-xl-8.col-lg-12 {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure slick slider components take 100% width */
+.hero-slider-1 .slick-list {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.hero-slider-1 .slick-track {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.hero-slider-1 .slick-slide {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.hero-slider-1 .slick-slide > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure video inside slick slide takes full width - No Cropping */
+.hero-slider-1 .slick-slide .single-hero-slider {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+.hero-slider-1 .slick-slide .hero-video-bg {
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: none !important;
+  object-fit: fill !important; /* Fill completely without cropping */
+  overflow: visible !important;
+}
+
+/* Fix video poster display */
+.hero-video-bg[poster] {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Sidebar banner next to video section */
+.banner-img.style-3 {
+  border-radius: 15px;
+  overflow: hidden;
+  position: relative;
+}
+
+.banner-img.style-3::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 100%);
+  z-index: 1;
+}
+
+.banner-img.style-3 .banner-text {
+  position: relative;
+  z-index: 2;
+}
+
+.single-hero-slider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%);
+  z-index: 1;
+  transition: opacity 0.6s ease;
+}
+
+.single-hero-slider:hover::before {
+  opacity: 0.6;
+}
+
+.single-hero-slider:hover {
+  transform: scale(1.02);
+}
+
+.single-hero-slider:hover .hero-video-bg {
+  transform: translate(-50%, -50%) scale(1.05);
+  transition: transform 0.6s ease;
+}
+
+.slider-content {
+  position: relative;
+  z-index: 2;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+/* Product Image Quality Improvements */
+.product-img img,
+.product-img .default-img,
+.product-img .hover-img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: auto;
+  -ms-interpolation-mode: bicubic;
+  object-fit: cover;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  display: block;
+  /* Prevent blur on scaling */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  /* Ensure high quality rendering */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: auto;
+}
+
+.product-img-zoom img {
+  image-rendering: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Ensure product images maintain aspect ratio and quality */
+.product-img-action-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-img-action-wrap .product-img img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.3s ease;
+}
+
+/* Responsive Video Styles */
+@media (max-width: 768px) {
+  .hero-video-bg {
+    min-width: 100%;
+    min-height: 100%;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+  }
+  
+  .single-hero-slider {
+    min-height: 400px;
+    aspect-ratio: auto;
+  }
+}
+
+/* Fix video width on all screen sizes - 100% width */
+@media (max-width: 1200px) {
+  .hero-video-bg {
+    width: 100% !important;
+    max-width: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+    transform: none !important;
+  }
+  
+  .home-slide-cover {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .hero-slider-1 {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .col-xl-8.col-lg-12 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  .single-hero-slider {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .col-xl-8.col-lg-12 {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* Additional fixes for video width - Remove container padding */
+.home-slider.style-2 .container {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: 100%;
+}
+
+.home-slider.style-2 .row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.home-slider.style-2 .row > [class*="col-"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Fallback for browsers that don't support video */
+.single-hero-slider:not(:has(video)) {
+  background-size: cover;
+  background-position: center;
+}
+
+/* Ensure video container has proper width */
+.home-slide-cover {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.hero-slider-1 {
+  width: 100%;
+  max-width: 100%;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slider-content h1 {
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+  letter-spacing: -0.5px;
+}
+
+.slider-content .btn {
+  background: linear-gradient(135deg, #3BB77E 0%, #2ea66a 100%);
+  border: none;
+  padding: 14px 32px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(59, 183, 126, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.slider-content .btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.slider-content .btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.slider-content .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 183, 126, 0.4);
+}
+
+.slider-content .btn:active {
+  transform: translateY(0);
+}
+
+/* Elegant New Arrivals Banner */
+.banner-img.style-3 {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.banner-img.style-3::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 183, 126, 0.85) 0%, rgba(46, 166, 106, 0.75) 100%);
+  z-index: 1;
+  transition: opacity 0.5s ease;
+}
+
+.banner-img.style-3:hover::before {
+  opacity: 0.9;
+}
+
+.banner-img.style-3:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+
+.banner-text {
+  position: relative;
+  z-index: 2;
+}
+
+.banner-text h2 {
+  text-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+  font-weight: 700;
+  line-height: 1.2;
+  animation: slideInLeft 0.8s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.banner-text .btn {
+  background: rgba(255, 255, 255, 0.95);
+  color: #3BB77E;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  padding: 12px 28px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.banner-text .btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.5s;
+}
+
+.banner-text .btn:hover::after {
+  left: 100%;
+}
+
+.banner-text .btn:hover {
+  background: #fff;
+  color: #2ea66a;
+  transform: translateX(5px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.banner-text .btn i {
+  transition: transform 0.3s ease;
+}
+
+.banner-text .btn:hover i {
+  transform: translateX(5px);
+}
+
+/* Elegant Banner Section */
+.banners .banner-img {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.banners .banner-img img {
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.banners .banner-img:hover img {
+  transform: scale(1.1);
+}
+
+.banners .banner-img:hover {
+  box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+  transform: translateY(-5px);
+}
+
+.banners .banner-text {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 30px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+  z-index: 2;
+}
+
+.banners .banner-text h4 {
+  color: #fff;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.banners .banner-text .btn {
+  background: rgba(255, 255, 255, 0.95);
+  color: #3BB77E;
+  border: none;
+  padding: 10px 24px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.banners .banner-text .btn:hover {
+  background: #fff;
+  color: #2ea66a;
+  transform: translateX(5px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+
+.banners .banner-text .btn i {
+  transition: transform 0.3s ease;
+}
+
+.banners .banner-text .btn:hover i {
+  transform: translateX(5px);
+}
+
+/* Only allow overflow visible on tooltip containers, not carousel containers */
+.product-cart-wrap .product-img-action-wrap {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.product-cart-wrap {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Keep carousel containers with hidden overflow to prevent horizontal scroll */
+.carausel-4-columns-cover {
+  overflow: hidden !important;
+  max-width: 100% !important;
+}
+
+.carausel-4-columns-cover .carausel-4-columns {
+  overflow: hidden !important;
+}
+
+.carausel-4-columns {
+  overflow: hidden !important;
+}
+
+.slick-list {
+  overflow: hidden !important;
+}
+
+.slick-track {
+  overflow: hidden !important;
+}
+
+.slick-slide {
+  overflow: hidden !important;
+}
+
+.carausel-4-columns-cover .slick-list {
+  overflow: hidden !important;
+}
+
+.carausel-4-columns-cover .slick-track {
+  overflow: hidden !important;
+}
+
+.carausel-4-columns-cover .slick-slide {
+  overflow: hidden !important;
+}
+
+/* Tooltip container - allow overflow for tooltips */
+.product-cart-wrap .product-action-1 {
+  z-index: 1000 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.carausel-4-columns .product-cart-wrap .product-action-1 {
+  z-index: 1000 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+.product-cart-wrap .product-action-1 a.action-btn,
+.product-cart-wrap .product-action-1 button.action-btn {
+  display: inline-block !important;
+  position: relative !important;
+  z-index: 1001 !important;
+  overflow: visible !important;
+  width: 40px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  min-width: 40px !important;
+  min-height: 36px !important;
+}
+
+.carausel-4-columns .product-cart-wrap .product-action-1 a.action-btn,
+.carausel-4-columns .product-cart-wrap .product-action-1 button.action-btn {
+  display: inline-block !important;
+  position: relative !important;
+  z-index: 1001 !important;
+  overflow: visible !important;
+  width: 40px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  min-width: 40px !important;
+  min-height: 36px !important;
+}
+
+/* Override small class to ensure same size */
+.product-cart-wrap .product-action-1 a.action-btn.small,
+.product-cart-wrap .product-action-1 button.action-btn.small {
+  width: 40px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  min-width: 40px !important;
+  min-height: 36px !important;
+}
+
+.carausel-4-columns .product-cart-wrap .product-action-1 a.action-btn.small,
+.carausel-4-columns .product-cart-wrap .product-action-1 button.action-btn.small {
+  width: 40px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  min-width: 40px !important;
+  min-height: 36px !important;
+}
+
+.product-cart-wrap .product-action-1 a.action-btn:after,
+.product-cart-wrap .product-action-1 button.action-btn:after {
+  z-index: 10000 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+
+.carausel-4-columns .product-cart-wrap .product-action-1 a.action-btn:after,
+.carausel-4-columns .product-cart-wrap .product-action-1 button.action-btn:after {
+  z-index: 10000 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+
+.product-cart-wrap .product-action-1 a.action-btn:before,
+.product-cart-wrap .product-action-1 button.action-btn:before {
+  z-index: 10000 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+
+.carausel-4-columns .product-cart-wrap .product-action-1 a.action-btn:before,
+.carausel-4-columns .product-cart-wrap .product-action-1 button.action-btn:before {
+  z-index: 10000 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+
+.slick-slide .product-cart-wrap .product-action-1 a.action-btn:before,
+.slick-slide .product-cart-wrap .product-action-1 button.action-btn:before {
+  z-index: 10000 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+
+.product-cart-wrap .product-action-1 a.action-btn:hover:after,
+.product-cart-wrap .product-action-1 button.action-btn:hover:after {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateX(-50%) translateY(-8px) !important;
+}
+
+.carausel-4-columns .product-cart-wrap .product-action-1 a.action-btn:hover:after,
+.carausel-4-columns .product-cart-wrap .product-action-1 button.action-btn:hover:after {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateX(-50%) translateY(-8px) !important;
+}
+
+.product-cart-wrap .product-action-1 a.action-btn:hover:before,
+.product-cart-wrap .product-action-1 button.action-btn:hover:before {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(-8px) !important;
+}
+
+.carausel-4-columns .product-cart-wrap .product-action-1 a.action-btn:hover:before,
+.carausel-4-columns .product-cart-wrap .product-action-1 button.action-btn:hover:before {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(-8px) !important;
+}
+
+.slick-slide .product-cart-wrap .product-action-1 a.action-btn:hover:before,
+.slick-slide .product-cart-wrap .product-action-1 button.action-btn:hover:before {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(-8px) !important;
+}
+
+/* Style add to cart buttons */
+.add-cart .add {
+  position: relative;
+  display: inline-block;
+  padding: 6px 20px 6px 20px;
+  border-radius: 4px;
+  background-color: #DEF9EC;
+  font-size: 14px;
+  font-weight: 700;
+  color: #3BB77E;
+  line-height: 1;
+  transition: all 0.3s ease;
+}
+
+.add-cart .add:hover {
+  background-color: #3BB77E;
+  color: #fff;
+  transform: translateY(-3px);
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.add-cart .add i {
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+/* Hero slider content styles */
+.hero-slider-content h1 {
+  color: #fff;
+}
+
+.hero-slider-content p {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 300;
+}
+
+.hero-slider-content .btn-link {
+  color: #fff;
+  display: inline-block;
+  text-decoration: none;
+}
+
+/* Banner image styles */
+.banner-img-rounded {
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.banner-img-rounded img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Banner text overlay styles */
+.banner-text-overlay h4 {
+  color: #fff;
+}
+
+.banner-text-overlay .text-accent {
+  color: #3BB77E;
+}
+
+/* New arrivals banner styles */
+.new-arrivals-banner {
+  background-size: cover;
+  background-position: center;
+  min-height: 500px;
+}
+
+.new-arrivals-banner-content {
+  padding: 40px 30px;
+}
+
+.new-arrivals-label {
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.new-arrivals-title {
+  color: #fff;
+  font-size: 42px;
+  line-height: 1.2;
+  font-weight: 700;
+  margin-bottom: 30px;
+}
+
+.new-arrivals-description {
+  color: rgba(255,255,255,0.9);
+  font-size: 16px;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.new-arrivals-btn {
+  background: rgba(255, 255, 255, 0.95);
+  color: #3BB77E;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  padding: 14px 32px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: inline-block;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.4s ease;
+}
+
+.new-arrivals-btn:hover {
+  background: #fff;
+  color: #2ea66a;
+  text-decoration: none;
+}
+
+/* Daily best sells banner */
+.daily-best-banner {
+  background-size: cover;
+  background-position: center;
+  min-height: 500px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.daily-best-banner:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+
+.daily-best-banner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 183, 126, 0.85) 0%, rgba(46, 166, 106, 0.75) 100%);
+  z-index: 1;
+  transition: opacity 0.5s ease;
+}
+
+.daily-best-banner-content {
+  position: relative;
+  z-index: 2;
+  padding: 40px 30px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.daily-best-label {
+  color: rgba(255,255,255,0.9);
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.daily-best-title {
+  color: #fff;
+  font-size: 36px;
+  line-height: 1.2;
+  font-weight: 700;
+  text-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+  margin-bottom: 30px;
+}
+
+.daily-best-description {
+  color: rgba(255,255,255,0.95);
+  font-size: 16px;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.daily-best-btn {
+  background: rgba(255, 255, 255, 0.95);
+  color: #3BB77E;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  padding: 14px 32px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: inline-block;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.4s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.daily-best-btn:hover {
+  background: #fff;
+  color: #2ea66a;
+  transform: translateX(5px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  text-decoration: none;
+}
+
+/* Category card styles */
+.category-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.category-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.category-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border: 2px solid;
+}
+
+.category-icon {
+  font-size: 40px;
+  transition: all 0.3s ease;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  line-height: 1;
+}
+
+.category-name {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.category-name a {
+  color: #253D4E;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.category-name a:hover {
+  color: #3BB77E;
+  text-decoration: none;
+}
+
+/* Corio.pk Style Category Cards */
+.corio-category-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 25px 20px;
+  text-align: center;
+  border: 1px solid #f0f0f0;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.corio-category-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #3BB77E, transparent);
+  transform: scaleX(0);
+  transition: transform 0.4s ease;
+}
+
+.corio-category-card:hover::before {
+  transform: scaleX(1);
+}
+
+.corio-category-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+  border-color: #3BB77E;
+}
+
+.corio-category-image {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background-color: #f8f8f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.corio-category-image:hover {
+  transform: scale(1.05);
+}
+
+.corio-category-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.corio-category-card:hover .corio-category-image img {
+  transform: scale(1.1);
+}
+
+/* Popular Categories Section Background */
+.popular-categories {
+  background-color: #fafafa;
+  padding: 60px 0;
+}
+
+.popular-categories .section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.popular-categories .section-title .title {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.popular-categories .section-title h3 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #253D4E;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.popular-categories .show-all {
+  color: #253D4E;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.3s ease;
+}
+
+.popular-categories .show-all:hover {
+  color: #3BB77E;
+  text-decoration: none;
+}
+
+/* Category Carousel Styles */
+.carausel-8-columns-cover {
+  overflow: hidden !important;
+  max-width: 100% !important;
+  position: relative;
+}
+
+.carausel-8-columns-cover .carausel-8-columns {
+  overflow: hidden !important;
+}
+
+.carausel-8-columns {
+  overflow: hidden !important;
+}
+
+.carausel-8-columns-cover .card-1 {
+  margin: 0 12px;
+  transition: all 0.3s ease;
+}
+
+.carausel-8-columns-cover .card-1 figure {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.carausel-8-columns-cover .card-1 figure img {
+  max-width: 80px;
+  height: auto;
+  display: inline-block;
+  border-radius: 10px;
+  transition: transform 0.3s ease;
+}
+
+.carausel-8-columns-cover .card-1:hover figure img {
+  transform: scale(1.1);
+}
+
+.carausel-8-columns-cover .card-1 h6 {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.carausel-8-columns-cover .card-1 h6 a {
+  color: #253D4E;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.carausel-8-columns-cover .card-1:hover h6 a {
+  color: #3BB77E;
+}
+
+/* Category Carousel Arrow Styles */
+.carausel-8-columns-cover .slider-arrow {
+  position: absolute;
+  top: -80px;
+  right: 0;
+  z-index: 10;
+}
+
+.carausel-8-columns-cover .slider-arrow .slider-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-left: 8px;
+}
+
+.carausel-8-columns-cover .slider-arrow .slider-btn:hover {
+  background: #3BB77E;
+  border-color: #3BB77E;
+  color: #fff;
+}
+
+.carausel-8-columns-cover .slider-arrow .slider-btn i {
+  font-size: 16px;
+  color: #253D4E;
+  transition: color 0.3s ease;
+}
+
+.carausel-8-columns-cover .slider-arrow .slider-btn:hover i {
+  color: #fff;
+}
+
+/* Responsive adjustments for category cards */
+@media (max-width: 768px) {
+  .corio-category-card {
+    padding: 20px 15px;
+  }
+  
+  .corio-category-image {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .popular-categories .section-title h3 {
+    font-size: 24px;
+  }
+  
+  .popular-categories .section-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .popular-categories .section-title .title {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .carausel-8-columns-cover .slider-arrow {
+    position: relative;
+    top: 0;
+    right: 0;
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .carausel-8-columns-cover .card-1 {
+    margin: 0 8px;
+    padding: 30px 20px 20px 20px;
+    min-height: 180px;
+  }
+  
+  .carausel-8-columns-cover .card-1 figure img {
+    max-width: 60px;
+  }
+  
+  .carausel-8-columns-cover .card-1 h6 a {
+    font-size: 12px;
+  }
+}
+
