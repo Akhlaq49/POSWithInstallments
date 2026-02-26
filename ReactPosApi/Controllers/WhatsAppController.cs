@@ -10,10 +10,12 @@ namespace ReactPosApi.Controllers;
 public class WhatsAppController : ControllerBase
 {
     private readonly IWhatsAppService _whatsAppService;
+    private readonly IWebHostEnvironment _env;
 
-    public WhatsAppController(IWhatsAppService whatsAppService)
+    public WhatsAppController(IWhatsAppService whatsAppService, IWebHostEnvironment env)
     {
         _whatsAppService = whatsAppService;
+        _env = env;
     }
 
     /// <summary>
@@ -131,6 +133,51 @@ public class WhatsAppController : ControllerBase
             return StatusCode(502, new { error = result.Error });
 
         return Ok(new { messageId = result.MessageId, message = "Template message sent successfully." });
+    }
+
+    /// <summary>
+    /// Upload a PDF to the server and return a public download URL.
+    /// Used for sharing PDFs via WhatsApp wa.me links (no API required).
+    /// Files are stored in wwwroot/shares/ and auto-cleaned after 24 hours.
+    /// </summary>
+    [HttpPost("upload-pdf")]
+    public async Task<IActionResult> UploadPdf([FromForm] IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "No file provided." });
+
+        if (file.Length > 10 * 1024 * 1024) // 10MB limit
+            return BadRequest(new { error = "File too large. Maximum 10MB." });
+
+        var sharesDir = Path.Combine(_env.WebRootPath, "shares");
+        if (!Directory.Exists(sharesDir))
+            Directory.CreateDirectory(sharesDir);
+
+        // Clean up old files (older than 24h)
+        try
+        {
+            foreach (var oldFile in Directory.GetFiles(sharesDir))
+            {
+                if (File.GetCreationTimeUtc(oldFile) < DateTime.UtcNow.AddHours(-24))
+                    File.Delete(oldFile);
+            }
+        }
+        catch { /* ignore cleanup errors */ }
+
+        // Save with unique name
+        var uniqueName = $"{Guid.NewGuid():N}.pdf";
+        var filePath = Path.Combine(sharesDir, uniqueName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        // Build the public URL
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var publicUrl = $"{baseUrl}/shares/{uniqueName}";
+
+        return Ok(new { url = publicUrl, filename = uniqueName });
     }
 }
 

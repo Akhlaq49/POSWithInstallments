@@ -13,6 +13,7 @@ import { getCustomerMiscBalance } from '../../services/miscService';
 import DepositSlip from '../../components/DepositSlip';
 import PlanPrintView from '../../components/PlanPrintView';
 import DueInstallmentSlip from '../../components/DueInstallmentSlip';
+import WhatsAppSendModal from '../../components/WhatsAppSendModal';
 
 const InstallmentDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +30,8 @@ const InstallmentDetails: React.FC = () => {
   const [slipEntry, setSlipEntry] = useState<RepaymentEntry | null>(null);
   const [showPlanPrint, setShowPlanPrint] = useState(false);
   const [dueSlipEntry, setDueSlipEntry] = useState<RepaymentEntry | null>(null);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppMessage, setWhatsAppMessage] = useState('');
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -177,8 +180,34 @@ const InstallmentDetails: React.FC = () => {
           <button className="btn btn-outline-primary" onClick={() => setShowPlanPrint(true)}>
             <i className="ti ti-printer me-1"></i>Print Plan
           </button>
-          <button className="btn btn-outline-success" onClick={() => setShowPlanPrint(true)} title="Share Repayment Plan via WhatsApp">
-            <i className="ti ti-brand-whatsapp me-1"></i>Share Plan
+          <button className="btn btn-outline-success" onClick={() => {
+            if (!plan) return;
+            const overdue = plan.schedule.filter(e => e.status === 'overdue');
+            const due = plan.schedule.filter(e => e.status === 'due');
+            const lines = [
+              `📋 *Installment Plan Summary*`,
+              ``,
+              `👤 Customer: ${plan.customerName}`,
+              `📦 Product: ${plan.productName}`,
+              `💰 Product Price: Rs ${fmt(plan.productPrice)}`,
+              `📊 Down Payment: Rs ${fmt(plan.downPayment)}`,
+              `💳 Monthly EMI: Rs ${fmt(plan.emiAmount)}`,
+              `📅 Tenure: ${plan.tenure} months`,
+              `✅ Paid: ${plan.paidInstallments}/${plan.tenure}`,
+              `📌 Remaining: ${plan.remainingInstallments} installments`,
+              `💵 Total Paid: Rs ${fmt(totalPaid)}`,
+              `🔻 Remaining Amount: Rs ${fmt(totalRemaining)}`,
+            ];
+            if (overdue.length > 0) {
+              lines.push(``, `🔴 *${overdue.length} Overdue Installment(s)* — Please pay immediately.`);
+            }
+            if (due.length > 0) {
+              lines.push(``, `🟡 *Next Due:* ${due[0].dueDate} — Rs ${fmt(due[0].emiAmount)}`);
+            }
+            setWhatsAppMessage(lines.join('\n'));
+            setShowWhatsAppModal(true);
+          }} title="Send Plan Summary via WhatsApp">
+            <i className="ti ti-brand-whatsapp me-1"></i>WhatsApp
           </button>
         </div>
       </div>
@@ -751,11 +780,33 @@ const InstallmentDetails: React.FC = () => {
                 </div>
               </div>
               <div className="modal-footer">
+                {selectedGuarantor.phone && (
+                  <button className="btn btn-success" onClick={() => {
+                    const g = selectedGuarantor;
+                    setWhatsAppMessage(`Hello ${g.name},\n\nThis is regarding the installment plan for ${plan.customerName} (${plan.productName}).\n\nRegards`);
+                    setSelectedGuarantor(null);
+                    setShowWhatsAppModal(true);
+                  }}>
+                    <i className="ti ti-brand-whatsapp me-1"></i>WhatsApp
+                  </button>
+                )}
                 <button type="button" className="btn btn-secondary" onClick={() => setSelectedGuarantor(null)}>Close</button>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* WhatsApp Send Modal */}
+      {plan && (
+        <WhatsAppSendModal
+          show={showWhatsAppModal}
+          onClose={() => setShowWhatsAppModal(false)}
+          phoneNumber={plan.customerPhone}
+          recipientName={plan.customerName}
+          defaultMessage={whatsAppMessage}
+          title="Send WhatsApp Message"
+        />
       )}
     </>
   );

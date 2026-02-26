@@ -117,3 +117,29 @@ export async function sendWhatsAppTemplate(
   });
   return response.data;
 }
+
+// ── Share PDF Upload ───────────────────────────────────────────────────────────
+
+export interface UploadSharePdfResult {
+  url: string;
+  filename: string;
+}
+
+/**
+ * Upload a PDF blob to the server and get back a public download URL.
+ * Used for sharing PDFs via wa.me links (no WhatsApp API required).
+ */
+export async function uploadSharePdf(
+  pdfBlob: Blob,
+  filename: string
+): Promise<UploadSharePdfResult> {
+  const formData = new FormData();
+  formData.append('file', pdfBlob, filename);
+
+  const response = await api.post<UploadSharePdfResult>(
+    '/whatsapp/upload-pdf',
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+  return response.data;
+}

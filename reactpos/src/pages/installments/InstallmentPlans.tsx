@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { InstallmentPlan, getInstallmentPlans, cancelInstallment } from '../../services/installmentService';
 import { mediaUrl, MEDIA_BASE_URL } from '../../services/api';
+import WhatsAppSendModal from '../../components/WhatsAppSendModal';
 
 const InstallmentPlans: React.FC = () => {
   const [plans, setPlans] = useState<InstallmentPlan[]>([]);
@@ -12,6 +13,7 @@ const InstallmentPlans: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const [whatsappPlan, setWhatsappPlan] = useState<InstallmentPlan | null>(null);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -57,6 +59,33 @@ const InstallmentPlans: React.FC = () => {
   };
 
   const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const buildWhatsAppMessage = (p: InstallmentPlan) => {
+    const overdue = p.schedule.filter(e => e.status === 'overdue');
+    const due = p.schedule.filter(e => e.status === 'due');
+    const lines = [
+      `📋 *Installment Plan Summary*`,
+      ``,
+      `👤 Customer: ${p.customerName}`,
+      `📦 Product: ${p.productName}`,
+      `💰 Product Price: Rs ${fmt(p.productPrice)}`,
+      `📊 Down Payment: Rs ${fmt(p.downPayment)}`,
+      `💳 Monthly EMI: Rs ${fmt(p.emiAmount)}`,
+      `📅 Tenure: ${p.tenure} months`,
+      `✅ Paid: ${p.paidInstallments}/${p.tenure}`,
+      `📌 Remaining: ${p.remainingInstallments} installments`,
+    ];
+    if (overdue.length > 0) {
+      lines.push(``, `🔴 *${overdue.length} Overdue Installment(s)* — Please pay immediately.`);
+    }
+    if (due.length > 0) {
+      lines.push(``, `🟡 *Next Due:* ${due[0].dueDate} — Rs ${fmt(due[0].emiAmount)}`);
+    }
+    if (p.nextDueDate) {
+      lines.push(``, `📅 Next Due Date: ${p.nextDueDate}`);
+    }
+    return lines.join('\n');
+  };
 
   const statusBadge = (status: string) => {
     const map: Record<string, string> = { active: 'bg-success', completed: 'bg-info', defaulted: 'bg-danger', cancelled: 'bg-secondary' };
@@ -236,6 +265,9 @@ const InstallmentPlans: React.FC = () => {
                           <Link to={`/installment-details/${plan.id}`} className="me-2 p-2" title="View Details">
                             <i data-feather="eye" className="feather-eye"></i>
                           </Link>
+                          <a className="me-2 p-2 text-success" href="#" onClick={(e) => { e.preventDefault(); setWhatsappPlan(plan); }} title="Send WhatsApp">
+                            <i className="ti ti-brand-whatsapp fs-16"></i>
+                          </a>
                           {plan.status === 'active' && (
                             <a className="p-2" href="#" onClick={(e) => { e.preventDefault(); openCancelModal(plan.id); }} title="Cancel Plan">
                               <i data-feather="trash-2" className="feather-trash-2"></i>
@@ -272,6 +304,16 @@ const InstallmentPlans: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* WhatsApp Send Modal */}
+      <WhatsAppSendModal
+        show={!!whatsappPlan}
+        onClose={() => setWhatsappPlan(null)}
+        phoneNumber={whatsappPlan?.customerPhone || ''}
+        recipientName={whatsappPlan?.customerName || ''}
+        defaultMessage={whatsappPlan ? buildWhatsAppMessage(whatsappPlan) : ''}
+        title="Send Installment Reminder"
+      />
     </>
   );
 };

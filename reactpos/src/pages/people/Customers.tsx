@@ -9,6 +9,7 @@ import {
   uploadCustomerPicture,
 } from '../../services/customerService';
 import { useFieldVisibility } from '../../utils/useFieldVisibility';
+import WhatsAppSendModal from '../../components/WhatsAppSendModal';
 
 const emptyForm = { name: '', so: '', cnic: '', phone: '', email: '', address: '', city: '', status: 'active' as const };
 
@@ -32,6 +33,7 @@ const Customers: React.FC = () => {
   const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
   const [pictureFile, setPictureFile] = useState<File | null>(null);
   const [picturePreview, setPicturePreview] = useState('');
+  const [whatsappCustomer, setWhatsappCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -354,6 +356,7 @@ const Customers: React.FC = () => {
                         <div className="d-flex align-items-center gap-1">
                           <button className="btn btn-icon btn-sm" title="View" onClick={() => openView(c)}><i className="ti ti-eye text-primary"></i></button>
                           <button className="btn btn-icon btn-sm" title="Edit" onClick={() => openEdit(c)}><i className="ti ti-edit text-info"></i></button>
+                          <button className="btn btn-icon btn-sm" title="WhatsApp" onClick={() => setWhatsappCustomer(c)}><i className="ti ti-brand-whatsapp text-success"></i></button>
                           <button className="btn btn-icon btn-sm" title="Delete" onClick={() => openDelete(c.id)}><i className="ti ti-trash text-danger"></i></button>
                         </div>
                       </td>
@@ -466,6 +469,9 @@ const Customers: React.FC = () => {
                 </div>
               </div>
               <div className="modal-footer">
+                <button className="btn btn-success" onClick={() => { setShowViewModal(false); setWhatsappCustomer(viewCustomer); }}>
+                  <i className="ti ti-brand-whatsapp me-1"></i>WhatsApp
+                </button>
                 <button className="btn btn-secondary" onClick={() => setShowViewModal(false)}>Close</button>
                 <button className="btn btn-primary" onClick={() => { setShowViewModal(false); openEdit(viewCustomer); }}>
                   <i className="ti ti-edit me-1"></i>Edit
@@ -475,6 +481,16 @@ const Customers: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* WhatsApp Send Modal */}
+      <WhatsAppSendModal
+        show={!!whatsappCustomer}
+        onClose={() => setWhatsappCustomer(null)}
+        phoneNumber={whatsappCustomer?.phone || ''}
+        recipientName={whatsappCustomer?.name || ''}
+        defaultMessage={whatsappCustomer ? `Hello ${whatsappCustomer.name},\n\nThis is a message from Asyentyx.\n\nRegards` : ''}
+        title="Message Customer"
+      />
     </>
   );
 };

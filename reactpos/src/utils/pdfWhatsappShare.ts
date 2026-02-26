@@ -5,7 +5,29 @@ import {
   sendWhatsAppText,
   sendWhatsAppDocument,
   getWhatsAppConfig,
+  uploadSharePdf,
 } from '../services/whatsappService';
+
+/**
+ * Normalize a phone number to international format for WhatsApp.
+ * Handles Pakistani numbers (0300… → 92300…) and strips non-digits.
+ */
+export function normalizePhone(phone: string): string {
+  // Strip everything except digits and leading +
+  let digits = phone.replace(/[^0-9]/g, '');
+
+  // Pakistani local format: starts with 0 (e.g. 03001234567)
+  if (digits.startsWith('0') && digits.length >= 10) {
+    digits = '92' + digits.substring(1);
+  }
+
+  // If only 10 digits, assume Pakistan
+  if (digits.length === 10) {
+    digits = '92' + digits;
+  }
+
+  return digits;
+}
 
 /**
  * Check if WhatsApp Cloud API is configured and available.
@@ -74,9 +96,8 @@ export async function downloadPdf(
 /**
  * Shares a PDF via WhatsApp.
  * 
- * On mobile devices with Web Share API support, it shares the file directly.
- * Otherwise, it downloads the PDF and opens WhatsApp with a pre-filled message
- * containing instructions.
+ * Uploads the PDF to the server, gets a public download link,
+ * and opens the recipient's WhatsApp chat with the message + PDF link.
  */
 export async function shareViaWhatsApp(
   element: HTMLElement,
@@ -86,43 +107,19 @@ export async function shareViaWhatsApp(
   options?: { width?: number; orientation?: 'portrait' | 'landscape' }
 ): Promise<void> {
   const blob = await generatePdfFromElement(element, filename, options);
-  const file = new File([blob], `${filename}.pdf`, { type: 'application/pdf' });
+  const normalized = phoneNumber ? normalizePhone(phoneNumber) : '';
 
-  // Try Web Share API (works on mobile devices and some desktop browsers)
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        title: filename,
-        text: message,
-        files: [file],
-      });
-      return;
-    } catch (err: any) {
-      // User cancelled or share failed, fall through to WhatsApp URL approach
-      if (err?.name === 'AbortError') return;
-    }
-  }
+  // Upload PDF to server and get a public download link
+  const { url: pdfUrl } = await uploadSharePdf(blob, `${filename}.pdf`);
 
-  // Fallback: Download the PDF and open WhatsApp with message
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${filename}.pdf`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  // Open WhatsApp with message
-  const encodedMessage = encodeURIComponent(message + '\n\n📎 PDF has been downloaded. Please attach it manually.');
-  const whatsappUrl = phoneNumber
-    ? `https://wa.me/${phoneNumber.replace(/[^0-9]/g, '')}?text=${encodedMessage}`
+  // Open WhatsApp chat with the message + PDF download link
+  const fullMessage = message + `\n\n📎 *Download PDF:*\n${pdfUrl}`;
+  const encodedMessage = encodeURIComponent(fullMessage);
+  const whatsappUrl = normalized
+    ? `https://wa.me/${normalized}?text=${encodedMessage}`
     : `https://wa.me/?text=${encodedMessage}`;
 
-  // Small delay to let download start
-  setTimeout(() => {
-    window.open(whatsappUrl, '_blank');
-    URL.revokeObjectURL(url);
-  }, 500);
+  window.open(whatsappUrl, '_blank');
 }
 
 /**

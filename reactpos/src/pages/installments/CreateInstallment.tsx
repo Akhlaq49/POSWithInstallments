@@ -8,8 +8,10 @@ import {
   RepaymentEntry,
   previewInstallment,
   InstallmentPreview,
+  searchParties,
+  PartySearchResult,
 } from '../../services/installmentService';
-import { getProducts, ProductResponse } from '../../services/productService';
+import { getProducts, createProduct, ProductResponse } from '../../services/productService';
 import { getCustomers, Customer, createCustomer, uploadCustomerPicture } from '../../services/customerService';
 import { useFieldVisibility } from '../../utils/useFieldVisibility';
 
@@ -70,6 +72,13 @@ const CreateInstallment: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<ProductResponse | null>(null);
   const productSearchRef = useRef<HTMLDivElement>(null);
 
+  // New product modal state
+  const [showNewProductModal, setShowNewProductModal] = useState(false);
+  const [newProductSaving, setNewProductSaving] = useState(false);
+  const [newProduct, setNewProduct] = useState({ productName: '', sku: '', category: '', brand: '', price: '', quantity: '', description: '' });
+  const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [newProductImagePreview, setNewProductImagePreview] = useState('');
+
   const [form, setForm] = useState<CreateInstallmentPayload>({
     customerId: 0,
     productId: 0,
@@ -82,6 +91,7 @@ const CreateInstallment: React.FC = () => {
 
   // Guarantors local state
   interface LocalGuarantor {
+    partyId: number | null;
     name: string;
     so: string;
     phone: string;
@@ -91,9 +101,16 @@ const CreateInstallment: React.FC = () => {
     pictureFile: File | null;
     picturePreview: string;
   }
-  const emptyGuarantor: LocalGuarantor = { name: '', so: '', phone: '', cnic: '', address: '', relationship: '', pictureFile: null, picturePreview: '' };
+  const emptyGuarantor: LocalGuarantor = { partyId: null, name: '', so: '', phone: '', cnic: '', address: '', relationship: '', pictureFile: null, picturePreview: '' };
   const [guarantors, setGuarantors] = useState<LocalGuarantor[]>([]);
   const [activeGuarantorTab, setActiveGuarantorTab] = useState(0);
+
+  // Guarantor search state
+  const [guarantorSearchResults, setGuarantorSearchResults] = useState<PartySearchResult[]>([]);
+  const [guarantorSearchLoading, setGuarantorSearchLoading] = useState(false);
+  const [guarantorSearchTexts, setGuarantorSearchTexts] = useState<string[]>([]);
+  const [showGuarantorDropdown, setShowGuarantorDropdown] = useState<number | null>(null);
+  const guarantorSearchRef = useRef<HTMLDivElement>(null);
 
   // Preview data via API
   const productPrice = selectedProduct?.price ?? 0;
@@ -189,6 +206,9 @@ const CreateInstallment: React.FC = () => {
       if (productSearchRef.current && !productSearchRef.current.contains(e.target as Node)) {
         setShowProductDropdown(false);
       }
+      if (guarantorSearchRef.current && !guarantorSearchRef.current.contains(e.target as Node)) {
+        setShowGuarantorDropdown(null);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -275,6 +295,103 @@ const CreateInstallment: React.FC = () => {
     }));
   }, []);
 
+  // Guarantor search handler
+  const handleGuarantorSearch = useCallback(async (query: string, idx: number) => {
+    setGuarantorSearchTexts(prev => {
+      const next = [...prev];
+      next[idx] = query;
+      return next;
+    });
+    setShowGuarantorDropdown(idx);
+    if (query.trim().length < 2) {
+      setGuarantorSearchResults([]);
+      return;
+    }
+    setGuarantorSearchLoading(true);
+    try {
+      const results = await searchParties(query);
+      setGuarantorSearchResults(results);
+    } catch {
+      setGuarantorSearchResults([]);
+    } finally {
+      setGuarantorSearchLoading(false);
+    }
+  }, []);
+
+  const handleSelectGuarantorParty = useCallback((party: PartySearchResult, idx: number) => {
+    setGuarantors(prev => prev.map((item, i) => i === idx ? {
+      ...item,
+      partyId: party.id,
+      name: party.name,
+      so: party.so || '',
+      phone: party.phone || '',
+      cnic: party.cnic || '',
+      address: party.address || '',
+      picturePreview: party.picture ? `${MEDIA_BASE_URL}${party.picture}` : '',
+    } : item));
+    setGuarantorSearchTexts(prev => {
+      const next = [...prev];
+      next[idx] = party.name;
+      return next;
+    });
+    setShowGuarantorDropdown(null);
+  }, []);
+
+  const handleClearGuarantor = useCallback((idx: number) => {
+    setGuarantors(prev => prev.map((item, i) => i === idx ? { ...emptyGuarantor } : item));
+    setGuarantorSearchTexts(prev => {
+      const next = [...prev];
+      next[idx] = '';
+      return next;
+    });
+  }, []);
+
+  const handleCreateProduct = async () => {
+    if (!newProduct.productName.trim()) return;
+    setNewProductSaving(true);
+    try {
+      const images: File[] = newProductImage ? [newProductImage] : [];
+      const created = await createProduct({
+        store: '',
+        warehouse: '',
+        productName: newProduct.productName,
+        slug: newProduct.productName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        sku: newProduct.sku || ('PT' + Math.random().toString(36).substring(2, 8).toUpperCase()),
+        sellingType: 'pos',
+        category: newProduct.category,
+        subCategory: '',
+        brand: newProduct.brand,
+        unit: '',
+        barcodeSymbology: '',
+        itemBarcode: '',
+        description: newProduct.description,
+        productType: 'single',
+        quantity: Number(newProduct.quantity) || 0,
+        price: Number(newProduct.price) || 0,
+        taxType: '',
+        tax: '',
+        discountType: '',
+        discountValue: 0,
+        quantityAlert: 0,
+        warranty: '',
+        manufacturer: '',
+        manufacturedDate: '',
+        expiryDate: '',
+        images,
+      });
+      setProducts(prev => [created, ...prev]);
+      handleSelectProduct(created);
+      setShowNewProductModal(false);
+      setNewProduct({ productName: '', sku: '', category: '', brand: '', price: '', quantity: '', description: '' });
+      setNewProductImage(null);
+      setNewProductImagePreview('');
+    } catch {
+      setError('Failed to create product.');
+    } finally {
+      setNewProductSaving(false);
+    }
+  };
+
   const isValid = form.customerId > 0 && form.productId > 0 && baseAmount > 0 && form.downPayment >= 0 && form.downPayment < baseAmount && form.tenure > 0 && form.startDate;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -295,6 +412,7 @@ const CreateInstallment: React.FC = () => {
         fd.append('cnic', g.cnic);
         fd.append('address', g.address);
         fd.append('relationship', g.relationship);
+        if (g.partyId) fd.append('partyId', String(g.partyId));
         if (g.pictureFile) fd.append('picture', g.pictureFile);
         await addGuarantor(result.id, fd);
       }
@@ -484,6 +602,7 @@ const CreateInstallment: React.FC = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     setGuarantors(prev => [...prev, { ...emptyGuarantor }]);
+                    setGuarantorSearchTexts(prev => [...prev, '']);
                     setActiveGuarantorTab(guarantors.length);
                   }}
                 >
@@ -515,11 +634,97 @@ const CreateInstallment: React.FC = () => {
                           <div className="d-flex justify-content-end mb-3">
                             <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => {
                               setGuarantors(prev => prev.filter((_, i) => i !== idx));
+                              setGuarantorSearchTexts(prev => prev.filter((_, i) => i !== idx));
                               setActiveGuarantorTab(prev => prev >= guarantors.length - 1 ? Math.max(0, guarantors.length - 2) : prev);
                             }}>
                               <i className="ti ti-trash me-1"></i>Remove
                             </button>
                           </div>
+
+                          {/* Search Existing Person */}
+                          <div className="mb-3" ref={showGuarantorDropdown === idx ? guarantorSearchRef : undefined}>
+                            <label className="form-label">Search Existing Person</label>
+                            <div style={{ position: 'relative' }}>
+                              <div className="input-group">
+                                <span className="input-group-text"><i className="ti ti-search"></i></span>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="Type name, phone, or CNIC to search..."
+                                  value={guarantorSearchTexts[idx] || ''}
+                                  onChange={(e) => handleGuarantorSearch(e.target.value, idx)}
+                                  onFocus={() => {
+                                    if ((guarantorSearchTexts[idx] || '').trim().length >= 2) {
+                                      setShowGuarantorDropdown(idx);
+                                    }
+                                  }}
+                                />
+                                {g.partyId && (
+                                  <button type="button" className="btn btn-outline-secondary" onClick={() => handleClearGuarantor(idx)}>
+                                    <i className="ti ti-x"></i>
+                                  </button>
+                                )}
+                              </div>
+                              {showGuarantorDropdown === idx && (guarantorSearchTexts[idx] || '').trim().length >= 2 && (
+                                <div className="border rounded shadow-sm bg-white" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1050, maxHeight: 250, overflowY: 'auto' }}>
+                                  {guarantorSearchLoading ? (
+                                    <div className="text-center p-3"><span className="spinner-border spinner-border-sm text-primary"></span> Searching...</div>
+                                  ) : guarantorSearchResults.length === 0 ? (
+                                    <div className="text-center p-3 text-muted">No results found. Fill in details below to create new.</div>
+                                  ) : (
+                                    guarantorSearchResults.map((party) => (
+                                      <div
+                                        key={party.id}
+                                        className="d-flex align-items-center p-2 border-bottom"
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() => handleSelectGuarantorParty(party, idx)}
+                                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
+                                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '')}
+                                      >
+                                        {party.picture ? (
+                                          <img src={`${MEDIA_BASE_URL}${party.picture}`} alt={party.name} className="rounded-circle border me-2" style={{ width: 36, height: 36, objectFit: 'cover' }} />
+                                        ) : (
+                                          <span className="avatar avatar-md me-2 bg-warning-transparent text-warning d-flex align-items-center justify-content-center rounded-circle fw-bold">
+                                            {party.name.charAt(0).toUpperCase()}
+                                          </span>
+                                        )}
+                                        <div className="flex-grow-1">
+                                          <h6 className="mb-0 fs-13 fw-medium">{party.name}</h6>
+                                          <small className="text-muted">{party.phone || '-'} &bull; {party.cnic || '-'}</small>
+                                        </div>
+                                        <div className="text-end">
+                                          <span className="badge bg-secondary-transparent">{party.role}</span>
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <small className="text-muted">Select an existing person or fill in details below to create new</small>
+                          </div>
+
+                          {/* Selected guarantor preview */}
+                          {g.partyId && (
+                            <div className="alert alert-info d-flex align-items-center mb-3" role="alert">
+                              {g.picturePreview ? (
+                                <img src={g.picturePreview} alt={g.name} className="rounded-circle border me-3" style={{ width: 48, height: 48, objectFit: 'cover' }} />
+                              ) : (
+                                <span className="avatar avatar-lg me-3 bg-info-transparent text-info d-flex align-items-center justify-content-center rounded-circle fw-bold fs-20">
+                                  {g.name.charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                              <div className="flex-grow-1">
+                                <h6 className="mb-1 fw-bold">{g.name}</h6>
+                                <div className="d-flex gap-3 flex-wrap">
+                                  {g.so && <small><strong>S/O:</strong> {g.so}</small>}
+                                  {g.cnic && <small><strong>CNIC:</strong> {g.cnic}</small>}
+                                  {g.phone && <small><strong>Phone:</strong> {g.phone}</small>}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="row">
                             <div className="col-md-6 mb-3">
                               <label className="form-label">Full Name<span className="text-danger ms-1">*</span></label>
@@ -598,7 +803,7 @@ const CreateInstallment: React.FC = () => {
             {/* Product Information */}
             <div className="card">
               <div 
-                className="card-header cursor-pointer"
+                className="card-header d-flex align-items-center justify-content-between cursor-pointer"
                 onClick={() => toggleSection('product')}
                 style={{ cursor: 'pointer' }}
               >
@@ -607,6 +812,16 @@ const CreateInstallment: React.FC = () => {
                   Product Information
                   <i className={`ti ${collapsedSections.product ? 'ti-chevron-down' : 'ti-chevron-up'} ms-2`}></i>
                 </h5>
+                <button 
+                  type="button" 
+                  className="btn btn-sm btn-outline-primary" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowNewProductModal(true);
+                  }}
+                >
+                  <i className="ti ti-plus me-1"></i>New Product
+                </button>
               </div>
               <div className={`collapse ${!collapsedSections.product ? 'show' : ''}`}>
                 <div className="card-body">
@@ -884,6 +1099,79 @@ const CreateInstallment: React.FC = () => {
           </div>
         </div>
       </form>
+
+      {/* New Product Modal */}
+      {showNewProductModal && (
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title"><i className="ti ti-box me-2"></i>Add New Product</h5>
+                <button type="button" className="btn-close" onClick={() => setShowNewProductModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Product Name<span className="text-danger ms-1">*</span></label>
+                    <input type="text" className="form-control" placeholder="Product name" value={newProduct.productName}
+                      onChange={e => setNewProduct(prev => ({ ...prev, productName: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Price (Rs)<span className="text-danger ms-1">*</span></label>
+                    <input type="number" className="form-control" placeholder="0.00" min={0} step="0.01" value={newProduct.price}
+                      onChange={e => setNewProduct(prev => ({ ...prev, price: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">SKU</label>
+                    <input type="text" className="form-control" placeholder="Auto-generated if blank" value={newProduct.sku}
+                      onChange={e => setNewProduct(prev => ({ ...prev, sku: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Quantity</label>
+                    <input type="number" className="form-control" placeholder="0" min={0} value={newProduct.quantity}
+                      onChange={e => setNewProduct(prev => ({ ...prev, quantity: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Category</label>
+                    <input type="text" className="form-control" placeholder="e.g. Electronics" value={newProduct.category}
+                      onChange={e => setNewProduct(prev => ({ ...prev, category: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label">Brand</label>
+                    <input type="text" className="form-control" placeholder="e.g. Samsung" value={newProduct.brand}
+                      onChange={e => setNewProduct(prev => ({ ...prev, brand: e.target.value }))} />
+                  </div>
+                  <div className="col-12 mb-3">
+                    <label className="form-label">Description</label>
+                    <textarea className="form-control" rows={2} placeholder="Brief product description" value={newProduct.description}
+                      onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} />
+                  </div>
+                  <div className="col-12 mb-0">
+                    <label className="form-label">Product Image</label>
+                    <div className="d-flex align-items-center gap-3">
+                      <input type="file" className="form-control" accept="image/*"
+                        onChange={e => {
+                          const file = e.target.files?.[0] || null;
+                          setNewProductImage(file);
+                          setNewProductImagePreview(file ? URL.createObjectURL(file) : '');
+                        }} />
+                      {newProductImagePreview && (
+                        <img src={newProductImagePreview} alt="Preview" className="rounded border" style={{ width: 48, height: 48, objectFit: 'cover' }} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowNewProductModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-primary" disabled={!newProduct.productName.trim() || !newProduct.price || newProductSaving} onClick={handleCreateProduct}>
+                  {newProductSaving ? <><span className="spinner-border spinner-border-sm me-2"></span>Saving...</> : <><i className="ti ti-check me-1"></i>Add Product</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* New Customer Modal */}
       {showNewCustomerModal && (
