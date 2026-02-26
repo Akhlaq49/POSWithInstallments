@@ -47,6 +47,10 @@ public class AppDbContext : DbContext
     public DbSet<InstallmentPlan> InstallmentPlans => Set<InstallmentPlan>();
     public DbSet<RepaymentEntry> RepaymentEntries => Set<RepaymentEntry>();
 
+    // Online storefront
+    public DbSet<OnlineOrderDetail> OnlineOrderDetails => Set<OnlineOrderDetail>();
+    public DbSet<PartyAddress> PartyAddresses => Set<PartyAddress>();
+
     // Role Permissions
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
@@ -169,6 +173,40 @@ public class AppDbContext : DbContext
              .HasForeignKey(o => o.CustomerId)
              .OnDelete(DeleteBehavior.SetNull);
             e.Property(o => o.Amount).HasColumnType("decimal(18,2)");
+        });
+
+        // OnlineOrderDetail -> Order (1:1)
+        modelBuilder.Entity<OnlineOrderDetail>(e =>
+        {
+            e.HasOne(d => d.Order)
+             .WithOne(o => o.OnlineDetail)
+             .HasForeignKey<OnlineOrderDetail>(d => d.OrderId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(d => d.BillingAddress)
+             .WithMany()
+             .HasForeignKey(d => d.BillingAddressId)
+             .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasOne(d => d.ShippingAddress)
+             .WithMany()
+             .HasForeignKey(d => d.ShippingAddressId)
+             .OnDelete(DeleteBehavior.SetNull);
+
+            e.Property(d => d.SubTotal).HasColumnType("decimal(18,2)");
+            e.Property(d => d.Shipping).HasColumnType("decimal(18,2)");
+            e.Property(d => d.Discount).HasColumnType("decimal(18,2)");
+            e.Property(d => d.Tax).HasColumnType("decimal(18,2)");
+            e.Property(d => d.GrandTotal).HasColumnType("decimal(18,2)");
+        });
+
+        // PartyAddress -> Party
+        modelBuilder.Entity<PartyAddress>(e =>
+        {
+            e.HasOne(a => a.Party)
+             .WithMany(p => p.Addresses)
+             .HasForeignKey(a => a.PartyId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // OrderItem -> Order

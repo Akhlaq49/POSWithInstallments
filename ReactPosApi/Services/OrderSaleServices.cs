@@ -13,17 +13,14 @@ public class OrderService : IOrderService
 
     public async Task<List<OrderDto>> GetAllAsync()
     {
-        return await _db.Orders.Include(o => o.Items).OrderByDescending(o => o.CreatedAt)
+        return await _db.Orders.Include(o => o.Items).Include(o => o.OnlineDetail)
+            .OrderByDescending(o => o.CreatedAt)
             .Select(o => new OrderDto
             {
                 Id = o.Id, OrderNumber = o.OrderNumber, CustomerId = o.CustomerId,
                 CustomerName = o.CustomerName, CustomerImage = o.CustomerImage,
-                CustomerEmail = o.CustomerEmail, CustomerPhone = o.CustomerPhone,
-                PaymentType = o.PaymentType, Amount = o.Amount,
-                SubTotal = o.SubTotal, Shipping = o.Shipping, Discount = o.Discount, Tax = o.Tax,
-                Status = o.Status, OrderSource = o.OrderSource,
-                ShippingAddress = o.ShippingAddress, BillingAddress = o.BillingAddress,
-                Notes = o.Notes,
+                PaymentType = o.PaymentType, Amount = o.Amount, Status = o.Status,
+                OrderSource = o.OnlineDetail != null ? "Online" : "POS",
                 OrderDate = o.OrderDate.ToString("dd MMM yyyy, hh:mm tt"),
                 Items = o.Items.Select(i => new OrderItemDto
                 {
@@ -35,18 +32,15 @@ public class OrderService : IOrderService
 
     public async Task<OrderDto?> GetByIdAsync(int id)
     {
-        var o = await _db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
+        var o = await _db.Orders.Include(o => o.Items).Include(o => o.OnlineDetail)
+            .FirstOrDefaultAsync(o => o.Id == id);
         if (o == null) return null;
         return new OrderDto
         {
             Id = o.Id, OrderNumber = o.OrderNumber, CustomerId = o.CustomerId,
             CustomerName = o.CustomerName, CustomerImage = o.CustomerImage,
-            CustomerEmail = o.CustomerEmail, CustomerPhone = o.CustomerPhone,
-            PaymentType = o.PaymentType, Amount = o.Amount,
-            SubTotal = o.SubTotal, Shipping = o.Shipping, Discount = o.Discount, Tax = o.Tax,
-            Status = o.Status, OrderSource = o.OrderSource,
-            ShippingAddress = o.ShippingAddress, BillingAddress = o.BillingAddress,
-            Notes = o.Notes,
+            PaymentType = o.PaymentType, Amount = o.Amount, Status = o.Status,
+            OrderSource = o.OnlineDetail != null ? "Online" : "POS",
             OrderDate = o.OrderDate.ToString("dd MMM yyyy, hh:mm tt"),
             Items = o.Items.Select(i => new OrderItemDto
             {
@@ -62,14 +56,8 @@ public class OrderService : IOrderService
         {
             OrderNumber = new Random().Next(1000000, 9999999).ToString(),
             CustomerId = dto.CustomerId, CustomerName = dto.CustomerName,
-            CustomerImage = dto.CustomerImage, CustomerEmail = dto.CustomerEmail,
-            CustomerPhone = dto.CustomerPhone,
-            PaymentType = dto.PaymentType, Amount = dto.Amount,
-            SubTotal = dto.SubTotal, Shipping = dto.Shipping,
-            Discount = dto.Discount, Tax = dto.Tax,
-            Status = dto.Status, OrderSource = dto.OrderSource,
-            ShippingAddress = dto.ShippingAddress, BillingAddress = dto.BillingAddress,
-            Notes = dto.Notes,
+            CustomerImage = dto.CustomerImage, PaymentType = dto.PaymentType,
+            Amount = dto.Amount, Status = dto.Status,
             OrderDate = DateTime.UtcNow, CreatedAt = DateTime.UtcNow,
             Items = dto.Items.Select(i => new OrderItem
             {
@@ -88,13 +76,8 @@ public class OrderService : IOrderService
         if (order == null) return null;
 
         order.CustomerId = dto.CustomerId; order.CustomerName = dto.CustomerName;
-        order.CustomerImage = dto.CustomerImage; order.CustomerEmail = dto.CustomerEmail;
-        order.CustomerPhone = dto.CustomerPhone; order.PaymentType = dto.PaymentType;
+        order.CustomerImage = dto.CustomerImage; order.PaymentType = dto.PaymentType;
         order.Amount = dto.Amount; order.Status = dto.Status;
-        order.SubTotal = dto.SubTotal; order.Shipping = dto.Shipping;
-        order.Discount = dto.Discount; order.Tax = dto.Tax;
-        order.ShippingAddress = dto.ShippingAddress; order.BillingAddress = dto.BillingAddress;
-        order.Notes = dto.Notes;
 
         _db.OrderItems.RemoveRange(order.Items);
         order.Items = dto.Items.Select(i => new OrderItem

@@ -26,29 +26,13 @@ public class Order
     [MaxLength(30)]
     public string Status { get; set; } = "Pending";
 
-    /// <summary>POS or Online</summary>
-    [MaxLength(20)]
-    public string OrderSource { get; set; } = "POS";
-
-    [MaxLength(200)]
-    public string? CustomerEmail { get; set; }
-
-    [MaxLength(50)]
-    public string? CustomerPhone { get; set; }
-
-    public string? ShippingAddress { get; set; }
-    public string? BillingAddress { get; set; }
-    public string? Notes { get; set; }
-
-    public decimal SubTotal { get; set; }
-    public decimal Shipping { get; set; }
-    public decimal Discount { get; set; }
-    public decimal Tax { get; set; }
-
     public DateTime OrderDate { get; set; } = DateTime.UtcNow;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<OrderItem> Items { get; set; } = new();
+
+    // Navigation to online order details (only populated for online orders)
+    public OnlineOrderDetail? OnlineDetail { get; set; }
 }
 
 public class OrderItem

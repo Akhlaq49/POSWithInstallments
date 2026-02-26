@@ -54,4 +54,7 @@ public class Party
 
     // Navigation — plans this party guarantees
     public ICollection<PlanGuarantor> GuaranteedPlans { get; set; } = new List<PlanGuarantor>();
+
+    // Navigation — addresses (billing/shipping)
+    public ICollection<PartyAddress> Addresses { get; set; } = new List<PartyAddress>();
 }

@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReactPosApi.Data;
-using ReactPosApi.DTOs;
 using ReactPosApi.Models;
-using System.Text.Json;
 
 namespace ReactPosApi.Controllers;
 
@@ -166,33 +164,114 @@ public class StorefrontController : ControllerBase
     /// <summary>
     /// POST /api/storefront/orders
     /// Creates an order with OrderSource = "Online".
-    /// Accepts the shape the nest-react-frontend checkout sends.
+    /// Uses Party for customer info, PartyAddress for addresses.
     /// </summary>
     [HttpPost("orders")]
     public async Task<IActionResult> CreateOrder([FromBody] StorefrontOrderDto dto)
     {
-        // Serialize addresses as JSON strings for storage
-        var billingJson = dto.BillingAddress != null ? JsonSerializer.Serialize(dto.BillingAddress) : null;
-        var shippingJson = dto.ShippingAddress != null ? JsonSerializer.Serialize(dto.ShippingAddress) : null;
+        // 1. Find or create Party (customer)
+        Party? party = null;
+        if (dto.CustomerId.HasValue)
+        {
+            party = await _db.Parties.FindAsync(dto.CustomerId.Value);
+        }
 
+        if (party == null && !string.IsNullOrWhiteSpace(dto.CustomerEmail))
+        {
+            party = await _db.Parties.FirstOrDefaultAsync(p => p.Email == dto.CustomerEmail && p.Role == "Customer");
+        }
+
+        if (party == null)
+        {
+            party = new Party
+            {
+                FullName = dto.CustomerName,
+                Email = dto.CustomerEmail,
+                Phone = dto.CustomerPhone,
+                Role = "Customer",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            // If the customer wants to create an account
+            if (dto.CreateAccount && !string.IsNullOrWhiteSpace(dto.AccountPassword))
+            {
+                party.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.AccountPassword);
+            }
+
+            _db.Parties.Add(party);
+            await _db.SaveChangesAsync(); // get party.Id
+        }
+        else
+        {
+            // Update phone if provided and currently empty
+            if (string.IsNullOrWhiteSpace(party.Phone) && !string.IsNullOrWhiteSpace(dto.CustomerPhone))
+            {
+                party.Phone = dto.CustomerPhone;
+            }
+        }
+
+        // 2. Create PartyAddress records for billing and shipping
+        PartyAddress? billingAddr = null;
+        if (dto.BillingAddress != null)
+        {
+            billingAddr = new PartyAddress
+            {
+                PartyId = party.Id,
+                AddressType = "Billing",
+                FirstName = dto.BillingAddress.FirstName,
+                LastName = dto.BillingAddress.LastName,
+                AddressLine1 = dto.BillingAddress.AddressLine1,
+                AddressLine2 = dto.BillingAddress.AddressLine2,
+                City = dto.BillingAddress.City,
+                State = dto.BillingAddress.State,
+                PostalCode = dto.BillingAddress.PostalCode,
+                Country = dto.BillingAddress.Country,
+                CompanyName = dto.BillingAddress.CompanyName,
+                Email = dto.BillingAddress.Email,
+                Phone = dto.BillingAddress.Phone,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.PartyAddresses.Add(billingAddr);
+        }
+
+        PartyAddress? shippingAddr = null;
+        if (dto.ShippingAddress != null)
+        {
+            shippingAddr = new PartyAddress
+            {
+                PartyId = party.Id,
+                AddressType = "Shipping",
+                FirstName = dto.ShippingAddress.FirstName,
+                LastName = dto.ShippingAddress.LastName,
+                AddressLine1 = dto.ShippingAddress.AddressLine1,
+                AddressLine2 = dto.ShippingAddress.AddressLine2,
+                City = dto.ShippingAddress.City,
+                State = dto.ShippingAddress.State,
+                PostalCode = dto.ShippingAddress.PostalCode,
+                Country = dto.ShippingAddress.Country,
+                CompanyName = dto.ShippingAddress.CompanyName,
+                Email = dto.ShippingAddress.Email,
+                Phone = dto.ShippingAddress.Phone,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.PartyAddresses.Add(shippingAddr);
+        }
+
+        if (billingAddr != null || shippingAddr != null)
+            await _db.SaveChangesAsync(); // get address IDs
+
+        // 3. Create Order (uses only original DB columns)
         var order = new Order
         {
             OrderNumber = $"ONL-{new Random().Next(1000000, 9999999)}",
-            CustomerId = dto.CustomerId,
-            CustomerName = dto.CustomerName,
-            CustomerEmail = dto.CustomerEmail,
-            CustomerPhone = dto.CustomerPhone,
+            CustomerId = party.Id,
+            CustomerName = party.FullName,
             PaymentType = dto.PaymentMethod ?? "cash_on_delivery",
             Amount = dto.GrandTotal,
-            SubTotal = dto.SubTotal,
-            Shipping = dto.Shipping,
-            Discount = dto.Discount,
-            Tax = dto.Tax,
             Status = "Pending",
-            OrderSource = "Online",
-            BillingAddress = billingJson,
-            ShippingAddress = shippingJson,
-            Notes = dto.Notes,
             OrderDate = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
             Items = dto.Items.Select(i => new OrderItem
@@ -215,6 +294,26 @@ public class StorefrontController : ControllerBase
         }
 
         _db.Orders.Add(order);
+        await _db.SaveChangesAsync(); // get order.Id
+
+        // 4. Create OnlineOrderDetail with FK references
+        var onlineDetail = new OnlineOrderDetail
+        {
+            OrderId = order.Id,
+            BillingAddressId = billingAddr?.Id,
+            ShippingAddressId = shippingAddr?.Id,
+            Notes = dto.Notes,
+            PaymentMethod = dto.PaymentMethod ?? "cash_on_delivery",
+            SubTotal = dto.SubTotal,
+            Shipping = dto.Shipping,
+            Discount = dto.Discount,
+            Tax = dto.Tax,
+            GrandTotal = dto.GrandTotal,
+            OrderSource = "Online",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.OnlineOrderDetails.Add(onlineDetail);
         await _db.SaveChangesAsync();
 
         return Ok(new
@@ -227,14 +326,16 @@ public class StorefrontController : ControllerBase
 
     /// <summary>
     /// GET /api/storefront/orders/email/:email
-    /// Get orders by customer email.
+    /// Get orders by customer email (via Party table).
     /// </summary>
     [HttpGet("orders/email/{email}")]
     public async Task<IActionResult> GetOrdersByEmail(string email)
     {
         var orders = await _db.Orders
             .Include(o => o.Items)
-            .Where(o => o.CustomerEmail == email)
+            .Include(o => o.Customer)
+            .Include(o => o.OnlineDetail)
+            .Where(o => o.Customer != null && o.Customer.Email == email)
             .OrderByDescending(o => o.CreatedAt)
             .Select(o => new
             {
@@ -243,7 +344,7 @@ public class StorefrontController : ControllerBase
                 customerName = o.CustomerName,
                 amount = o.Amount,
                 status = o.Status,
-                orderSource = o.OrderSource,
+                orderSource = o.OnlineDetail != null ? "Online" : "POS",
                 orderDate = o.OrderDate.ToString("dd MMM yyyy, hh:mm tt"),
                 itemCount = o.Items.Count
             })

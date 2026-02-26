@@ -115,7 +115,7 @@ export const getImageUrl = (imagePath) => {
     return imagePath;
   }
   // Prepend ReactPosApi base URL for relative paths (e.g. /uploads/products/img.jpg)
-  const baseUrl = process.env.REACT_APP_MEDIA_URL || 'http://192.168.1.8:5000';
+  const baseUrl = process.env.REACT_APP_MEDIA_URL || 'http://192.168.1.5:5000';
   return `${baseUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
 };
 
