@@ -273,3 +273,28 @@ export const getEmployeeById = async (id: number): Promise<Employee> => { const 
 export const createEmployee = async (p: CreateEmployee): Promise<Employee> => { const { data } = await api.post('/employees', p); return data; };
 export const updateEmployee = async (id: number, p: CreateEmployee): Promise<Employee> => { const { data } = await api.put(`/employees/${id}`, p); return data; };
 export const deleteEmployee = async (id: number): Promise<void> => { await api.delete(`/employees/${id}`); };
+
+// ─── Attendance ───
+export interface Attendance {
+  id: number; employeeId: number; employeeName: string; employeePicture?: string;
+  designationName?: string; date: string; status: string;
+  clockIn?: string; clockOut?: string; production?: string;
+  breakTime?: string; overtime?: string; totalHours?: string; createdAt: string;
+}
+export interface CreateAttendance {
+  employeeId: number; date: string; status: string;
+  clockIn?: string; clockOut?: string; production?: string;
+  breakTime?: string; overtime?: string; totalHours?: string;
+}
+
+export const getAttendances = async (date?: string, employeeId?: number): Promise<Attendance[]> => {
+  const params: string[] = [];
+  if (date) params.push(`date=${date}`);
+  if (employeeId) params.push(`employeeId=${employeeId}`);
+  const q = params.length ? `?${params.join('&')}` : '';
+  const { data } = await api.get(`/attendance${q}`); return data;
+};
+export const getAttendanceById = async (id: number): Promise<Attendance> => { const { data } = await api.get(`/attendance/${id}`); return data; };
+export const createAttendance = async (p: CreateAttendance): Promise<Attendance> => { const { data } = await api.post('/attendance', p); return data; };
+export const updateAttendance = async (id: number, p: CreateAttendance): Promise<Attendance> => { const { data } = await api.put(`/attendance/${id}`, p); return data; };
+export const deleteAttendance = async (id: number): Promise<void> => { await api.delete(`/attendance/${id}`); };

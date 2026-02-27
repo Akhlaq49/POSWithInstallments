@@ -74,3 +74,12 @@ public interface IEmployeeService
     Task<EmployeeDto?> UpdateAsync(int id, CreateEmployeeDto dto);
     Task<(bool success, string? error)> DeleteAsync(int id);
 }
+
+public interface IAttendanceService
+{
+    Task<List<AttendanceDto>> GetAllAsync(DateTime? date = null, int? employeeId = null);
+    Task<AttendanceDto?> GetByIdAsync(int id);
+    Task<AttendanceDto> CreateAsync(CreateAttendanceDto dto);
+    Task<AttendanceDto?> UpdateAsync(int id, CreateAttendanceDto dto);
+    Task<(bool success, string? error)> DeleteAsync(int id);
+}

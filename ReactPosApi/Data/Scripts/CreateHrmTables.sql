@@ -257,5 +257,44 @@ BEGIN
 END
 GO
 
+-- ═══════════════════════════════════════════════════════════
+-- ATTENDANCES TABLE
+-- ═══════════════════════════════════════════════════════════
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Attendances')
+BEGIN
+    CREATE TABLE [Attendances] (
+        [Id]          INT IDENTITY(1,1) PRIMARY KEY,
+        [EmployeeId]  INT NOT NULL,
+        [Date]        DATE NOT NULL,
+        [Status]      NVARCHAR(20) NOT NULL DEFAULT 'Present',
+        [ClockIn]     NVARCHAR(MAX) NULL,
+        [ClockOut]    NVARCHAR(MAX) NULL,
+        [Production]  NVARCHAR(MAX) NULL,
+        [BreakTime]   NVARCHAR(MAX) NULL,
+        [Overtime]    NVARCHAR(MAX) NULL,
+        [TotalHours]  NVARCHAR(MAX) NULL,
+        [CreatedAt]   DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+    );
+    PRINT 'Created Attendances table.';
+END
+GO
+
+-- FK: Attendances.EmployeeId → Parties.Id
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Attendances_Employee')
+BEGIN
+    ALTER TABLE [Attendances]
+    ADD CONSTRAINT [FK_Attendances_Employee]
+    FOREIGN KEY ([EmployeeId]) REFERENCES [Parties]([Id]) ON DELETE NO ACTION;
+END
+GO
+
+-- Unique index: one attendance per employee per day
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Attendances_EmployeeId_Date')
+BEGIN
+    CREATE UNIQUE INDEX [IX_Attendances_EmployeeId_Date]
+    ON [Attendances] ([EmployeeId], [Date]);
+END
+GO
+
 PRINT 'HRM tables and foreign keys created successfully.';
 GO

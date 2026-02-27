@@ -67,6 +67,7 @@ public class AppDbContext : DbContext
     public DbSet<Leave> Leaves => Set<Leave>();
     public DbSet<Holiday> Holidays => Set<Holiday>();
     public DbSet<Payroll> Payrolls => Set<Payroll>();
+    public DbSet<Attendance> Attendances => Set<Attendance>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -173,6 +174,13 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Payroll>(e =>
         {
             e.HasOne(p => p.Employee).WithMany().HasForeignKey(p => p.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Attendance
+        modelBuilder.Entity<Attendance>(e =>
+        {
+            e.HasOne(a => a.Employee).WithMany().HasForeignKey(a => a.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(a => new { a.EmployeeId, a.Date }).IsUnique();
         });
 
         // InstallmentPlan

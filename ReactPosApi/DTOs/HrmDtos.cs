@@ -247,3 +247,36 @@ public class CreateEmployeeDto
     public string Status { get; set; } = "active";
     public bool IsActive { get; set; } = true;
 }
+
+// ─── Attendance DTOs ───
+
+public class AttendanceDto
+{
+    public int Id { get; set; }
+    public int EmployeeId { get; set; }
+    public string EmployeeName { get; set; } = string.Empty;
+    public string? EmployeePicture { get; set; }
+    public string? DesignationName { get; set; }
+    public DateTime Date { get; set; }
+    public string Status { get; set; } = "Present";
+    public string? ClockIn { get; set; }
+    public string? ClockOut { get; set; }
+    public string? Production { get; set; }
+    public string? BreakTime { get; set; }
+    public string? Overtime { get; set; }
+    public string? TotalHours { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CreateAttendanceDto
+{
+    public int EmployeeId { get; set; }
+    public DateTime Date { get; set; }
+    public string Status { get; set; } = "Present";
+    public string? ClockIn { get; set; }
+    public string? ClockOut { get; set; }
+    public string? Production { get; set; }
+    public string? BreakTime { get; set; }
+    public string? Overtime { get; set; }
+    public string? TotalHours { get; set; }
+}

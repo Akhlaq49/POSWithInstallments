@@ -500,3 +500,75 @@ public class EmployeeService : IEmployeeService
         Status = p.Status, IsActive = p.IsActive, CreatedAt = p.CreatedAt
     };
 }
+
+// ─── Attendance Service ───
+public class AttendanceService : IAttendanceService
+{
+    private readonly AppDbContext _db;
+    public AttendanceService(AppDbContext db) => _db = db;
+
+    public async Task<List<AttendanceDto>> GetAllAsync(DateTime? date = null, int? employeeId = null)
+    {
+        var q = _db.Attendances
+            .Include(a => a.Employee).ThenInclude(e => e.Designation)
+            .AsQueryable();
+        if (date.HasValue) q = q.Where(a => a.Date == date.Value.Date);
+        if (employeeId.HasValue) q = q.Where(a => a.EmployeeId == employeeId.Value);
+        return await q.OrderByDescending(a => a.Date).ThenBy(a => a.Employee.FullName)
+            .Select(a => MapToDto(a)).ToListAsync();
+    }
+
+    public async Task<AttendanceDto?> GetByIdAsync(int id)
+    {
+        var a = await _db.Attendances
+            .Include(a => a.Employee).ThenInclude(e => e.Designation)
+            .FirstOrDefaultAsync(a => a.Id == id);
+        return a == null ? null : MapToDto(a);
+    }
+
+    public async Task<AttendanceDto> CreateAsync(CreateAttendanceDto dto)
+    {
+        var entity = new Attendance
+        {
+            EmployeeId = dto.EmployeeId, Date = dto.Date.Date, Status = dto.Status,
+            ClockIn = dto.ClockIn, ClockOut = dto.ClockOut, Production = dto.Production,
+            BreakTime = dto.BreakTime, Overtime = dto.Overtime, TotalHours = dto.TotalHours
+        };
+        _db.Attendances.Add(entity);
+        await _db.SaveChangesAsync();
+        return (await GetByIdAsync(entity.Id))!;
+    }
+
+    public async Task<AttendanceDto?> UpdateAsync(int id, CreateAttendanceDto dto)
+    {
+        var entity = await _db.Attendances.FindAsync(id);
+        if (entity == null) return null;
+        entity.EmployeeId = dto.EmployeeId; entity.Date = dto.Date.Date; entity.Status = dto.Status;
+        entity.ClockIn = dto.ClockIn; entity.ClockOut = dto.ClockOut; entity.Production = dto.Production;
+        entity.BreakTime = dto.BreakTime; entity.Overtime = dto.Overtime; entity.TotalHours = dto.TotalHours;
+        await _db.SaveChangesAsync();
+        return (await GetByIdAsync(id))!;
+    }
+
+    public async Task<(bool success, string? error)> DeleteAsync(int id)
+    {
+        var entity = await _db.Attendances.FindAsync(id);
+        if (entity == null) return (false, null);
+        _db.Attendances.Remove(entity);
+        await _db.SaveChangesAsync();
+        return (true, null);
+    }
+
+    private static AttendanceDto MapToDto(Attendance a) => new()
+    {
+        Id = a.Id, EmployeeId = a.EmployeeId,
+        EmployeeName = a.Employee?.FullName ?? "",
+        EmployeePicture = a.Employee?.Picture,
+        DesignationName = a.Employee?.Designation?.Name,
+        Date = a.Date, Status = a.Status,
+        ClockIn = a.ClockIn, ClockOut = a.ClockOut,
+        Production = a.Production, BreakTime = a.BreakTime,
+        Overtime = a.Overtime, TotalHours = a.TotalHours,
+        CreatedAt = a.CreatedAt
+    };
+}
