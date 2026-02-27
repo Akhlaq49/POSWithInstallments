@@ -3,7 +3,8 @@ using System.ComponentModel.DataAnnotations;
 namespace ReactPosApi.Models;
 
 /// <summary>
-/// Unified table for all person/entity types: Admin, Manager, User, Customer, Guarantor, etc.
+/// Unified table for all person/entity types: Admin, Manager, User, Customer, Guarantor,
+/// Supplier, Biller, Store, Warehouse, etc.
 /// The Role field distinguishes between types.
 /// </summary>
 public class Party
@@ -15,10 +16,16 @@ public class Party
     public string FullName { get; set; } = string.Empty;
 
     [MaxLength(200)]
+    public string? LastName { get; set; }
+
+    [MaxLength(200)]
     public string? Email { get; set; }
 
     [MaxLength(50)]
     public string? Phone { get; set; }
+
+    [MaxLength(50)]
+    public string? PhoneWork { get; set; }
 
     [MaxLength(200)]
     public string? SO { get; set; }  // Son/Daughter Of
@@ -32,15 +39,37 @@ public class Party
     [MaxLength(100)]
     public string? City { get; set; }
 
+    [MaxLength(100)]
+    public string? State { get; set; }
+
+    [MaxLength(100)]
+    public string? Country { get; set; }
+
+    [MaxLength(20)]
+    public string? PostalCode { get; set; }
+
     [MaxLength(500)]
     public string? Picture { get; set; }
 
-    // Auth fields (only used when Role is Admin/Manager/User)
+    [MaxLength(50)]
+    public string? Code { get; set; }  // e.g. SU001, BI001
+
+    [MaxLength(200)]
+    public string? CompanyName { get; set; }
+
+    [MaxLength(200)]
+    public string? ContactPerson { get; set; }
+
+    [MaxLength(100)]
+    public string? UserName { get; set; }  // For Store role
+
+    // Auth fields (only used when Role is Admin/Manager/User/Store)
     [MaxLength(500)]
     public string? PasswordHash { get; set; }
 
     /// <summary>
-    /// Determines the party type: "Admin", "Manager", "User", "Customer", "Guarantor"
+    /// Determines the party type: "Admin", "Manager", "User", "Customer", "Guarantor",
+    /// "Supplier", "Biller", "Store", "Warehouse"
     /// </summary>
     [Required, MaxLength(30)]
     public string Role { get; set; } = "Customer";

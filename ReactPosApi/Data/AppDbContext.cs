@@ -97,10 +97,13 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Party (unified: Admin, Manager, User, Customer, Guarantor)
+        // Party (unified: Admin, Manager, User, Customer, Guarantor, Supplier, Biller, Store, Warehouse)
         modelBuilder.Entity<Party>(e =>
         {
-            e.HasIndex(p => p.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
+            e.HasIndex(p => new { p.Email, p.Role })
+             .IsUnique()
+             .HasFilter("[Email] IS NOT NULL")
+             .HasDatabaseName("IX_Parties_Email_Role");
             e.Property(p => p.Role).HasDefaultValue("Customer");
             e.Property(p => p.Status).HasDefaultValue("active");
             e.Property(p => p.IsActive).HasDefaultValue(true);
