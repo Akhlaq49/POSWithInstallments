@@ -332,57 +332,6 @@ public class CreateStockAdjustmentDto
 }
 
 // ============================
-// Order
-// ============================
-public class OrderDto
-{
-    public int Id { get; set; }
-    public string OrderNumber { get; set; } = string.Empty;
-    public int? CustomerId { get; set; }
-    public string CustomerName { get; set; } = string.Empty;
-    public string? CustomerImage { get; set; }
-    public string PaymentType { get; set; } = string.Empty;
-    public decimal Amount { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public string OrderDate { get; set; } = string.Empty;
-    public string OrderSource { get; set; } = "POS";
-    public List<OrderItemDto> Items { get; set; } = new();
-}
-
-public class OrderItemDto
-{
-    public int Id { get; set; }
-    public int ProductId { get; set; }
-    public string ProductName { get; set; } = string.Empty;
-    public int Quantity { get; set; }
-    public decimal Price { get; set; }
-}
-
-public class CreateOrderDto
-{
-    public int? CustomerId { get; set; }
-    public string CustomerName { get; set; } = string.Empty;
-    public string? CustomerImage { get; set; }
-    public string PaymentType { get; set; } = string.Empty;
-    public decimal Amount { get; set; }
-    public string Status { get; set; } = "Pending";
-    public List<CreateOrderItemDto> Items { get; set; } = new();
-}
-
-public class CreateOrderItemDto
-{
-    public int ProductId { get; set; }
-    public string ProductName { get; set; } = string.Empty;
-    public int Quantity { get; set; } = 1;
-    public decimal Price { get; set; }
-}
-
-public class UpdateOrderStatusDto
-{
-    public string Status { get; set; } = string.Empty;
-}
-
-// ============================
 // Stock Transfer
 // ============================
 public class StockTransferDto
@@ -494,6 +443,7 @@ public class SaleDto
 {
     public int Id { get; set; }
     public string Reference { get; set; } = string.Empty;
+    public string? OrderNumber { get; set; }
     public int? CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string? CustomerImage { get; set; }
@@ -551,6 +501,7 @@ public class CreateSaleDto
     public string Status { get; set; } = "Pending";
     public string? Notes { get; set; }
     public string Source { get; set; } = "online";
+    public string? OrderNumber { get; set; }
     public List<CreateSaleItemDto> Items { get; set; } = new();
 }
 

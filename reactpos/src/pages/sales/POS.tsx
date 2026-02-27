@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import api, { mediaUrl } from '../../services/api';
 import { getCustomers, Customer } from '../../services/customerService';
+import Swal from 'sweetalert2';
 
 /* ───── types ───── */
 interface ProductItem {
@@ -37,6 +38,8 @@ const POS: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Card'>('Cash');
+  const [submitting, setSubmitting] = useState(false);
 
   /* clock */
   const [clock, setClock] = useState('');
@@ -122,6 +125,58 @@ const POS: React.FC = () => {
   }, []);
 
   const clearCart = useCallback(() => setCart([]), []);
+
+  /* ── submit sale ── */
+  const handlePay = useCallback(async () => {
+    if (cart.length === 0 || submitting) return;
+    setSubmitting(true);
+    try {
+      const customer = customers.find(c => String(c.id) === selectedCustomer);
+      const payload = {
+        customerId: customer ? Number(customer.id) : null,
+        customerName: customer ? customer.name : 'Walk in Customer',
+        biller: userName,
+        grandTotal: subTotal + Math.round(subTotal * 0.15),
+        orderTax: Math.round(subTotal * 0.15),
+        discount: 0,
+        shipping: 0,
+        status: 'Completed',
+        notes: '',
+        source: 'pos',
+        items: cart.map(line => ({
+          productId: Number(line.product.id),
+          productName: line.product.productName,
+          quantity: line.qty,
+          purchasePrice: line.product.price,
+          discount: 0,
+          taxPercent: 15,
+          taxAmount: Math.round(line.product.price * line.qty * 0.15),
+          unitCost: line.product.price,
+          totalCost: line.product.price * line.qty,
+        })),
+      };
+      const res = await api.post('/sales', payload);
+      const saleId = (res.data as any).id;
+      const saleRef = (res.data as any).reference;
+
+      // Auto-create payment (full paid)
+      await api.post(`/sales/${saleId}/payments`, {
+        reference: `PAY-${saleRef}`,
+        receivedAmount: payload.grandTotal,
+        payingAmount: payload.grandTotal,
+        paymentType: paymentMethod,
+        description: `POS ${paymentMethod} Payment`,
+      });
+
+      setCart([]);
+      setSelectedCustomer('');
+      Swal.fire({ icon: 'success', title: 'Sale Completed!', text: `Reference: ${saleRef}`, timer: 2000, showConfirmButton: false });
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.message || 'Failed to process sale' });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [cart, submitting, customers, selectedCustomer, userName, subTotal, paymentMethod]);
 
   /* totals */
   const subTotal = useMemo(
@@ -442,8 +497,8 @@ const POS: React.FC = () => {
                   <div className="col d-flex">
                     <a
                       href="#!"
-                      onClick={(e) => e.preventDefault()}
-                      className="payment-item flex-fill active"
+                      onClick={(e) => { e.preventDefault(); setPaymentMethod('Cash'); }}
+                      className={`payment-item flex-fill${paymentMethod === 'Cash' ? ' active' : ''}`}
                     >
                       <img
                         src="/assets/img/icons/cash-icon.svg"
@@ -458,8 +513,8 @@ const POS: React.FC = () => {
                   <div className="col d-flex">
                     <a
                       href="#!"
-                      onClick={(e) => e.preventDefault()}
-                      className="payment-item flex-fill"
+                      onClick={(e) => { e.preventDefault(); setPaymentMethod('Card'); }}
+                      className={`payment-item flex-fill${paymentMethod === 'Card' ? ' active' : ''}`}
                     >
                       <img
                         src="/assets/img/icons/card.svg"
@@ -475,8 +530,12 @@ const POS: React.FC = () => {
                 <div className="btn-block m-0">
                   <button
                     className="btn btn-teal w-100 py-2 fs-16 fw-bold"
-                    disabled={cart.length === 0}
+                    disabled={cart.length === 0 || submitting}
+                    onClick={handlePay}
                   >
+                    {submitting ? (
+                      <span className="spinner-border spinner-border-sm me-2" />
+                    ) : null}
                     Pay : Rs {fmt(grandTotal)}
                   </button>
                 </div>

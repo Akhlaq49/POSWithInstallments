@@ -163,7 +163,7 @@ public class StorefrontController : ControllerBase
 
     /// <summary>
     /// POST /api/storefront/orders
-    /// Creates an order with OrderSource = "Online".
+    /// Creates a Sale with Source = "online" (unified Sale table).
     /// Uses Party for customer info, PartyAddress for addresses.
     /// </summary>
     [HttpPost("orders")]
@@ -193,18 +193,16 @@ public class StorefrontController : ControllerBase
                 CreatedAt = DateTime.UtcNow
             };
 
-            // If the customer wants to create an account
             if (dto.CreateAccount && !string.IsNullOrWhiteSpace(dto.AccountPassword))
             {
                 party.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.AccountPassword);
             }
 
             _db.Parties.Add(party);
-            await _db.SaveChangesAsync(); // get party.Id
+            await _db.SaveChangesAsync();
         }
         else
         {
-            // Update phone if provided and currently empty
             if (string.IsNullOrWhiteSpace(party.Phone) && !string.IsNullOrWhiteSpace(dto.CustomerPhone))
             {
                 party.Phone = dto.CustomerPhone;
@@ -261,92 +259,100 @@ public class StorefrontController : ControllerBase
         }
 
         if (billingAddr != null || shippingAddr != null)
-            await _db.SaveChangesAsync(); // get address IDs
+            await _db.SaveChangesAsync();
 
-        // 3. Create Order (uses only original DB columns)
-        var order = new Order
+        // 3. Generate next Sale reference
+        var lastRef = await _db.Sales.OrderByDescending(s => s.Id).Select(s => s.Reference).FirstOrDefaultAsync();
+        int nextNum = 1;
+        if (!string.IsNullOrEmpty(lastRef) && lastRef.StartsWith("SL"))
+        { int.TryParse(lastRef.Substring(2), out nextNum); nextNum++; }
+        var reference = $"SL{nextNum:D3}";
+
+        var orderNumber = $"ONL-{new Random().Next(1000000, 9999999)}";
+
+        // 4. Build SaleItems (resolve product names if missing)
+        var saleItems = new List<SaleItem>();
+        foreach (var i in dto.Items)
         {
-            OrderNumber = $"ONL-{new Random().Next(1000000, 9999999)}",
-            CustomerId = party.Id,
-            CustomerName = party.FullName,
-            PaymentType = dto.PaymentMethod ?? "cash_on_delivery",
-            Amount = dto.GrandTotal,
-            Status = "Pending",
-            OrderDate = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow,
-            Items = dto.Items.Select(i => new OrderItem
+            var productName = i.ProductName ?? "";
+            if (string.IsNullOrEmpty(productName))
+            {
+                var product = await _db.Products.FindAsync(i.ProductId);
+                if (product != null) productName = product.ProductName;
+            }
+            saleItems.Add(new SaleItem
             {
                 ProductId = i.ProductId,
-                ProductName = i.ProductName ?? "",
+                ProductName = productName,
                 Quantity = i.Quantity,
-                Price = i.Price
-            }).ToList()
-        };
-
-        // Resolve product names if not provided
-        foreach (var item in order.Items)
-        {
-            if (string.IsNullOrEmpty(item.ProductName))
-            {
-                var product = await _db.Products.FindAsync(item.ProductId);
-                if (product != null) item.ProductName = product.ProductName;
-            }
+                PurchasePrice = i.Price,
+                Discount = 0,
+                TaxPercent = dto.Tax > 0 && dto.SubTotal > 0 ? Math.Round((dto.Tax / dto.SubTotal) * 100, 2) : 0,
+                TaxAmount = dto.Items.Count > 0 ? Math.Round(dto.Tax / dto.Items.Count, 2) : 0,
+                UnitCost = i.Price,
+                TotalCost = i.Price * i.Quantity
+            });
         }
 
-        _db.Orders.Add(order);
-        await _db.SaveChangesAsync(); // get order.Id
-
-        // 4. Create OnlineOrderDetail with FK references
-        var onlineDetail = new OnlineOrderDetail
+        // 5. Create unified Sale record (Source = "online")
+        var sale = new Sale
         {
-            OrderId = order.Id,
+            Reference = reference,
+            OrderNumber = orderNumber,
+            CustomerId = party.Id,
+            CustomerName = party.FullName,
+            Biller = "Online Store",
+            Source = "online",
+            GrandTotal = dto.GrandTotal,
+            Paid = 0,
+            Due = dto.GrandTotal,
+            OrderTax = dto.Tax,
+            Discount = dto.Discount,
+            Shipping = dto.Shipping,
+            Status = "Pending",
+            PaymentStatus = "Unpaid",
+            Notes = dto.Notes,
             BillingAddressId = billingAddr?.Id,
             ShippingAddressId = shippingAddr?.Id,
-            Notes = dto.Notes,
-            PaymentMethod = dto.PaymentMethod ?? "cash_on_delivery",
-            SubTotal = dto.SubTotal,
-            Shipping = dto.Shipping,
-            Discount = dto.Discount,
-            Tax = dto.Tax,
-            GrandTotal = dto.GrandTotal,
-            OrderSource = "Online",
-            CreatedAt = DateTime.UtcNow
+            SaleDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            Items = saleItems
         };
 
-        _db.OnlineOrderDetails.Add(onlineDetail);
+        _db.Sales.Add(sale);
         await _db.SaveChangesAsync();
 
         return Ok(new
         {
             success = true,
-            data = new { id = order.Id, orderNumber = order.OrderNumber },
+            data = new { id = sale.Id, orderNumber = sale.OrderNumber },
             message = "Order placed successfully"
         });
     }
 
     /// <summary>
     /// GET /api/storefront/orders/email/:email
-    /// Get orders by customer email (via Party table).
+    /// Get orders (Sales with Source="online") by customer email.
     /// </summary>
     [HttpGet("orders/email/{email}")]
     public async Task<IActionResult> GetOrdersByEmail(string email)
     {
-        var orders = await _db.Orders
-            .Include(o => o.Items)
-            .Include(o => o.Customer)
-            .Include(o => o.OnlineDetail)
-            .Where(o => o.Customer != null && o.Customer.Email == email)
-            .OrderByDescending(o => o.CreatedAt)
-            .Select(o => new
+        var orders = await _db.Sales
+            .Include(s => s.Items)
+            .Include(s => s.Customer)
+            .Where(s => s.Source == "online" && s.Customer != null && s.Customer.Email == email)
+            .OrderByDescending(s => s.CreatedAt)
+            .Select(s => new
             {
-                id = o.Id,
-                orderNumber = o.OrderNumber,
-                customerName = o.CustomerName,
-                amount = o.Amount,
-                status = o.Status,
-                orderSource = o.OnlineDetail != null ? "Online" : "POS",
-                orderDate = o.OrderDate.ToString("dd MMM yyyy, hh:mm tt"),
-                itemCount = o.Items.Count
+                id = s.Id,
+                orderNumber = s.OrderNumber ?? s.Reference,
+                customerName = s.CustomerName,
+                amount = s.GrandTotal,
+                status = s.Status,
+                orderSource = "Online",
+                paymentStatus = s.PaymentStatus,
+                orderDate = s.SaleDate.ToString("dd MMM yyyy, hh:mm tt"),
+                itemCount = s.Items.Count
             })
             .ToListAsync();
 

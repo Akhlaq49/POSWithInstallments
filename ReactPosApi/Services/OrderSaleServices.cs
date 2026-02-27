@@ -5,110 +5,6 @@ using ReactPosApi.Models;
 
 namespace ReactPosApi.Services;
 
-// ── OrderService ──
-public class OrderService : IOrderService
-{
-    private readonly AppDbContext _db;
-    public OrderService(AppDbContext db) => _db = db;
-
-    public async Task<List<OrderDto>> GetAllAsync()
-    {
-        return await _db.Orders.Include(o => o.Items).Include(o => o.OnlineDetail)
-            .OrderByDescending(o => o.CreatedAt)
-            .Select(o => new OrderDto
-            {
-                Id = o.Id, OrderNumber = o.OrderNumber, CustomerId = o.CustomerId,
-                CustomerName = o.CustomerName, CustomerImage = o.CustomerImage,
-                PaymentType = o.PaymentType, Amount = o.Amount, Status = o.Status,
-                OrderSource = o.OnlineDetail != null ? "Online" : "POS",
-                OrderDate = o.OrderDate.ToString("dd MMM yyyy, hh:mm tt"),
-                Items = o.Items.Select(i => new OrderItemDto
-                {
-                    Id = i.Id, ProductId = i.ProductId, ProductName = i.ProductName,
-                    Quantity = i.Quantity, Price = i.Price
-                }).ToList()
-            }).ToListAsync();
-    }
-
-    public async Task<OrderDto?> GetByIdAsync(int id)
-    {
-        var o = await _db.Orders.Include(o => o.Items).Include(o => o.OnlineDetail)
-            .FirstOrDefaultAsync(o => o.Id == id);
-        if (o == null) return null;
-        return new OrderDto
-        {
-            Id = o.Id, OrderNumber = o.OrderNumber, CustomerId = o.CustomerId,
-            CustomerName = o.CustomerName, CustomerImage = o.CustomerImage,
-            PaymentType = o.PaymentType, Amount = o.Amount, Status = o.Status,
-            OrderSource = o.OnlineDetail != null ? "Online" : "POS",
-            OrderDate = o.OrderDate.ToString("dd MMM yyyy, hh:mm tt"),
-            Items = o.Items.Select(i => new OrderItemDto
-            {
-                Id = i.Id, ProductId = i.ProductId, ProductName = i.ProductName,
-                Quantity = i.Quantity, Price = i.Price
-            }).ToList()
-        };
-    }
-
-    public async Task<object> CreateAsync(CreateOrderDto dto)
-    {
-        var order = new Order
-        {
-            OrderNumber = new Random().Next(1000000, 9999999).ToString(),
-            CustomerId = dto.CustomerId, CustomerName = dto.CustomerName,
-            CustomerImage = dto.CustomerImage, PaymentType = dto.PaymentType,
-            Amount = dto.Amount, Status = dto.Status,
-            OrderDate = DateTime.UtcNow, CreatedAt = DateTime.UtcNow,
-            Items = dto.Items.Select(i => new OrderItem
-            {
-                ProductId = i.ProductId, ProductName = i.ProductName,
-                Quantity = i.Quantity, Price = i.Price
-            }).ToList()
-        };
-        _db.Orders.Add(order);
-        await _db.SaveChangesAsync();
-        return new { order.Id, order.OrderNumber };
-    }
-
-    public async Task<object?> UpdateAsync(int id, CreateOrderDto dto)
-    {
-        var order = await _db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
-        if (order == null) return null;
-
-        order.CustomerId = dto.CustomerId; order.CustomerName = dto.CustomerName;
-        order.CustomerImage = dto.CustomerImage; order.PaymentType = dto.PaymentType;
-        order.Amount = dto.Amount; order.Status = dto.Status;
-
-        _db.OrderItems.RemoveRange(order.Items);
-        order.Items = dto.Items.Select(i => new OrderItem
-        {
-            OrderId = id, ProductId = i.ProductId, ProductName = i.ProductName,
-            Quantity = i.Quantity, Price = i.Price
-        }).ToList();
-
-        await _db.SaveChangesAsync();
-        return new { order.Id };
-    }
-
-    public async Task<object?> UpdateStatusAsync(int id, UpdateOrderStatusDto dto)
-    {
-        var order = await _db.Orders.FindAsync(id);
-        if (order == null) return null;
-        order.Status = dto.Status;
-        await _db.SaveChangesAsync();
-        return new { order.Id, order.Status };
-    }
-
-    public async Task<bool> DeleteAsync(int id)
-    {
-        var order = await _db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
-        if (order == null) return false;
-        _db.Orders.Remove(order);
-        await _db.SaveChangesAsync();
-        return true;
-    }
-}
-
 // ── SaleService ──
 public class SaleService : ISaleService
 {
@@ -142,7 +38,8 @@ public class SaleService : ISaleService
 
         var sale = new Sale
         {
-            Reference = reference, CustomerId = dto.CustomerId, CustomerName = dto.CustomerName,
+            Reference = reference, OrderNumber = dto.OrderNumber,
+            CustomerId = dto.CustomerId, CustomerName = dto.CustomerName,
             CustomerImage = dto.CustomerImage, Biller = dto.Biller, Source = dto.Source,
             GrandTotal = dto.GrandTotal, Paid = 0, Due = dto.GrandTotal,
             OrderTax = dto.OrderTax, Discount = dto.Discount, Shipping = dto.Shipping,
@@ -272,7 +169,8 @@ public class SaleService : ISaleService
 
     private static SaleDto MapToDto(Sale s) => new()
     {
-        Id = s.Id, Reference = s.Reference, CustomerId = s.CustomerId,
+        Id = s.Id, Reference = s.Reference, OrderNumber = s.OrderNumber,
+        CustomerId = s.CustomerId,
         CustomerName = s.CustomerName, CustomerImage = s.CustomerImage, Biller = s.Biller,
         GrandTotal = s.GrandTotal, Paid = s.Paid, Due = s.Due,
         OrderTax = s.OrderTax, Discount = s.Discount, Shipping = s.Shipping,

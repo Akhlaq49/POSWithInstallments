@@ -229,7 +229,6 @@ const SearchList = lazy(() => import('./pages/application/SearchList'))
 // Ecommerce
 const EcomProducts = lazy(() => import('./pages/ecommerce/Products'))
 const EcomProductDetails = lazy(() => import('./pages/ecommerce/ProductDetails'))
-const OrdersPage = lazy(() => import('./pages/ecommerce/Orders'))
 const CartPage = lazy(() => import('./pages/ecommerce/Cart'))
 const CheckoutPage = lazy(() => import('./pages/ecommerce/Checkout'))
 const WishlistPage = lazy(() => import('./pages/ecommerce/Wishlist'))
@@ -566,7 +565,7 @@ function App() {
           {/* Ecommerce */}
           <Route path="/ecommerce/products" element={<EcomProducts />} />
           <Route path="/ecommerce/product-details" element={<EcomProductDetails />} />
-          <Route path="/ecommerce/orders" element={<OrdersPage />} />
+          <Route path="/ecommerce/orders" element={<OnlineOrders />} />
           <Route path="/ecommerce/customers" element={<Customers />} />
           <Route path="/ecommerce/cart" element={<CartPage />} />
           <Route path="/ecommerce/checkout" element={<CheckoutPage />} />

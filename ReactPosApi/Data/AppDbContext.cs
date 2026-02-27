@@ -19,8 +19,6 @@ public class AppDbContext : DbContext
     public DbSet<StockAdjustment> StockAdjustments => Set<StockAdjustment>();
     public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
     public DbSet<StockTransferItem> StockTransferItems => Set<StockTransferItem>();
-    public DbSet<Order> Orders => Set<Order>();
-    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleItem> SaleItems => Set<SaleItem>();
     public DbSet<SalePayment> SalePayments => Set<SalePayment>();
@@ -50,7 +48,6 @@ public class AppDbContext : DbContext
     public DbSet<RepaymentEntry> RepaymentEntries => Set<RepaymentEntry>();
 
     // Online storefront
-    public DbSet<OnlineOrderDetail> OnlineOrderDetails => Set<OnlineOrderDetail>();
     public DbSet<PartyAddress> PartyAddresses => Set<PartyAddress>();
 
     // Role Permissions
@@ -252,41 +249,6 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Order
-        modelBuilder.Entity<Order>(e =>
-        {
-            e.HasOne(o => o.Customer)
-             .WithMany()
-             .HasForeignKey(o => o.CustomerId)
-             .OnDelete(DeleteBehavior.SetNull);
-            e.Property(o => o.Amount).HasColumnType("decimal(18,2)");
-        });
-
-        // OnlineOrderDetail -> Order (1:1)
-        modelBuilder.Entity<OnlineOrderDetail>(e =>
-        {
-            e.HasOne(d => d.Order)
-             .WithOne(o => o.OnlineDetail)
-             .HasForeignKey<OnlineOrderDetail>(d => d.OrderId)
-             .OnDelete(DeleteBehavior.Cascade);
-
-            e.HasOne(d => d.BillingAddress)
-             .WithMany()
-             .HasForeignKey(d => d.BillingAddressId)
-             .OnDelete(DeleteBehavior.SetNull);
-
-            e.HasOne(d => d.ShippingAddress)
-             .WithMany()
-             .HasForeignKey(d => d.ShippingAddressId)
-             .OnDelete(DeleteBehavior.SetNull);
-
-            e.Property(d => d.SubTotal).HasColumnType("decimal(18,2)");
-            e.Property(d => d.Shipping).HasColumnType("decimal(18,2)");
-            e.Property(d => d.Discount).HasColumnType("decimal(18,2)");
-            e.Property(d => d.Tax).HasColumnType("decimal(18,2)");
-            e.Property(d => d.GrandTotal).HasColumnType("decimal(18,2)");
-        });
-
         // PartyAddress -> Party
         modelBuilder.Entity<PartyAddress>(e =>
         {
@@ -296,22 +258,20 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // OrderItem -> Order
-        modelBuilder.Entity<OrderItem>(e =>
-        {
-            e.HasOne(i => i.Order)
-             .WithMany(o => o.Items)
-             .HasForeignKey(i => i.OrderId)
-             .OnDelete(DeleteBehavior.Cascade);
-            e.Property(i => i.Price).HasColumnType("decimal(18,2)");
-        });
-
         // Sale
         modelBuilder.Entity<Sale>(e =>
         {
             e.HasOne(s => s.Customer)
              .WithMany()
              .HasForeignKey(s => s.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(s => s.BillingAddress)
+             .WithMany()
+             .HasForeignKey(s => s.BillingAddressId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(s => s.ShippingAddress)
+             .WithMany()
+             .HasForeignKey(s => s.ShippingAddressId)
              .OnDelete(DeleteBehavior.SetNull);
             e.Property(s => s.GrandTotal).HasColumnType("decimal(18,2)");
             e.Property(s => s.Paid).HasColumnType("decimal(18,2)");

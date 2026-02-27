@@ -33,7 +33,6 @@ builder.Services.AddScoped<IWarrantyService, WarrantyService>();
 builder.Services.AddScoped<IStockEntryService, StockEntryService>();
 builder.Services.AddScoped<IStockTransferService, StockTransferService>();
 builder.Services.AddScoped<IStockAdjustmentService, StockAdjustmentService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<ISalesReturnService, SalesReturnService>();

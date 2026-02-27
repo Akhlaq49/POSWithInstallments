@@ -2,16 +2,6 @@ using ReactPosApi.DTOs;
 
 namespace ReactPosApi.Services;
 
-public interface IOrderService
-{
-    Task<List<OrderDto>> GetAllAsync();
-    Task<OrderDto?> GetByIdAsync(int id);
-    Task<object> CreateAsync(CreateOrderDto dto);
-    Task<object?> UpdateAsync(int id, CreateOrderDto dto);
-    Task<object?> UpdateStatusAsync(int id, UpdateOrderStatusDto dto);
-    Task<bool> DeleteAsync(int id);
-}
-
 public interface ISaleService
 {
     Task<List<SaleDto>> GetAllAsync(string? source);

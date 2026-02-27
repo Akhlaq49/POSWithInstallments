@@ -41,6 +41,18 @@ public class Sale
     [MaxLength(20)]
     public string Source { get; set; } = "online";
 
+    /// <summary>Customer-facing order number for online orders (e.g. ONL-1234567)</summary>
+    [MaxLength(50)]
+    public string? OrderNumber { get; set; }
+
+    /// <summary>FK to PartyAddress for billing (online orders)</summary>
+    public int? BillingAddressId { get; set; }
+    public PartyAddress? BillingAddress { get; set; }
+
+    /// <summary>FK to PartyAddress for shipping (online orders)</summary>
+    public int? ShippingAddressId { get; set; }
+    public PartyAddress? ShippingAddress { get; set; }
+
     public DateTime SaleDate { get; set; } = DateTime.UtcNow;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
