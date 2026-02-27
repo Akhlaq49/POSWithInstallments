@@ -1,10 +1,12 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import { getFinanceIncomes, createFinanceIncome, updateFinanceIncome, deleteFinanceIncome, getIncomeCategories, getBankAccounts, FinanceIncome, IncomeCategory, BankAccount } from '../../services/financeService';
+import { getStores, DropdownOption } from '../../services/productService';
 
 const Income: React.FC = () => {
   const [incomes, setIncomes] = useState<FinanceIncome[]>([]);
   const [categories, setCategories] = useState<IncomeCategory[]>([]);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [stores, setStores] = useState<DropdownOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectAll, setSelectAll] = useState(false);
@@ -22,8 +24,8 @@ const Income: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [incRes, catRes, accRes] = await Promise.all([getFinanceIncomes(), getIncomeCategories(), getBankAccounts()]);
-      setIncomes(incRes.data); setCategories(catRes.data); setAccounts(accRes.data);
+      const [incRes, catRes, accRes, storeRes] = await Promise.all([getFinanceIncomes(), getIncomeCategories(), getBankAccounts(), getStores()]);
+      setIncomes(incRes.data); setCategories(catRes.data); setAccounts(accRes.data); setStores(storeRes);
     } catch { setIncomes([]); }
     finally { setLoading(false); }
   };
@@ -134,7 +136,12 @@ const Income: React.FC = () => {
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div className="mb-3"><label className="form-label">Store</label><input type="text" className="form-control" value={addForm.store} onChange={e => setAddForm(p => ({ ...p, store: e.target.value }))} /></div>
+              <div className="mb-3"><label className="form-label">Store</label>
+                <select className="form-select" value={addForm.store} onChange={e => setAddForm(p => ({ ...p, store: e.target.value }))}>
+                  <option value="">Select Store</option>
+                  {stores.map(s => <option key={s.value} value={s.label}>{s.label}</option>)}
+                </select>
+              </div>
               <div className="mb-3"><label className="form-label">Amount<span className="text-danger ms-1">*</span></label><input type="number" className="form-control" value={addForm.amount || ''} onChange={e => setAddForm(p => ({ ...p, amount: Number(e.target.value) }))} /></div>
               <div className="mb-3"><label className="form-label">Account</label>
                 <select className="form-select" value={addForm.account} onChange={e => setAddForm(p => ({ ...p, account: e.target.value }))}>
@@ -161,7 +168,12 @@ const Income: React.FC = () => {
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div className="mb-3"><label className="form-label">Store</label><input type="text" className="form-control" value={editForm.store} onChange={e => setEditForm(p => ({ ...p, store: e.target.value }))} /></div>
+              <div className="mb-3"><label className="form-label">Store</label>
+                <select className="form-select" value={editForm.store} onChange={e => setEditForm(p => ({ ...p, store: e.target.value }))}>
+                  <option value="">Select Store</option>
+                  {stores.map(s => <option key={s.value} value={s.label}>{s.label}</option>)}
+                </select>
+              </div>
               <div className="mb-3"><label className="form-label">Amount<span className="text-danger ms-1">*</span></label><input type="number" className="form-control" value={editForm.amount || ''} onChange={e => setEditForm(p => ({ ...p, amount: Number(e.target.value) }))} /></div>
               <div className="mb-3"><label className="form-label">Account</label>
                 <select className="form-select" value={editForm.account} onChange={e => setEditForm(p => ({ ...p, account: e.target.value }))}>
