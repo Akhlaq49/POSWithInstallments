@@ -1,5 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
-import PageHeader from '../../components/common/PageHeader';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   getPurchases, 
   createPurchase, 
@@ -22,7 +21,10 @@ const PurchaseList: React.FC = () => {
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const editorRef = useRef<any>(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'recent' | 'asc' | 'desc'>('recent');
+  const [selectAll, setSelectAll] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   // Products from database for dropdown
   const [products, setProducts] = useState<ProductResponse[]>([]);
@@ -78,7 +80,7 @@ const PurchaseList: React.FC = () => {
   // Filter purchases when search or status filter changes
   useEffect(() => {
     applyFilters();
-  }, [purchases, searchQuery, paymentStatusFilter]);
+  }, [purchases, searchQuery, paymentStatusFilter, statusFilter, sortBy]);
 
   const loadPurchases = async () => {
     setLoading(true);
@@ -123,8 +125,36 @@ const PurchaseList: React.FC = () => {
       filtered = filtered.filter((p) => p.paymentStatus === paymentStatusFilter);
     }
 
+    if (statusFilter) {
+      filtered = filtered.filter((p) => p.status === statusFilter);
+    }
+
+    if (sortBy === 'asc') {
+      filtered = [...filtered].sort((a, b) => a.supplierName.localeCompare(b.supplierName));
+    } else if (sortBy === 'desc') {
+      filtered = [...filtered].sort((a, b) => b.supplierName.localeCompare(a.supplierName));
+    }
+
     setFilteredPurchases(filtered);
   };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked) {
+      setSelectedIds(new Set(paginatedPurchases.map(p => p.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: number, checked: boolean) => {
+    const next = new Set(selectedIds);
+    if (checked) next.add(id); else next.delete(id);
+    setSelectedIds(next);
+    setSelectAll(next.size === paginatedPurchases.length);
+  };
+
+  const fmt = (v: number) => `$${v.toFixed(2)}`;
 
   const handleAddPurchase = () => {
     resetForm();
@@ -298,18 +328,27 @@ const PurchaseList: React.FC = () => {
   };
 
   const getPaymentStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Paid':
-        return <span className="badge bg-success">Paid</span>;
-      case 'Unpaid':
-        return <span className="badge bg-danger">Unpaid</span>;
-      case 'Partial':
-        return <span className="badge bg-warning">Partial</span>;
-      case 'Overdue':
-        return <span className="badge bg-info">Overdue</span>;
-      default:
-        return <span className="badge bg-secondary">{status}</span>;
-    }
+    const cls: Record<string, string> = {
+      Paid: 'bg-success',
+      Unpaid: 'bg-danger',
+      Partial: 'bg-warning',
+      Overdue: 'bg-info',
+    };
+    return (
+      <span className={`badge ${cls[status] || 'bg-secondary'} shadow-none badge-xs`}>
+        <i className="ti ti-point-filled me-1"></i>{status}
+      </span>
+    );
+  };
+
+  const getStatusBadge = (status: string) => {
+    const cls: Record<string, string> = {
+      Received: 'badge-success',
+      Pending: 'badge-warning',
+      Ordered: 'badge-info',
+      Cancelled: 'badge-danger',
+    };
+    return <span className={`badge ${cls[status] || 'badge-secondary'}`}>{status}</span>;
   };
 
   const paginatedPurchases = filteredPurchases.slice(
@@ -321,31 +360,51 @@ const PurchaseList: React.FC = () => {
 
   if (loading && purchases.length === 0) {
     return (
-      <div className="page-wrapper">
-        <div className="content">
-          <PageHeader title="Purchases" breadcrumbs={[{ title: 'Purchases', path: '/purchases' }]} />
-          <div className="text-center">
-            <div className="spinner-border" role="status">
-              <span className="visually-hidden">Loading...</span>
+      <>
+        <div className="page-header">
+          <div className="add-item d-flex">
+            <div className="page-title">
+              <h4>Purchases</h4>
+              <h6>Manage Your Purchases</h6>
             </div>
           </div>
         </div>
-      </div>
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="page-wrapper">
-      <div className="content">
-        <PageHeader title="Purchases" breadcrumbs={[{ title: 'Purchases', path: '/purchases' }]} />
+    <>
+      {/* ---- Page Header ---- */}
+      <div className="page-header">
+        <div className="add-item d-flex">
+          <div className="page-title">
+            <h4>Purchases</h4>
+            <h6>Manage Your Purchases</h6>
+          </div>
+        </div>
+        <div className="page-btn">
+          <a href="#" className="btn btn-primary" onClick={e => { e.preventDefault(); handleAddPurchase(); }}>
+            <i className="ti ti-circle-plus me-1"></i>Add Purchase
+          </a>
+        </div>
+      </div>
 
-        <div className="row mb-3">
-          <div className="col-lg-6">
-            <div className="input-group">
+      {/* ---- Card ---- */}
+      <div className="card">
+        <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+          <div className="search-set">
+            <div className="search-input">
+              <a href="#" className="btn btn-searchset"><i className="ti ti-search fs-14"></i></a>
               <input
                 type="text"
                 className="form-control"
-                placeholder="Search by supplier or reference"
+                placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -354,119 +413,143 @@ const PurchaseList: React.FC = () => {
               />
             </div>
           </div>
-          <div className="col-lg-3">
-            <select
-              className="form-control"
-              value={paymentStatusFilter}
-              onChange={(e) => {
-                setPaymentStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="">All Payment Status</option>
-              <option value="Paid">Paid</option>
-              <option value="Unpaid">Unpaid</option>
-              <option value="Partial">Partial</option>
-              <option value="Overdue">Overdue</option>
-            </select>
-          </div>
-          <div className="col-lg-3 text-end">
-            <button className="btn btn-primary" onClick={handleAddPurchase}>
-              <i className="ti ti-plus me-2"></i>Add Purchase
-            </button>
+          <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
+            {/* Status filter */}
+            <div className="dropdown me-2">
+              <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
+                {statusFilter || 'Status'}
+              </a>
+              <ul className="dropdown-menu dropdown-menu-end p-3">
+                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setStatusFilter(''); }}>All</a></li>
+                {statuses.map(s => (
+                  <li key={s}><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setStatusFilter(s); }}>{s}</a></li>
+                ))}
+              </ul>
+            </div>
+            {/* Payment Status filter */}
+            <div className="dropdown me-2">
+              <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
+                {paymentStatusFilter || 'Payment Status'}
+              </a>
+              <ul className="dropdown-menu dropdown-menu-end p-3">
+                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setPaymentStatusFilter(''); }}>All</a></li>
+                {['Paid', 'Unpaid', 'Partial', 'Overdue'].map(s => (
+                  <li key={s}><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setPaymentStatusFilter(s); }}>{s}</a></li>
+                ))}
+              </ul>
+            </div>
+            {/* Sort */}
+            <div className="dropdown">
+              <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
+                Sort By: {sortBy === 'asc' ? 'Ascending' : sortBy === 'desc' ? 'Descending' : 'Recently Added'}
+              </a>
+              <ul className="dropdown-menu dropdown-menu-end p-3">
+                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setSortBy('recent'); }}>Recently Added</a></li>
+                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setSortBy('asc'); }}>Ascending</a></li>
+                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setSortBy('desc'); }}>Descending</a></li>
+              </ul>
+            </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-body">
-            <div className="table-responsive">
-              <table className="table table-hover">
-                <thead>
-                  <tr>
-                    <th>Supplier Name</th>
-                    <th>Reference</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Total</th>
-                    <th>Paid</th>
-                    <th>Due</th>
-                    <th>Payment Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedPurchases.length > 0 ? (
-                    paginatedPurchases.map((purchase) => (
-                      <tr key={purchase.id}>
-                        <td>{purchase.supplierName}</td>
-                        <td>{purchase.reference}</td>
-                        <td>{new Date(purchase.date).toLocaleDateString()}</td>
-                        <td>{purchase.status}</td>
-                        <td>${purchase.total.toFixed(2)}</td>
-                        <td>${purchase.paid.toFixed(2)}</td>
-                        <td>${(purchase.total - purchase.paid).toFixed(2)}</td>
-                        <td>{getPaymentStatusBadge(purchase.paymentStatus)}</td>
-                        <td>
-                          <button
-                            className="btn btn-sm btn-warning me-2"
-                            onClick={() => handleEditPurchase(purchase)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn btn-sm btn-danger"
-                            onClick={() => handleDeletePurchase(purchase.id)}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={9} className="text-center">
-                        No purchases found
+        <div className="card-body p-0">
+          <div className="table-responsive">
+            <table className="table datanew">
+              <thead>
+                <tr>
+                  <th className="no-sort">
+                    <label className="checkboxs"><input type="checkbox" checked={selectAll} onChange={e => handleSelectAll(e.target.checked)} /><span className="checkmarks"></span></label>
+                  </th>
+                  <th>Supplier Name</th>
+                  <th>Reference</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Total</th>
+                  <th>Paid</th>
+                  <th>Due</th>
+                  <th>Payment Status</th>
+                  <th className="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedPurchases.length > 0 ? (
+                  paginatedPurchases.map((purchase) => (
+                    <tr key={purchase.id}>
+                      <td>
+                        <label className="checkboxs"><input type="checkbox" checked={selectedIds.has(purchase.id)} onChange={e => handleSelectOne(purchase.id, e.target.checked)} /><span className="checkmarks"></span></label>
+                      </td>
+                      <td>{purchase.supplierName}</td>
+                      <td>{purchase.reference}</td>
+                      <td>{new Date(purchase.date).toLocaleDateString()}</td>
+                      <td>{getStatusBadge(purchase.status)}</td>
+                      <td>{fmt(purchase.total)}</td>
+                      <td>{fmt(purchase.paid)}</td>
+                      <td>{fmt(purchase.total - purchase.paid)}</td>
+                      <td>{getPaymentStatusBadge(purchase.paymentStatus)}</td>
+                      <td className="text-center">
+                        <a className="action-set" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                          <i className="fa fa-ellipsis-v" aria-hidden="true"></i>
+                        </a>
+                        <ul className="dropdown-menu">
+                          <li>
+                            <a className="dropdown-item" href="#" onClick={e => { e.preventDefault(); handleEditPurchase(purchase); }}>
+                              <i data-feather="edit" className="info-img"></i>Edit Purchase
+                            </a>
+                          </li>
+                          <li>
+                            <a className="dropdown-item mb-0" href="#" onClick={e => { e.preventDefault(); handleDeletePurchase(purchase.id); }}>
+                              <i data-feather="trash-2" className="info-img"></i>Delete Purchase
+                            </a>
+                          </li>
+                        </ul>
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredPurchases.length > itemsPerPage && (
-              <nav aria-label="Page navigation" className="mt-3">
-                <ul className="pagination justify-content-center">
-                  <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                    <button
-                      className="page-link"
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    >
-                      Previous
-                    </button>
-                  </li>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                      <button
-                        className="page-link"
-                        onClick={() => setCurrentPage(page)}
-                      >
-                        {page}
-                      </button>
-                    </li>
-                  ))}
-                  <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                    <button
-                      className="page-link"
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    >
-                      Next
-                    </button>
-                  </li>
-                </ul>
-              </nav>
-            )}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={10} className="text-center py-4">
+                      No purchases found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
+
+          {filteredPurchases.length > itemsPerPage && (
+            <nav aria-label="Page navigation" className="mt-3 mb-3">
+              <ul className="pagination justify-content-center">
+                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                  <button
+                    className="page-link"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  >
+                    Previous
+                  </button>
+                </li>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                    <button
+                      className="page-link"
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </button>
+                  </li>
+                ))}
+                <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                  <button
+                    className="page-link"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  >
+                    Next
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          )}
         </div>
+      </div>
 
         {/* Add Purchase Modal */}
         {showAddModal && (
@@ -1083,8 +1166,7 @@ const PurchaseList: React.FC = () => {
           </div>
         </div>
         )}
-      </div>
-    </div>
+    </>
   );
 };
 

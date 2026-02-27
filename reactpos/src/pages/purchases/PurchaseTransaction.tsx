@@ -1,5 +1,4 @@
 ﻿import React, { useState, useEffect } from 'react';
-import PageHeader from '../../components/common/PageHeader';
 import {
   getPurchases,
   createPurchase,
@@ -525,43 +524,40 @@ const PurchaseTransaction: React.FC = () => {
 
   if (loading && purchases.length === 0) {
     return (
-      <div className="page-wrapper">
-        <div className="content">
-          <PageHeader title="Purchase Transactions" breadcrumbs={[{ title: 'Purchases' }, { title: 'Purchase Transactions' }]} />
-          <div className="text-center py-5">
-            <div className="spinner-border" role="status">
-              <span className="visually-hidden">Loading...</span>
+      <>
+        <div className="page-header">
+          <div className="add-item d-flex">
+            <div className="page-title">
+              <h4>Purchase Transactions</h4>
+              <h6>Manage Your Purchase Transactions</h6>
             </div>
           </div>
         </div>
-      </div>
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="page-wrapper">
-      <div className="content">
-        <div className="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
-          <div className="my-auto mb-2">
-            <h2 className="mb-1">Purchase Transactions</h2>
-            <nav>
-              <ol className="breadcrumb mb-0">
-                <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-                <li className="breadcrumb-item"><a href="/purchase-list">Purchases</a></li>
-                <li className="breadcrumb-item active" aria-current="page">Purchase Transactions</li>
-              </ol>
-            </nav>
-          </div>
-          <div className="d-flex my-xl-auto right-content align-items-center flex-wrap">
-            <div className="d-flex purchase-pg-btn">
-              <div className="page-btn">
-                <button className="btn btn-primary" onClick={handleAddPurchase}>
-                  <i className="ti ti-plus me-1"></i>Add Purchase
-                </button>
-              </div>
-            </div>
+    <>
+      {/* ---- Page Header ---- */}
+      <div className="page-header">
+        <div className="add-item d-flex">
+          <div className="page-title">
+            <h4>Purchase Transactions</h4>
+            <h6>Manage Your Purchase Transactions</h6>
           </div>
         </div>
+        <div className="page-btn">
+          <a href="#" className="btn btn-primary" onClick={e => { e.preventDefault(); handleAddPurchase(); }}>
+            <i className="ti ti-circle-plus me-1"></i>Add Purchase
+          </a>
+        </div>
+      </div>
 
         <div className="card">
           <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
@@ -772,8 +768,7 @@ const PurchaseTransaction: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </>
   );
 };
 

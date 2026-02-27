@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.7:5000/api';
-export const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || 'http://192.168.1.7:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.9:5000/api';
+export const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || 'http://192.168.1.9:5000';
 
 /** Prefix a relative image path with the media base URL */
 export const mediaUrl = (path?: string | null): string => {
