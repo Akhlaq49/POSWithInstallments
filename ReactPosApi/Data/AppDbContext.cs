@@ -69,6 +69,14 @@ public class AppDbContext : DbContext
     public DbSet<Payroll> Payrolls => Set<Payroll>();
     public DbSet<Attendance> Attendances => Set<Attendance>();
 
+    // Finance & Accounting
+    public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
+    public DbSet<Expense> Expenses => Set<Expense>();
+    public DbSet<IncomeCategory> IncomeCategories => Set<IncomeCategory>();
+    public DbSet<FinanceIncome> FinanceIncomes => Set<FinanceIncome>();
+    public DbSet<AccountType> AccountTypes => Set<AccountType>();
+    public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -456,6 +464,25 @@ public class AppDbContext : DbContext
         {
             e.HasIndex(f => new { f.FormName, f.FieldName }).IsUnique();
             e.Property(f => f.IsVisible).HasDefaultValue(true);
+        });
+
+        // Finance & Accounting
+        modelBuilder.Entity<Expense>(e =>
+        {
+            e.HasOne(x => x.ExpenseCategory).WithMany(c => c.Expenses).HasForeignKey(x => x.ExpenseCategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<FinanceIncome>(e =>
+        {
+            e.HasOne(x => x.IncomeCategory).WithMany(c => c.Incomes).HasForeignKey(x => x.IncomeCategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<BankAccount>(e =>
+        {
+            e.HasOne(x => x.AccountType).WithMany(t => t.BankAccounts).HasForeignKey(x => x.AccountTypeId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.OpeningBalance).HasColumnType("decimal(18,2)");
         });
     }
 }

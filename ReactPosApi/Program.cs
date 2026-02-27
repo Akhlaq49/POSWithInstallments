@@ -53,6 +53,15 @@ builder.Services.AddScoped<IPayrollService, PayrollService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 
+// Finance & Accounting Services
+builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
+builder.Services.AddScoped<IExpenseService, ExpenseService>();
+builder.Services.AddScoped<IIncomeCategoryService, IncomeCategoryService>();
+builder.Services.AddScoped<IFinanceIncomeService, FinanceIncomeService>();
+builder.Services.AddScoped<IAccountTypeService, AccountTypeService>();
+builder.Services.AddScoped<IBankAccountService, BankAccountService>();
+builder.Services.AddScoped<IFinanceReportService, FinanceReportService>();
+
 // WhatsApp Cloud API
 builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 
