@@ -126,8 +126,8 @@ public class FinanceReportService : IFinanceReportService
 
         // Purchases as operating cash outflow
         var totalPurchases = await _db.Purchases
-            .Where(p => p.PurchaseDate >= startDate && p.PurchaseDate <= endDate)
-            .SumAsync(p => (decimal?)p.GrandTotal) ?? 0;
+            .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate)
+            .SumAsync(p => (decimal?)p.Total) ?? 0;
         if (totalPurchases > 0)
             operating.Add(new CashFlowLineItem { Description = "Purchases", Amount = -totalPurchases });
 
