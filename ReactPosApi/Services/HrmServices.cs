@@ -531,7 +531,7 @@ public class AttendanceService : IAttendanceService
         var entity = new Attendance
         {
             EmployeeId = dto.EmployeeId, Date = dto.Date.Date, Status = dto.Status,
-            ClockIn = dto.ClockIn, ClockOut = dto.ClockOut, Production = dto.Production,
+            ClockIn =TimeSpan.Parse(dto.ClockIn), ClockOut = TimeSpan.Parse(dto.ClockOut), Production = dto.Production,
             BreakTime = dto.BreakTime, Overtime = dto.Overtime, TotalHours = dto.TotalHours
         };
         _db.Attendances.Add(entity);
@@ -544,7 +544,7 @@ public class AttendanceService : IAttendanceService
         var entity = await _db.Attendances.FindAsync(id);
         if (entity == null) return null;
         entity.EmployeeId = dto.EmployeeId; entity.Date = dto.Date.Date; entity.Status = dto.Status;
-        entity.ClockIn = dto.ClockIn; entity.ClockOut = dto.ClockOut; entity.Production = dto.Production;
+        entity.ClockIn =TimeSpan.Parse(dto.ClockIn); entity.ClockOut =TimeSpan.Parse(dto.ClockOut); entity.Production = dto.Production;
         entity.BreakTime = dto.BreakTime; entity.Overtime = dto.Overtime; entity.TotalHours = dto.TotalHours;
         await _db.SaveChangesAsync();
         return (await GetByIdAsync(id))!;
@@ -566,7 +566,7 @@ public class AttendanceService : IAttendanceService
         EmployeePicture = a.Employee?.Picture,
         DesignationName = a.Employee?.Designation?.Name,
         Date = a.Date, Status = a.Status,
-        ClockIn = a.ClockIn, ClockOut = a.ClockOut,
+        ClockIn = a.ClockIn.ToString(), ClockOut = a.ClockOut.ToString(),
         Production = a.Production, BreakTime = a.BreakTime,
         Overtime = a.Overtime, TotalHours = a.TotalHours,
         CreatedAt = a.CreatedAt

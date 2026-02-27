@@ -926,8 +926,8 @@ public class ReportService : IReportService
     public async Task<SalesReportDto> GetSalesReportAsync(DateTime? from, DateTime? to)
     {
         var sales = await _db.Sales.Include(s => s.Items).ToListAsync();
-        if (from.HasValue) sales = sales.Where(s => DateTime.TryParse(s.SaleDate, out var d) && d >= from.Value).ToList();
-        if (to.HasValue) sales = sales.Where(s => DateTime.TryParse(s.SaleDate, out var d) && d <= to.Value.AddDays(1)).ToList();
+        if (from.HasValue) sales = sales.Where(s => s.SaleDate >= from.Value).ToList();
+        if (to.HasValue) sales = sales.Where(s => s.SaleDate <= to.Value.AddDays(1)).ToList();
 
         var products = await _db.Products.ToListAsync();
         var productMap = products.ToDictionary(p => p.Id);
@@ -936,7 +936,7 @@ public class ReportService : IReportService
             var prod = productMap.GetValueOrDefault(g.Key);
             return new SalesReportItemDto
             {
-                Sku = prod?.Sku ?? "", ProductName = g.First().ProductName,
+                Sku = prod?.SKU ?? "", ProductName = g.First().ProductName,
                 Brand = prod?.Brand ?? "", Category = prod?.Category ?? "",
                 SoldQty = g.Sum(i => i.Quantity), SoldAmount = g.Sum(i => i.TotalCost),
                 InStockQty = prod?.Quantity ?? 0
@@ -970,7 +970,7 @@ public class ReportService : IReportService
             var prod = i.ProductId.HasValue ? productMap.GetValueOrDefault(i.ProductId.Value) : null;
             return new PurchaseReportItemDto
             {
-                Reference = p.Reference, Sku = prod?.Sku ?? "",
+                Reference = p.Reference, Sku = prod?.SKU ?? "",
                 DueDate = p.Date.ToString("yyyy-MM-dd"), ProductName = i.ProductName,
                 Category = prod?.Category ?? "", InStockQty = prod?.Quantity ?? 0,
                 PurchaseQty = i.Quantity, PurchaseAmount = i.TotalCost
@@ -985,7 +985,7 @@ public class ReportService : IReportService
         var products = await _db.Products.ToListAsync();
         return products.Select(p => new InventoryReportItemDto
         {
-            Sku = p.Sku, ProductName = p.ProductName, Category = p.Category,
+            Sku = p.SKU, ProductName = p.ProductName, Category = p.Category,
             Unit = p.Unit, InStock = p.Quantity
         }).OrderBy(p => p.ProductName).ToList();
     }
@@ -993,18 +993,17 @@ public class ReportService : IReportService
     public async Task<InvoiceReportDto> GetInvoiceReportAsync(DateTime? from, DateTime? to)
     {
         var invoices = await _db.Invoices.ToListAsync();
-        if (from.HasValue) invoices = invoices.Where(i => DateTime.TryParse(i.DueDate, out var d) && d >= from.Value).ToList();
-        if (to.HasValue) invoices = invoices.Where(i => DateTime.TryParse(i.DueDate, out var d) && d <= to.Value.AddDays(1)).ToList();
+        if (from.HasValue) invoices = invoices.Where(i => i.DueDate >= from.Value).ToList();
+        if (to.HasValue) invoices = invoices.Where(i => i.DueDate <= to.Value.AddDays(1)).ToList();
 
-        var overdue = invoices.Where(i => {
-            if (DateTime.TryParse(i.DueDate, out var d)) return d < DateTime.UtcNow && i.AmountDue > 0;
-            return false;
-        }).Sum(i => i.AmountDue);
+        var overdue = invoices.Where(i => i.DueDate < DateTime.UtcNow &&
+                 i.AmountDue > 0)
+        .Sum(i => i.AmountDue);
 
         var items = invoices.Select(i => new InvoiceReportItemDto
         {
             Id = i.Id, InvoiceNo = i.InvoiceNo, CustomerName = i.CustomerName,
-            DueDate = i.DueDate, Amount = i.TotalAmount, Paid = i.Paid,
+            DueDate = i.DueDate.ToString(), Amount = i.TotalAmount, Paid = i.Paid,
             AmountDue = i.AmountDue, Status = i.Status
         }).OrderByDescending(i => i.DueDate).ToList();
 
@@ -1046,8 +1045,8 @@ public class ReportService : IReportService
     public async Task<List<CustomerReportItemDto>> GetCustomerReportAsync(DateTime? from, DateTime? to)
     {
         var sales = await _db.Sales.Include(s => s.Payments).ToListAsync();
-        if (from.HasValue) sales = sales.Where(s => DateTime.TryParse(s.SaleDate, out var d) && d >= from.Value).ToList();
-        if (to.HasValue) sales = sales.Where(s => DateTime.TryParse(s.SaleDate, out var d) && d <= to.Value.AddDays(1)).ToList();
+        if (from.HasValue) sales = sales.Where(s => s.SaleDate >= from.Value).ToList();
+        if (to.HasValue) sales = sales.Where(s => s.SaleDate <= to.Value.AddDays(1)).ToList();
 
         var grouped = sales.GroupBy(s => new { s.CustomerId, s.CustomerName }).Select(g => {
             var first = g.First();
@@ -1067,8 +1066,8 @@ public class ReportService : IReportService
     public async Task<List<CustomerDueReportItemDto>> GetCustomerDueReportAsync(DateTime? from, DateTime? to)
     {
         var sales = await _db.Sales.ToListAsync();
-        if (from.HasValue) sales = sales.Where(s => DateTime.TryParse(s.SaleDate, out var d) && d >= from.Value).ToList();
-        if (to.HasValue) sales = sales.Where(s => DateTime.TryParse(s.SaleDate, out var d) && d <= to.Value.AddDays(1)).ToList();
+        if (from.HasValue) sales = sales.Where(s => s.SaleDate >= from.Value).ToList();
+        if (to.HasValue) sales = sales.Where(s => s.SaleDate <= to.Value.AddDays(1)).ToList();
 
         var grouped = sales.Where(s => s.Due > 0).GroupBy(s => new { s.CustomerId, s.CustomerName }).Select(g => {
             var first = g.First();
@@ -1087,8 +1086,8 @@ public class ReportService : IReportService
     {
         var products = await _db.Products.ToListAsync();
         var saleItems = await _db.SaleItems.Include(si => si.Sale).ToListAsync();
-        if (from.HasValue) saleItems = saleItems.Where(si => DateTime.TryParse(si.Sale?.SaleDate, out var d) && d >= from.Value).ToList();
-        if (to.HasValue) saleItems = saleItems.Where(si => DateTime.TryParse(si.Sale?.SaleDate, out var d) && d <= to.Value.AddDays(1)).ToList();
+        if (from.HasValue) saleItems = saleItems.Where(si => si.Sale?.SaleDate >= from.Value).ToList();
+        if (to.HasValue) saleItems = saleItems.Where(si => si.Sale?.SaleDate <= to.Value.AddDays(1)).ToList();
 
         var soldMap = saleItems.GroupBy(si => si.ProductId)
             .ToDictionary(g => g.Key, g => new { Qty = g.Sum(i => i.Quantity), Revenue = g.Sum(i => i.TotalCost) });
@@ -1097,7 +1096,7 @@ public class ReportService : IReportService
             var sold = soldMap.GetValueOrDefault(p.Id);
             return new ProductReportItemDto
             {
-                Sku = p.Sku, ProductName = p.ProductName, Category = p.Category,
+                Sku = p.SKU, ProductName = p.ProductName, Category = p.Category,
                 Brand = p.Brand, Qty = p.Quantity, Price = p.Price,
                 TotalOrdered = sold?.Qty ?? 0, Revenue = sold?.Revenue ?? 0
             };
@@ -1109,7 +1108,7 @@ public class ReportService : IReportService
         var products = await _db.Products.Where(p => !string.IsNullOrEmpty(p.ExpiryDate)).ToListAsync();
         return products.Select(p => new ProductExpiryReportItemDto
         {
-            Sku = p.Sku, SerialNo = p.ItemBarcode ?? "", ProductName = p.ProductName,
+            Sku = p.SKU, SerialNo = p.ItemBarcode ?? "", ProductName = p.ProductName,
             ManufacturedDate = p.ManufacturedDate ?? "", ExpiredDate = p.ExpiryDate ?? ""
         }).OrderBy(p => p.ExpiredDate).ToList();
     }
@@ -1119,7 +1118,7 @@ public class ReportService : IReportService
         var products = await _db.Products.Where(p => p.Quantity <= p.QuantityAlert).ToListAsync();
         return products.Select(p => new ProductQtyAlertItemDto
         {
-            Sku = p.Sku, SerialNo = p.ItemBarcode ?? "", ProductName = p.ProductName,
+            Sku = p.SKU, SerialNo = p.ItemBarcode ?? "", ProductName = p.ProductName,
             TotalQuantity = p.Quantity, AlertQuantity = p.QuantityAlert
         }).OrderBy(p => p.TotalQuantity).ToList();
     }
@@ -1142,12 +1141,12 @@ public class ReportService : IReportService
     public async Task<List<IncomeReportItemDto>> GetIncomeReportAsync(DateTime? from, DateTime? to)
     {
         var sales = await _db.Sales.Include(s => s.Payments).ToListAsync();
-        if (from.HasValue) sales = sales.Where(s => DateTime.TryParse(s.SaleDate, out var d) && d >= from.Value).ToList();
-        if (to.HasValue) sales = sales.Where(s => DateTime.TryParse(s.SaleDate, out var d) && d <= to.Value.AddDays(1)).ToList();
+        if (from.HasValue) sales = sales.Where(s => s.SaleDate >= from.Value).ToList();
+        if (to.HasValue) sales = sales.Where(s => s.SaleDate <= to.Value.AddDays(1)).ToList();
 
         return sales.Select(s => new IncomeReportItemDto
         {
-            Reference = s.Reference, Date = s.SaleDate, Store = s.Source ?? "",
+            Reference = s.Reference, Date = s.SaleDate.ToShortDateString(), Store = s.Source ?? "",
             Category = "Sales", Notes = s.Notes ?? "", Amount = s.GrandTotal,
             PaymentMethod = s.Payments?.FirstOrDefault()?.PaymentType ?? "Cash"
         }).OrderByDescending(i => i.Date).ToList();
@@ -1167,9 +1166,9 @@ public class ReportService : IReportService
         while (current <= endDate)
         {
             var monthEnd = current.AddMonths(1);
-            var monthSales = sales.Where(s => DateTime.TryParse(s.SaleDate, out var d) && d >= current && d < monthEnd);
+            var monthSales = sales.Where(s => s.SaleDate>= current && s.SaleDate < monthEnd);
             var monthPurchases = purchases.Where(p => p.Date >= current && p.Date < monthEnd);
-            var monthReturns = returns.Where(r => DateTime.TryParse(r.ReturnDate, out var d) && d >= current && d < monthEnd);
+            var monthReturns = returns.Where(r => r.ReturnDate >= current && r.ReturnDate < monthEnd);
 
             var salesTotal = monthSales.Sum(s => s.GrandTotal);
             var purchaseTotal = monthPurchases.Sum(p => p.Total);
@@ -1199,10 +1198,16 @@ public class ReportService : IReportService
         {
             var start = new DateTime(year, m, 1);
             var end = start.AddMonths(1);
-
-            var monthSales = sales.Where(s => DateTime.TryParse(s.SaleDate, out var d) && d >= start && d < end).Sum(s => s.GrandTotal);
+            var monthSales = sales
+    .Select(s => new
+    {
+        Sale = s,
+        ParsedDate = s.SaleDate != null ? s.SaleDate : (DateTime?)null
+    })
+    .Where(x => x.ParsedDate >= start && x.ParsedDate < end)
+    .Sum(x => x.Sale.GrandTotal);
             var monthPurchases = purchases.Where(p => p.Date >= start && p.Date < end).Sum(p => p.Total);
-            var monthReturns = returns.Where(r => DateTime.TryParse(r.ReturnDate, out var d) && d >= start && d < end).Sum(r => r.GrandTotal);
+            var monthReturns = returns.Where(r => r.ReturnDate >= start && r.ReturnDate < end).Sum(r => r.GrandTotal);
 
             months.Add(new AnnualReportMonthDto
             {
