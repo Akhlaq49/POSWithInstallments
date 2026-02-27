@@ -379,3 +379,143 @@ export interface ProductProfitReport {
 
 export const getProductProfitReport = (from?: string, to?: string) =>
   api.get<ProductProfitReport>('/reports/product-profit', dateParams(from, to)).then(r => r.data);
+
+
+// ═══════════════════════════════════════
+// Standard POS Report Types
+// ═══════════════════════════════════════
+
+export interface SalesReportItemDto {
+  sku: string; productName: string; brand: string; category: string;
+  soldQty: number; soldAmount: number; inStockQty: number;
+}
+export interface SalesReportDto {
+  totalAmount: number; totalPaid: number; totalUnpaid: number; overdue: number;
+  items: SalesReportItemDto[];
+}
+
+export interface PurchaseReportItemDto {
+  reference: string; sku: string; dueDate: string; productName: string;
+  category: string; inStockQty: number; purchaseQty: number; purchaseAmount: number;
+}
+export interface PurchaseReportDto { items: PurchaseReportItemDto[]; }
+
+export interface InventoryReportItemDto {
+  sku: string; productName: string; category: string; unit: string; inStock: number;
+}
+
+export interface InvoiceReportItemDto {
+  id: number; invoiceNo: string; customerName: string; dueDate: string;
+  amount: number; paid: number; amountDue: number; status: string;
+}
+export interface InvoiceReportDto {
+  totalAmount: number; totalPaid: number; totalUnpaid: number; overdue: number;
+  items: InvoiceReportItemDto[];
+}
+
+export interface SupplierReportItemDto {
+  reference: string; id: number; supplier: string; totalItems: number;
+  amount: number; paymentMethod: string; status: string;
+}
+export interface SupplierDueReportItemDto {
+  reference: string; id: number; supplier: string;
+  totalAmount: number; paid: number; due: number; status: string;
+}
+
+export interface CustomerReportItemDto {
+  reference: string; code: string; customer: string; totalOrders: number;
+  amount: number; paymentMethod: string; status: string;
+}
+export interface CustomerDueReportItemDto {
+  reference: string; code: string; customer: string;
+  totalAmount: number; paid: number; due: number; status: string;
+}
+
+export interface ProductReportItemDto {
+  sku: string; productName: string; category: string; brand: string;
+  qty: number; price: number; totalOrdered: number; revenue: number;
+}
+export interface ProductExpiryReportItemDto {
+  sku: string; serialNo: string; productName: string;
+  manufacturedDate: string; expiredDate: string;
+}
+export interface ProductQtyAlertItemDto {
+  sku: string; serialNo: string; productName: string;
+  totalQuantity: number; alertQuantity: number;
+}
+
+export interface ExpenseReportItemDto {
+  expenseName: string; category: string; description: string;
+  date: string; amount: number; status: string;
+}
+export interface IncomeReportItemDto {
+  reference: string; date: string; store: string; category: string;
+  notes: string; amount: number; paymentMethod: string;
+}
+
+export interface ProfitAndLossMonthDto {
+  month: string; sales: number; service: number; purchaseReturn: number;
+  grossProfit: number; purchaseExpense: number; salesReturn: number;
+  totalExpense: number; netProfit: number;
+}
+export interface ProfitAndLossDto { months: ProfitAndLossMonthDto[]; }
+
+export interface AnnualReportMonthDto {
+  month: string; sales: number; purchases: number; returns: number; profit: number;
+}
+export interface AnnualReportDto {
+  year: number; months: AnnualReportMonthDto[]; totals: AnnualReportMonthDto;
+}
+
+
+// ═══════════════════════════════════════
+// Standard POS Report API Calls
+// ═══════════════════════════════════════
+
+export const getSalesReport = (from?: string, to?: string) =>
+  api.get<SalesReportDto>('/reports/sales-report', dateParams(from, to)).then(r => r.data);
+
+export const getBestSellers = (from?: string, to?: string) =>
+  api.get<SalesReportItemDto[]>('/reports/best-sellers', dateParams(from, to)).then(r => r.data);
+
+export const getPurchaseReport = (from?: string, to?: string) =>
+  api.get<PurchaseReportDto>('/reports/purchase-report', dateParams(from, to)).then(r => r.data);
+
+export const getInventoryReport = () =>
+  api.get<InventoryReportItemDto[]>('/reports/inventory-report').then(r => r.data);
+
+export const getInvoiceReport = (from?: string, to?: string) =>
+  api.get<InvoiceReportDto>('/reports/invoice-report', dateParams(from, to)).then(r => r.data);
+
+export const getSupplierReport = (from?: string, to?: string) =>
+  api.get<SupplierReportItemDto[]>('/reports/supplier-report', dateParams(from, to)).then(r => r.data);
+
+export const getSupplierDueReport = (from?: string, to?: string) =>
+  api.get<SupplierDueReportItemDto[]>('/reports/supplier-due-report', dateParams(from, to)).then(r => r.data);
+
+export const getCustomerReport = (from?: string, to?: string) =>
+  api.get<CustomerReportItemDto[]>('/reports/customer-report', dateParams(from, to)).then(r => r.data);
+
+export const getCustomerDueReport = (from?: string, to?: string) =>
+  api.get<CustomerDueReportItemDto[]>('/reports/customer-due-report', dateParams(from, to)).then(r => r.data);
+
+export const getProductReport = (from?: string, to?: string) =>
+  api.get<ProductReportItemDto[]>('/reports/product-report', dateParams(from, to)).then(r => r.data);
+
+export const getProductExpiryReport = () =>
+  api.get<ProductExpiryReportItemDto[]>('/reports/product-expiry-report').then(r => r.data);
+
+export const getProductQtyAlertReport = () =>
+  api.get<ProductQtyAlertItemDto[]>('/reports/product-qty-alert').then(r => r.data);
+
+export const getExpenseReport = (from?: string, to?: string) =>
+  api.get<ExpenseReportItemDto[]>('/reports/expense-report', dateParams(from, to)).then(r => r.data);
+
+export const getIncomeReport = (from?: string, to?: string) =>
+  api.get<IncomeReportItemDto[]>('/reports/income-report', dateParams(from, to)).then(r => r.data);
+
+export const getProfitAndLoss = (from?: string, to?: string) =>
+  api.get<ProfitAndLossDto>('/reports/profit-and-loss', dateParams(from, to)).then(r => r.data);
+
+export const getAnnualReport = (year?: number) =>
+  api.get<AnnualReportDto>('/reports/annual-report', { params: year ? { year } : {} }).then(r => r.data);
