@@ -32,6 +32,7 @@ public class AppDbContext : DbContext
     public DbSet<QuotationItem> QuotationItems => Set<QuotationItem>();
     public DbSet<Coupon> Coupons => Set<Coupon>();
     public DbSet<Purchase> Purchases => Set<Purchase>();
+    public DbSet<PurchaseItem> PurchaseItems => Set<PurchaseItem>();
 
     // Inventory
     public DbSet<Category> Categories => Set<Category>();
@@ -344,6 +345,20 @@ public class AppDbContext : DbContext
             e.Property(i => i.TaxAmount).HasColumnType("decimal(18,2)");
             e.Property(i => i.UnitCost).HasColumnType("decimal(18,2)");
             e.Property(i => i.TotalCost).HasColumnType("decimal(18,2)");
+        });
+
+        // PurchaseItem -> Purchase & Product (FK for inventory sync)
+        modelBuilder.Entity<PurchaseItem>(e =>
+        {
+            e.HasOne(pi => pi.Purchase)
+             .WithMany(p => p.Items)
+             .HasForeignKey(pi => pi.PurchaseId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(pi => pi.Product)
+             .WithMany()
+             .HasForeignKey(pi => pi.ProductId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Coupon

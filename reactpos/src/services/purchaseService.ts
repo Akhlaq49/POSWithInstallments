@@ -1,17 +1,34 @@
 import api from './api';
 
+export interface PurchaseItem {
+  id?: number;
+  productId?: number;
+  productName: string;
+  quantity: number;
+  purchasePrice: number;
+  discount: number;
+  taxPercentage: number;
+  taxAmount: number;
+  unitCost: number;
+  totalCost: number;
+}
+
 export interface Purchase {
-  id: string;
+  id: number;
   supplierName: string;
   supplierRef?: string;
   reference: string;
   date: string;
   status: 'Ordered' | 'Received' | 'Pending' | 'Cancelled';
   paymentStatus: 'Paid' | 'Unpaid' | 'Overdue' | 'Partial';
+  orderTax: number;
+  discount: number;
+  shipping: number;
   total: number;
   paid: number;
   due: number;
   notes?: string;
+  items?: PurchaseItem[];
   createdAt: string;
   updatedAt: string;
 }
@@ -22,13 +39,27 @@ export interface CreatePurchasePayload {
   reference: string;
   date: string;
   status: string;
+  orderTax: number;
+  discount: number;
+  shipping: number;
   total: number;
   paid: number;
   notes?: string;
+  items?: {
+    productId?: number;
+    productName: string;
+    quantity: number;
+    purchasePrice: number;
+    discount: number;
+    taxPercentage: number;
+    taxAmount: number;
+    unitCost: number;
+    totalCost: number;
+  }[];
 }
 
 export interface UpdatePurchasePayload extends CreatePurchasePayload {
-  id: string;
+  id?: number;
 }
 
 // Get all purchases
@@ -43,7 +74,7 @@ export const getPurchases = async (): Promise<Purchase[]> => {
 };
 
 // Get single purchase
-export const getPurchaseById = async (id: string): Promise<Purchase | null> => {
+export const getPurchaseById = async (id: number | string): Promise<Purchase | null> => {
   try {
     const response = await api.get<Purchase>(`/purchases/${id}`);
     return response.data;
@@ -65,18 +96,18 @@ export const createPurchase = async (data: CreatePurchasePayload): Promise<Purch
 };
 
 // Update purchase
-export const updatePurchase = async (data: UpdatePurchasePayload): Promise<Purchase | null> => {
+export const updatePurchase = async (id: number, data: UpdatePurchasePayload): Promise<Purchase | null> => {
   try {
-    const response = await api.put<Purchase>(`/purchases/${data.id}`, data);
+    const response = await api.put<Purchase>(`/purchases/${id}`, data);
     return response.data;
   } catch (error) {
-    console.error(`Error updating purchase ${data.id}:`, error);
+    console.error(`Error updating purchase ${id}:`, error);
     return null;
   }
 };
 
 // Delete purchase
-export const deletePurchase = async (id: string): Promise<boolean> => {
+export const deletePurchase = async (id: number | string): Promise<boolean> => {
   try {
     await api.delete(`/purchases/${id}`);
     return true;

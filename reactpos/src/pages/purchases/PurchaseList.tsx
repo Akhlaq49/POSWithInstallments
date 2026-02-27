@@ -1,6 +1,14 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import PageHeader from '../../components/common/PageHeader';
-import { getPurchases, Purchase, createPurchase, updatePurchase, deletePurchase, CreatePurchasePayload, UpdatePurchasePayload } from '../../services/purchaseService';
+import { 
+  getPurchases, 
+  createPurchase, 
+  updatePurchase, 
+  deletePurchase,
+  Purchase,
+  PurchaseItem
+} from '../../services/purchaseService';
+import { getProducts, ProductResponse } from '../../services/productService';
 import { showConfirm, showSuccess, showError } from '../../utils/alertUtils';
 
 const PurchaseList: React.FC = () => {
@@ -12,20 +20,59 @@ const PurchaseList: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
-  const [selectedPurchases, setSelectedPurchases] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const editorRef = useRef<any>(null);
+
+  // Products from database for dropdown
+  const [products, setProducts] = useState<ProductResponse[]>([]);
+  const [productSearch, setProductSearch] = useState('');
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+
+  // Form state
   const [formData, setFormData] = useState({
     supplierName: '',
+    supplierRef: '',
     reference: '',
     date: new Date().toISOString().split('T')[0],
     status: 'Received',
+    orderTax: 0,
+    discount: 0,
+    shipping: 0,
     total: 0,
     paid: 0,
     notes: '',
   });
 
-  // Fetch purchases on mount
+  const [lineItems, setLineItems] = useState<PurchaseItem[]>([]);
+  const [newItem, setNewItem] = useState<{
+    productId?: number;
+    productName: string;
+    quantity: number;
+    purchasePrice: number;
+    discount: number;
+    taxPercentage: number;
+    taxAmount: number;
+    unitCost: number;
+    totalCost: number;
+  }>({
+    productName: '',
+    quantity: 1,
+    purchasePrice: 0,
+    discount: 0,
+    taxPercentage: 0,
+    taxAmount: 0,
+    unitCost: 0,
+    totalCost: 0,
+  });
+
+  const suppliers = ['Apex Computers', 'Dazzle Shoes', 'Best Accessories', 'Global Traders'];
+  const statuses = ['Received', 'Pending', 'Ordered', 'Cancelled'];
+
+  // Fetch purchases and products on mount
   useEffect(() => {
     loadPurchases();
+    loadProducts();
   }, []);
 
   // Filter purchases when search or status filter changes
@@ -45,20 +92,33 @@ const PurchaseList: React.FC = () => {
     }
   };
 
+  const loadProducts = async () => {
+    try {
+      const data = await getProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error('Failed to load products');
+    }
+  };
+
+  // Filtered products for search dropdown
+  const filteredProducts = products.filter(
+    (p) =>
+      p.productName.toLowerCase().includes(productSearch.toLowerCase()) ||
+      (p.sku && p.sku.toLowerCase().includes(productSearch.toLowerCase()))
+  );
+
   const applyFilters = () => {
     let filtered = purchases;
 
-    // Filter by search query
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (p) =>
-          p.supplierName.toLowerCase().includes(query) ||
-          p.reference.toLowerCase().includes(query)
+          p.supplierName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.reference.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    // Filter by payment status
     if (paymentStatusFilter) {
       filtered = filtered.filter((p) => p.paymentStatus === paymentStatusFilter);
     }
@@ -66,265 +126,263 @@ const PurchaseList: React.FC = () => {
     setFilteredPurchases(filtered);
   };
 
-  const handleAddPurchase = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      const payload: CreatePurchasePayload = {
-        ...formData,
-        total: parseFloat(formData.total.toString()),
-        paid: parseFloat(formData.paid.toString()),
-      };
-
-      const result = await createPurchase(payload);
-      if (result) {
-        showSuccess('Purchase added successfully');
-        setShowAddModal(false);
-        resetForm();
-        loadPurchases();
-      } else {
-        showError('Failed to add purchase');
-      }
-    } catch (error) {
-      showError('Error adding purchase');
-    }
+  const handleAddPurchase = () => {
+    resetForm();
+    setShowAddModal(true);
   };
 
-  const handleEditPurchase = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedPurchase) return;
-
-    try {
-      const payload: UpdatePurchasePayload = {
-        id: selectedPurchase.id,
-        ...formData,
-        total: parseFloat(formData.total.toString()),
-        paid: parseFloat(formData.paid.toString()),
-      };
-
-      const result = await updatePurchase(payload);
-      if (result) {
-        showSuccess('Purchase updated successfully');
-        setShowEditModal(false);
-        resetForm();
-        loadPurchases();
-      } else {
-        showError('Failed to update purchase');
-      }
-    } catch (error) {
-      showError('Error updating purchase');
-    }
+  const handleEditPurchase = (purchase: Purchase) => {
+    setSelectedPurchase(purchase);
+    setFormData({
+      supplierName: purchase.supplierName,
+      supplierRef: purchase.supplierRef || '',
+      reference: purchase.reference,
+      date: purchase.date.toString().split('T')[0],
+      status: purchase.status,
+      orderTax: purchase.orderTax,
+      discount: purchase.discount,
+      shipping: purchase.shipping,
+      total: purchase.total,
+      paid: purchase.paid,
+      notes: purchase.notes || '',
+    });
+    setLineItems(purchase.items || []);
+    setShowEditModal(true);
   };
 
-  const handleDeletePurchase = async (id: string) => {
-    const result = await showConfirm(
+  const handleDeletePurchase = async (id: number) => {
+    const confirmed = await showConfirm(
       'Delete Purchase',
       'Are you sure you want to delete this purchase?',
       'Delete',
       'Cancel'
     );
 
-    if (result.isConfirmed) {
-      const success = await deletePurchase(id);
-      if (success) {
+    if (confirmed.isConfirmed) {
+      try {
+        await deletePurchase(id);
         showSuccess('Purchase deleted successfully');
         loadPurchases();
-      } else {
+      } catch (error) {
         showError('Failed to delete purchase');
       }
     }
   };
 
-  const openEditModal = (purchase: Purchase) => {
-    setSelectedPurchase(purchase);
-    setFormData({
-      supplierName: purchase.supplierName,
-      reference: purchase.reference,
-      date: purchase.date,
-      status: purchase.status,
-      total: purchase.total,
-      paid: purchase.paid,
-      notes: purchase.notes || '',
-    });
-    setShowEditModal(true);
-  };
-
   const resetForm = () => {
     setFormData({
       supplierName: '',
+      supplierRef: '',
       reference: '',
       date: new Date().toISOString().split('T')[0],
       status: 'Received',
+      orderTax: 0,
+      discount: 0,
+      shipping: 0,
       total: 0,
       paid: 0,
       notes: '',
     });
+    setLineItems([]);
+    setNewItem({
+      productName: '',
+      quantity: 1,
+      purchasePrice: 0,
+      discount: 0,
+      taxPercentage: 0,
+      taxAmount: 0,
+      unitCost: 0,
+      totalCost: 0,
+    });
+    setProductSearch('');
+    setShowProductDropdown(false);
     setSelectedPurchase(null);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedPurchases.size === filteredPurchases.length) {
-      setSelectedPurchases(new Set());
-    } else {
-      setSelectedPurchases(new Set(filteredPurchases.map((p) => p.id)));
+  const addLineItem = () => {
+    if (!newItem.productName) {
+      showError('Please select a product');
+      return;
     }
+
+    // Calculate tax amount
+    const taxAmount = (newItem.purchasePrice * newItem.taxPercentage) / 100;
+    const unitCost = newItem.purchasePrice + (newItem.purchasePrice * newItem.taxPercentage) / 100 - newItem.discount;
+    const totalCost = unitCost * newItem.quantity;
+
+    const item: PurchaseItem = {
+      ...newItem,
+      taxAmount,
+      unitCost,
+      totalCost,
+    };
+
+    setLineItems([...lineItems, item]);
+    setNewItem({
+      productName: '',
+      quantity: 1,
+      purchasePrice: 0,
+      discount: 0,
+      taxPercentage: 0,
+      taxAmount: 0,
+      unitCost: 0,
+      totalCost: 0,
+    });
+    setProductSearch('');
+    setShowProductDropdown(false);
   };
 
-  const togglePurchaseSelect = (id: string) => {
-    const newSelected = new Set(selectedPurchases);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
+  const removeLineItem = (index: number) => {
+    setLineItems(lineItems.filter((_, i) => i !== index));
+  };
+
+  const calculateTotal = () => {
+    const itemsTotal = lineItems.reduce((sum, item) => sum + item.totalCost, 0);
+    const total = itemsTotal + formData.orderTax + formData.shipping - formData.discount;
+    setFormData({ ...formData, total: Math.max(0, total) });
+  };
+
+  useEffect(() => {
+    calculateTotal();
+  }, [lineItems, formData.orderTax, formData.discount, formData.shipping]);
+
+  const selectProduct = (product: ProductResponse) => {
+    setNewItem({
+      ...newItem,
+      productId: parseInt(product.id),
+      productName: product.productName,
+      purchasePrice: product.price,
+      quantity: 1,
+    });
+    setProductSearch(product.productName);
+    setShowProductDropdown(false);
+  };
+
+  const handleSavePurchase = async () => {
+    if (!formData.supplierName || !formData.reference) {
+      showError('Please fill in supplier name and reference');
+      return;
     }
-    setSelectedPurchases(newSelected);
+
+    try {
+      const payload = {
+        ...formData,
+        items: lineItems.map(item => ({
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          purchasePrice: item.purchasePrice,
+          discount: item.discount,
+          taxPercentage: item.taxPercentage,
+          taxAmount: item.taxAmount,
+          unitCost: item.unitCost,
+          totalCost: item.totalCost,
+        })),
+      };
+
+      if (selectedPurchase) {
+        await updatePurchase(selectedPurchase.id, payload);
+        showSuccess('Purchase updated successfully');
+      } else {
+        await createPurchase(payload);
+        showSuccess('Purchase created successfully');
+      }
+
+      setShowAddModal(false);
+      setShowEditModal(false);
+      resetForm();
+      loadPurchases();
+    } catch (error) {
+      showError('Failed to save purchase');
+    }
   };
 
   const getPaymentStatusBadge = (status: string) => {
     switch (status) {
       case 'Paid':
-        return 'text-success bg-success-transparent';
+        return <span className="badge bg-success">Paid</span>;
       case 'Unpaid':
-        return 'text-danger bg-danger-transparent';
-      case 'Overdue':
-        return 'text-warning bg-warning-transparent';
+        return <span className="badge bg-danger">Unpaid</span>;
       case 'Partial':
-        return 'text-info bg-info-transparent';
+        return <span className="badge bg-warning">Partial</span>;
+      case 'Overdue':
+        return <span className="badge bg-info">Overdue</span>;
       default:
-        return 'text-secondary bg-secondary-transparent';
+        return <span className="badge bg-secondary">{status}</span>;
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Received':
-        return 'badges status-badge fs-10 p-1 px-2 rounded-1';
-      case 'Pending':
-        return 'badges status-badge badge-pending fs-10 p-1 px-2 rounded-1';
-      case 'Ordered':
-        return 'badges status-badge bg-warning fs-10 p-1 px-2 rounded-1';
-      default:
-        return 'badges status-badge fs-10 p-1 px-2 rounded-1';
-    }
-  };
+  const paginatedPurchases = filteredPurchases.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-  const calculateDue = (total: number, paid: number) => {
-    return Math.max(0, total - paid);
-  };
+  const totalPages = Math.ceil(filteredPurchases.length / itemsPerPage);
 
-  return (
-    <>
-      <PageHeader
-        title="Purchase"
-        breadcrumbs={[{ title: 'Purchases', href: '/purchase-list' }]}
-      />
-
-      <div className="card">
-        <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-          <div className="page-title">
-            <h6 className="fw-bold mb-0">Manage Purchases</h6>
-          </div>
-          <div className="d-flex gap-2">
-            <button
-              onClick={() => {
-                resetForm();
-                setShowAddModal(true);
-              }}
-              className="btn btn-primary"
-            >
-              <i className="ti ti-circle-plus me-1"></i> Add Purchase
-            </button>
+  if (loading && purchases.length === 0) {
+    return (
+      <div className="page-wrapper">
+        <div className="content">
+          <PageHeader title="Purchases" breadcrumbs={[{ title: 'Purchases', path: '/purchases' }]} />
+          <div className="text-center">
+            <div className="spinner-border" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-          <div className="search-set">
-            <div className="search-input">
-              <span className="btn-searchset">
-                <i className="ti ti-search fs-14"></i>
-              </span>
+  return (
+    <div className="page-wrapper">
+      <div className="content">
+        <PageHeader title="Purchases" breadcrumbs={[{ title: 'Purchases', path: '/purchases' }]} />
+
+        <div className="row mb-3">
+          <div className="col-lg-6">
+            <div className="input-group">
               <input
                 type="text"
                 className="form-control"
-                placeholder="Search by supplier or reference..."
+                placeholder="Search by supplier or reference"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
           </div>
-
-          <div className="dropdown">
-            <button
-              className="btn btn-white btn-md d-inline-flex align-items-center"
-              data-bs-toggle="dropdown"
+          <div className="col-lg-3">
+            <select
+              className="form-control"
+              value={paymentStatusFilter}
+              onChange={(e) => {
+                setPaymentStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
             >
-              Payment Status
+              <option value="">All Payment Status</option>
+              <option value="Paid">Paid</option>
+              <option value="Unpaid">Unpaid</option>
+              <option value="Partial">Partial</option>
+              <option value="Overdue">Overdue</option>
+            </select>
+          </div>
+          <div className="col-lg-3 text-end">
+            <button className="btn btn-primary" onClick={handleAddPurchase}>
+              <i className="ti ti-plus me-2"></i>Add Purchase
             </button>
-            <ul className="dropdown-menu dropdown-menu-end p-3">
-              <li>
-                <button
-                  className={`dropdown-item rounded-1 ${!paymentStatusFilter ? 'active' : ''}`}
-                  onClick={() => setPaymentStatusFilter('')}
-                >
-                  All
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`dropdown-item rounded-1 ${paymentStatusFilter === 'Paid' ? 'active' : ''}`}
-                  onClick={() => setPaymentStatusFilter('Paid')}
-                >
-                  Paid
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`dropdown-item rounded-1 ${paymentStatusFilter === 'Unpaid' ? 'active' : ''}`}
-                  onClick={() => setPaymentStatusFilter('Unpaid')}
-                >
-                  Unpaid
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`dropdown-item rounded-1 ${paymentStatusFilter === 'Overdue' ? 'active' : ''}`}
-                  onClick={() => setPaymentStatusFilter('Overdue')}
-                >
-                  Overdue
-                </button>
-              </li>
-            </ul>
           </div>
         </div>
 
-        <div className="card-body p-0">
-          {loading ? (
-            <div className="text-center p-5">
-              <div className="spinner-border" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          ) : filteredPurchases.length === 0 ? (
-            <div className="text-center p-5">
-              <p className="text-muted">No purchases found</p>
-            </div>
-          ) : (
+        <div className="card">
+          <div className="card-body">
             <div className="table-responsive">
-              <table className="table datatable">
-                <thead className="thead-light">
+              <table className="table table-hover">
+                <thead>
                   <tr>
-                    <th className="no-sort">
-                      <label className="checkboxs">
-                        <input
-                          type="checkbox"
-                          id="select-all"
-                          checked={selectedPurchases.size === filteredPurchases.length && filteredPurchases.length > 0}
-                          onChange={toggleSelectAll}
-                        />
-                        <span className="checkmarks"></span>
-                      </label>
-                    </th>
                     <th>Supplier Name</th>
                     <th>Reference</th>
                     <th>Date</th>
@@ -333,154 +391,368 @@ const PurchaseList: React.FC = () => {
                     <th>Paid</th>
                     <th>Due</th>
                     <th>Payment Status</th>
-                    <th className="no-sort"></th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPurchases.map((purchase) => (
-                    <tr key={purchase.id}>
-                      <td>
-                        <label className="checkboxs">
-                          <input
-                            type="checkbox"
-                            checked={selectedPurchases.has(purchase.id)}
-                            onChange={() => togglePurchaseSelect(purchase.id)}
-                          />
-                          <span className="checkmarks"></span>
-                        </label>
-                      </td>
-                      <td>{purchase.supplierName}</td>
-                      <td>{purchase.reference}</td>
-                      <td>{new Date(purchase.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                      <td>
-                        <span className={getStatusBadge(purchase.status)}>
-                          {purchase.status}
-                        </span>
-                      </td>
-                      <td>${purchase.total.toFixed(2)}</td>
-                      <td>${purchase.paid.toFixed(2)}</td>
-                      <td>${calculateDue(purchase.total, purchase.paid).toFixed(2)}</td>
-                      <td>
-                        <span className={`p-1 pe-2 rounded-1 fs-10 ${getPaymentStatusBadge(purchase.paymentStatus)}`}>
-                          <i className="ti ti-point-filled me-1 fs-11"></i>
-                          {purchase.paymentStatus}
-                        </span>
-                      </td>
-                      <td className="action-table-data">
-                        <div className="edit-delete-action">
+                  {paginatedPurchases.length > 0 ? (
+                    paginatedPurchases.map((purchase) => (
+                      <tr key={purchase.id}>
+                        <td>{purchase.supplierName}</td>
+                        <td>{purchase.reference}</td>
+                        <td>{new Date(purchase.date).toLocaleDateString()}</td>
+                        <td>{purchase.status}</td>
+                        <td>${purchase.total.toFixed(2)}</td>
+                        <td>${purchase.paid.toFixed(2)}</td>
+                        <td>${(purchase.total - purchase.paid).toFixed(2)}</td>
+                        <td>{getPaymentStatusBadge(purchase.paymentStatus)}</td>
+                        <td>
                           <button
-                            className="me-2 p-2 btn btn-sm btn-light"
-                            onClick={() => openEditModal(purchase)}
+                            className="btn btn-sm btn-warning me-2"
+                            onClick={() => handleEditPurchase(purchase)}
                           >
-                            <i className="ti ti-edit"></i>
+                            Edit
                           </button>
                           <button
-                            className="p-2 btn btn-sm btn-light"
+                            className="btn btn-sm btn-danger"
                             onClick={() => handleDeletePurchase(purchase.id)}
                           >
-                            <i className="ti ti-trash-2"></i>
+                            Delete
                           </button>
-                        </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={9} className="text-center">
+                        No purchases found
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Add Purchase Modal */}
-      <div
-        className={`modal fade ${showAddModal ? 'show' : ''}`}
-        style={{ display: showAddModal ? 'block' : 'none' }}
-        tabIndex={-1}
-      >
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">Add Purchase</h5>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setShowAddModal(false)}
-              ></button>
-            </div>
-            <form onSubmit={handleAddPurchase}>
+            {filteredPurchases.length > itemsPerPage && (
+              <nav aria-label="Page navigation" className="mt-3">
+                <ul className="pagination justify-content-center">
+                  <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                    <button
+                      className="page-link"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    >
+                      Previous
+                    </button>
+                  </li>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                      <button
+                        className="page-link"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    </li>
+                  ))}
+                  <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                    <button
+                      className="page-link"
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    >
+                      Next
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            )}
+          </div>
+        </div>
+
+        {/* Add Purchase Modal */}
+        {showAddModal && (
+        <div
+          className="modal fade show d-block"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          tabIndex={-1}
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h4 className="modal-title">Add Purchase</h4>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowAddModal(false)}
+                ></button>
+              </div>
               <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Supplier Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={formData.supplierName}
-                    onChange={(e) => setFormData({ ...formData, supplierName: e.target.value })}
-                    required
-                  />
+                <div className="row">
+                  <div className="col-lg-4">
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Supplier Name <span className="text-danger">*</span>
+                      </label>
+                      <select
+                        className="form-control"
+                        value={formData.supplierName}
+                        onChange={(e) =>
+                          setFormData({ ...formData, supplierName: e.target.value })
+                        }
+                      >
+                        <option value="">Select</option>
+                        {suppliers.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-lg-4">
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Date <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={formData.date}
+                        onChange={(e) =>
+                          setFormData({ ...formData, date: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-4">
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Reference <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={formData.reference}
+                        onChange={(e) =>
+                          setFormData({ ...formData, reference: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Reference</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={formData.reference}
-                    onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                    required
-                  />
+
+                <div className="row">
+                  <div className="col-lg-12">
+                    <div className="mb-3 position-relative">
+                      <label className="form-label">
+                        Product <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search Product by name or SKU..."
+                        value={productSearch}
+                        onChange={(e) => {
+                          setProductSearch(e.target.value);
+                          setShowProductDropdown(true);
+                        }}
+                        onFocus={() => setShowProductDropdown(true)}
+                      />
+                      {showProductDropdown && productSearch && filteredProducts.length > 0 && (
+                        <div className="dropdown-menu show w-100" style={{ maxHeight: '200px', overflowY: 'auto', position: 'absolute', zIndex: 1050 }}>
+                          {filteredProducts.slice(0, 10).map((product) => (
+                            <button
+                              key={product.id}
+                              type="button"
+                              className="dropdown-item d-flex justify-content-between align-items-center"
+                              onClick={() => selectProduct(product)}
+                            >
+                              <span>{product.productName}</span>
+                              <small className="text-muted">
+                                {product.sku ? `SKU: ${product.sku}` : ''} | Stock: {product.quantity} | ${product.price}
+                              </small>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {showProductDropdown && productSearch && filteredProducts.length === 0 && (
+                        <div className="dropdown-menu show w-100" style={{ position: 'absolute', zIndex: 1050 }}>
+                          <span className="dropdown-item text-muted">No products found</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                  />
+
+                <div className="row mb-3">
+                  <div className="col-lg-2">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Qty"
+                      value={newItem.quantity}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, quantity: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="col-lg-2">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Price($)"
+                      value={newItem.purchasePrice}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, purchasePrice: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="col-lg-2">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Discount($)"
+                      value={newItem.discount}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, discount: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="col-lg-2">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Tax(%)"
+                      value={newItem.taxPercentage}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, taxPercentage: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="col-lg-4">
+                    <button className="btn btn-primary w-100" onClick={addLineItem}>
+                      Add Item
+                    </button>
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Status</label>
-                  <select
-                    className="form-control"
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  >
-                    <option value="Received">Received</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Ordered">Ordered</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
+
+                {/* Line Items Table */}
+                <div className="table-responsive">
+                  <table className="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Price($)</th>
+                        <th>Discount($)</th>
+                        <th>Tax(%)</th>
+                        <th>Tax Amt($)</th>
+                        <th>Unit Cost($)</th>
+                        <th>Total($)</th>
+                        <th>Act</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lineItems.map((item, index) => (
+                        <tr key={index}>
+                          <td>{item.productName}</td>
+                          <td>{item.quantity}</td>
+                          <td>${item.purchasePrice.toFixed(2)}</td>
+                          <td>${item.discount.toFixed(2)}</td>
+                          <td>{item.taxPercentage}%</td>
+                          <td>${item.taxAmount.toFixed(2)}</td>
+                          <td>${item.unitCost.toFixed(2)}</td>
+                          <td>${item.totalCost.toFixed(2)}</td>
+                          <td>
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={() => removeLineItem(index)}
+                            >
+                              X
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Total Amount</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={formData.total}
-                    onChange={(e) => setFormData({ ...formData, total: parseFloat(e.target.value) || 0 })}
-                    step="0.01"
-                    required
-                  />
+
+                <div className="row mt-3">
+                  <div className="col-lg-3">
+                    <div className="mb-3">
+                      <label className="form-label">Order Tax</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={formData.orderTax}
+                        onChange={(e) =>
+                          setFormData({ ...formData, orderTax: parseFloat(e.target.value) || 0 })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-3">
+                    <div className="mb-3">
+                      <label className="form-label">Discount</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={formData.discount}
+                        onChange={(e) =>
+                          setFormData({ ...formData, discount: parseFloat(e.target.value) || 0 })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-3">
+                    <div className="mb-3">
+                      <label className="form-label">Shipping</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={formData.shipping}
+                        onChange={(e) =>
+                          setFormData({ ...formData, shipping: parseFloat(e.target.value) || 0 })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-3">
+                    <div className="mb-3">
+                      <label className="form-label">Status</label>
+                      <select
+                        className="form-control"
+                        value={formData.status}
+                        onChange={(e) =>
+                          setFormData({ ...formData, status: e.target.value })
+                        }
+                      >
+                        <option value="">Select</option>
+                        {statuses.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
+
                 <div className="mb-3">
-                  <label className="form-label">Paid Amount</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={formData.paid}
-                    onChange={(e) => setFormData({ ...formData, paid: parseFloat(e.target.value) || 0 })}
-                    step="0.01"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Notes</label>
+                  <label className="form-label">Description</label>
                   <textarea
                     className="form-control"
                     rows={3}
+                    placeholder="Add purchase notes..."
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
                   ></textarea>
+                  <small className="form-text text-muted">Maximum 500 characters</small>
+                </div>
+
+                <div className="alert alert-info">
+                  <strong>Total Amount:</strong> ${formData.total.toFixed(2)}
                 </div>
               </div>
               <div className="modal-footer">
@@ -489,107 +761,306 @@ const PurchaseList: React.FC = () => {
                   className="btn btn-secondary"
                   onClick={() => setShowAddModal(false)}
                 >
-                  Close
+                  Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  Save Purchase
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSavePurchase}
+                >
+                  Submit
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
-      </div>
+        )}
 
-      {/* Edit Purchase Modal */}
-      <div
-        className={`modal fade ${showEditModal ? 'show' : ''}`}
-        style={{ display: showEditModal ? 'block' : 'none' }}
-        tabIndex={-1}
-      >
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">Edit Purchase</h5>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setShowEditModal(false)}
-              ></button>
-            </div>
-            <form onSubmit={handleEditPurchase}>
+        {/* Edit Purchase Modal */}
+        {showEditModal && (
+        <div
+          className="modal fade show d-block"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          tabIndex={-1}
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h4 className="modal-title">Edit Purchase</h4>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowEditModal(false)}
+                ></button>
+              </div>
               <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Supplier Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={formData.supplierName}
-                    onChange={(e) => setFormData({ ...formData, supplierName: e.target.value })}
-                    required
-                  />
+                <div className="row">
+                  <div className="col-lg-4">
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Supplier Name <span className="text-danger">*</span>
+                      </label>
+                      <select
+                        className="form-control"
+                        value={formData.supplierName}
+                        onChange={(e) =>
+                          setFormData({ ...formData, supplierName: e.target.value })
+                        }
+                      >
+                        <option value="">Select</option>
+                        {suppliers.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-lg-4">
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Date <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={formData.date}
+                        onChange={(e) =>
+                          setFormData({ ...formData, date: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-4">
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Reference <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={formData.reference}
+                        onChange={(e) =>
+                          setFormData({ ...formData, reference: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Reference</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={formData.reference}
-                    onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                    required
-                  />
+
+                <div className="row">
+                  <div className="col-lg-12">
+                    <div className="mb-3 position-relative">
+                      <label className="form-label">
+                        Product <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search Product by name or SKU..."
+                        value={productSearch}
+                        onChange={(e) => {
+                          setProductSearch(e.target.value);
+                          setShowProductDropdown(true);
+                        }}
+                        onFocus={() => setShowProductDropdown(true)}
+                      />
+                      {showProductDropdown && productSearch && filteredProducts.length > 0 && (
+                        <div className="dropdown-menu show w-100" style={{ maxHeight: '200px', overflowY: 'auto', position: 'absolute', zIndex: 1050 }}>
+                          {filteredProducts.slice(0, 10).map((product) => (
+                            <button
+                              key={product.id}
+                              type="button"
+                              className="dropdown-item d-flex justify-content-between align-items-center"
+                              onClick={() => selectProduct(product)}
+                            >
+                              <span>{product.productName}</span>
+                              <small className="text-muted">
+                                {product.sku ? `SKU: ${product.sku}` : ''} | Stock: {product.quantity} | ${product.price}
+                              </small>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {showProductDropdown && productSearch && filteredProducts.length === 0 && (
+                        <div className="dropdown-menu show w-100" style={{ position: 'absolute', zIndex: 1050 }}>
+                          <span className="dropdown-item text-muted">No products found</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                  />
+
+                <div className="row mb-3">
+                  <div className="col-lg-2">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Qty"
+                      value={newItem.quantity}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, quantity: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="col-lg-2">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Price($)"
+                      value={newItem.purchasePrice}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, purchasePrice: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="col-lg-2">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Discount($)"
+                      value={newItem.discount}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, discount: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="col-lg-2">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Tax(%)"
+                      value={newItem.taxPercentage}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, taxPercentage: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="col-lg-4">
+                    <button className="btn btn-primary w-100" onClick={addLineItem}>
+                      Add Item
+                    </button>
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Status</label>
-                  <select
-                    className="form-control"
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  >
-                    <option value="Received">Received</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Ordered">Ordered</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
+
+                {/* Line Items Table */}
+                <div className="table-responsive">
+                  <table className="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Price($)</th>
+                        <th>Discount($)</th>
+                        <th>Tax(%)</th>
+                        <th>Tax Amt($)</th>
+                        <th>Unit Cost($)</th>
+                        <th>Total($)</th>
+                        <th>Act</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lineItems.map((item, index) => (
+                        <tr key={index}>
+                          <td>{item.productName}</td>
+                          <td>{item.quantity}</td>
+                          <td>${item.purchasePrice.toFixed(2)}</td>
+                          <td>${item.discount.toFixed(2)}</td>
+                          <td>{item.taxPercentage}%</td>
+                          <td>${item.taxAmount.toFixed(2)}</td>
+                          <td>${item.unitCost.toFixed(2)}</td>
+                          <td>${item.totalCost.toFixed(2)}</td>
+                          <td>
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={() => removeLineItem(index)}
+                            >
+                              X
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Total Amount</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={formData.total}
-                    onChange={(e) => setFormData({ ...formData, total: parseFloat(e.target.value) || 0 })}
-                    step="0.01"
-                    required
-                  />
+
+                <div className="row mt-3">
+                  <div className="col-lg-3">
+                    <div className="mb-3">
+                      <label className="form-label">Order Tax</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={formData.orderTax}
+                        onChange={(e) =>
+                          setFormData({ ...formData, orderTax: parseFloat(e.target.value) || 0 })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-3">
+                    <div className="mb-3">
+                      <label className="form-label">Discount</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={formData.discount}
+                        onChange={(e) =>
+                          setFormData({ ...formData, discount: parseFloat(e.target.value) || 0 })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-3">
+                    <div className="mb-3">
+                      <label className="form-label">Shipping</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={formData.shipping}
+                        onChange={(e) =>
+                          setFormData({ ...formData, shipping: parseFloat(e.target.value) || 0 })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="col-lg-3">
+                    <div className="mb-3">
+                      <label className="form-label">Status</label>
+                      <select
+                        className="form-control"
+                        value={formData.status}
+                        onChange={(e) =>
+                          setFormData({ ...formData, status: e.target.value })
+                        }
+                      >
+                        <option value="">Select</option>
+                        {statuses.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
+
                 <div className="mb-3">
-                  <label className="form-label">Paid Amount</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={formData.paid}
-                    onChange={(e) => setFormData({ ...formData, paid: parseFloat(e.target.value) || 0 })}
-                    step="0.01"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Notes</label>
+                  <label className="form-label">Description</label>
                   <textarea
                     className="form-control"
                     rows={3}
+                    placeholder="Add purchase notes..."
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
                   ></textarea>
+                  <small className="form-text text-muted">Maximum 500 characters</small>
+                </div>
+
+                <div className="alert alert-info">
+                  <strong>Total Amount:</strong> ${formData.total.toFixed(2)}
                 </div>
               </div>
               <div className="modal-footer">
@@ -598,28 +1069,22 @@ const PurchaseList: React.FC = () => {
                   className="btn btn-secondary"
                   onClick={() => setShowEditModal(false)}
                 >
-                  Close
+                  Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  Update Purchase
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSavePurchase}
+                >
+                  Submit
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
+        )}
       </div>
-
-      {/* Backdrop for modals */}
-      {(showAddModal || showEditModal) && (
-        <div
-          className="modal-backdrop fade show"
-          onClick={() => {
-            setShowAddModal(false);
-            setShowEditModal(false);
-          }}
-        ></div>
-      )}
-    </>
+    </div>
   );
 };
 
