@@ -42,6 +42,16 @@ builder.Services.AddScoped<ICouponService, CouponService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IFormFieldConfigService, FormFieldConfigService>();
 
+// HRM Services
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IDesignationService, DesignationService>();
+builder.Services.AddScoped<IShiftService, ShiftService>();
+builder.Services.AddScoped<ILeaveTypeService, LeaveTypeService>();
+builder.Services.AddScoped<ILeaveService, LeaveService>();
+builder.Services.AddScoped<IHolidayService, HolidayService>();
+builder.Services.AddScoped<IPayrollService, PayrollService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+
 // WhatsApp Cloud API
 builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 

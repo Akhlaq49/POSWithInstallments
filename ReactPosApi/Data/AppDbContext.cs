@@ -59,6 +59,15 @@ public class AppDbContext : DbContext
     // Form Field Configurations
     public DbSet<FormFieldConfig> FormFieldConfigs => Set<FormFieldConfig>();
 
+    // HRM
+    public DbSet<Department> Departments => Set<Department>();
+    public DbSet<Designation> Designations => Set<Designation>();
+    public DbSet<Shift> Shifts => Set<Shift>();
+    public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
+    public DbSet<Leave> Leaves => Set<Leave>();
+    public DbSet<Holiday> Holidays => Set<Holiday>();
+    public DbSet<Payroll> Payrolls => Set<Payroll>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -97,7 +106,7 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Party (unified: Admin, Manager, User, Customer, Guarantor, Supplier, Biller, Store, Warehouse)
+        // Party (unified: Admin, Manager, User, Customer, Guarantor, Supplier, Biller, Store, Warehouse, Employee)
         modelBuilder.Entity<Party>(e =>
         {
             e.HasIndex(p => new { p.Email, p.Role })
@@ -107,6 +116,63 @@ public class AppDbContext : DbContext
             e.Property(p => p.Role).HasDefaultValue("Customer");
             e.Property(p => p.Status).HasDefaultValue("active");
             e.Property(p => p.IsActive).HasDefaultValue(true);
+            e.Property(p => p.BasicSalary).HasColumnType("decimal(18,2)");
+
+            e.HasOne(p => p.Department).WithMany().HasForeignKey(p => p.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.Designation).WithMany().HasForeignKey(p => p.DesignationId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.Shift).WithMany().HasForeignKey(p => p.ShiftId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Department
+        modelBuilder.Entity<Department>(e =>
+        {
+            e.HasOne(d => d.HOD).WithMany().HasForeignKey(d => d.HODId).OnDelete(DeleteBehavior.SetNull);
+            e.Property(d => d.Status).HasDefaultValue("active");
+            e.Property(d => d.IsActive).HasDefaultValue(true);
+        });
+
+        // Designation -> Department
+        modelBuilder.Entity<Designation>(e =>
+        {
+            e.HasOne(d => d.Department).WithMany(dept => dept.Designations).HasForeignKey(d => d.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            e.Property(d => d.Status).HasDefaultValue("active");
+            e.Property(d => d.IsActive).HasDefaultValue(true);
+        });
+
+        // Shift
+        modelBuilder.Entity<Shift>(e =>
+        {
+            e.Property(s => s.Status).HasDefaultValue("active");
+            e.Property(s => s.IsActive).HasDefaultValue(true);
+        });
+
+        // LeaveType
+        modelBuilder.Entity<LeaveType>(e =>
+        {
+            e.Property(lt => lt.Status).HasDefaultValue("active");
+            e.Property(lt => lt.IsActive).HasDefaultValue(true);
+        });
+
+        // Leave
+        modelBuilder.Entity<Leave>(e =>
+        {
+            e.HasOne(l => l.Employee).WithMany().HasForeignKey(l => l.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(l => l.LeaveType).WithMany(lt => lt.Leaves).HasForeignKey(l => l.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(l => l.ApprovedBy).WithMany().HasForeignKey(l => l.ApprovedById).OnDelete(DeleteBehavior.SetNull);
+            e.Property(l => l.Days).HasColumnType("decimal(5,1)");
+        });
+
+        // Holiday
+        modelBuilder.Entity<Holiday>(e =>
+        {
+            e.Property(h => h.Status).HasDefaultValue("active");
+            e.Property(h => h.IsActive).HasDefaultValue(true);
+        });
+
+        // Payroll
+        modelBuilder.Entity<Payroll>(e =>
+        {
+            e.HasOne(p => p.Employee).WithMany().HasForeignKey(p => p.EmployeeId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // InstallmentPlan
