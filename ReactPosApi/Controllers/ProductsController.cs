@@ -14,8 +14,15 @@ public class ProductsController : ControllerBase
     public ProductsController(IProductService service) => _service = service;
 
     [HttpGet]
-    public async Task<ActionResult<List<ProductDto>>> GetAll()
-        => Ok(await _service.GetAllAsync());
+    public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? pageSize, [FromQuery] string? search)
+    {
+        if (page.HasValue)
+        {
+            var query = new PaginationQuery { Page = page.Value, PageSize = pageSize ?? 10, Search = search };
+            return Ok(await _service.GetAllPagedAsync(query));
+        }
+        return Ok(await _service.GetAllAsync());
+    }
 
     [HttpGet("expired")]
     public async Task<ActionResult<List<ProductDto>>> GetExpired()

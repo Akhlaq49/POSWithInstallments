@@ -12,6 +12,45 @@ public class UserService : IUserService
 
     public UserService(AppDbContext db) => _db = db;
 
+    public async Task<PagedResult<UserDto>> GetAllPagedAsync(PaginationQuery query)
+    {
+        var q = _db.Parties.Where(p => UserRoles.Contains(p.Role)).AsQueryable();
+
+        if (!string.IsNullOrEmpty(query.Search))
+        {
+            var s = query.Search.ToLower();
+            q = q.Where(p => p.FullName.ToLower().Contains(s) ||
+                             (p.Email != null && p.Email.ToLower().Contains(s)) ||
+                             (p.Phone != null && p.Phone.Contains(s)));
+        }
+
+        q = q.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await q.CountAsync();
+        var entities = await q
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(p => new UserDto
+            {
+                Id = p.Id,
+                FullName = p.FullName,
+                Email = p.Email ?? "",
+                Phone = p.Phone ?? "",
+                Role = p.Role,
+                IsActive = p.IsActive,
+                CreatedAt = p.CreatedAt
+            })
+            .ToListAsync();
+
+        return new PagedResult<UserDto>
+        {
+            Items = entities,
+            TotalCount = totalCount,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+    }
+
     public async Task<List<UserDto>> GetAllAsync()
     {
         return await _db.Parties

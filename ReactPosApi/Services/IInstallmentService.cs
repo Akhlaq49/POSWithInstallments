@@ -6,6 +6,7 @@ namespace ReactPosApi.Services;
 public interface IInstallmentService
 {
     Task<List<InstallmentPlanDto>> GetAllAsync();
+    Task<PagedResult<InstallmentPlanDto>> GetAllPagedAsync(PaginationQuery query);
     Task<InstallmentPlanDto?> GetByIdAsync(int id);
     Task<InstallmentPlanDto> CreateAsync(CreateInstallmentDto dto);
     Task<object> PayInstallmentAsync(int planId, int installmentNo, PayInstallmentDto paymentDto);

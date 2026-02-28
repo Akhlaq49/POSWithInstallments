@@ -121,10 +121,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Seed admin party
+// Auto-create / migrate the database on first start (Code First)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+
+    // Seed admin party
     if (!db.Parties.Any(p => p.Email == "admin@reactpos.com" && p.Role == "Admin"))
     {
         db.Parties.Add(new Party

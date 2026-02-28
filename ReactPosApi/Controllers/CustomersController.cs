@@ -18,10 +18,14 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? pageSize, [FromQuery] string? search, [FromQuery] string? status)
     {
-        var customers = await _service.GetAllAsync();
-        return Ok(customers);
+        if (page.HasValue)
+        {
+            var query = new PaginationQuery { Page = page.Value, PageSize = pageSize ?? 10, Search = search, Status = status };
+            return Ok(await _service.GetAllPagedAsync(query));
+        }
+        return Ok(await _service.GetAllAsync());
     }
 
     [HttpGet("{id}")]

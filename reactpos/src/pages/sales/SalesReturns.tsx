@@ -1,5 +1,7 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api, { mediaUrl } from '../../services/api';
+import { useServerPagination } from '../../hooks/useServerPagination';
+import ServerPagination from '../../components/ServerPagination';
 
 /* ---------- Types ---------- */
 interface SalesReturnItemDto {
@@ -47,17 +49,34 @@ const fmt = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigi
 
 /* ======================== Component ======================== */
 const SalesReturns: React.FC = () => {
-  const [returns, setReturns] = useState<SalesReturnDto[]>([]);
-  const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState<CustomerResult[]>([]);
   const [products, setProducts] = useState<ProductResult[]>([]);
 
   /* filters */
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCustomer, setFilterCustomer] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState('');
   const [sortBy, setSortBy] = useState('recent');
+
+  const extraParams = useMemo(() => {
+    const p: Record<string, string> = {};
+    if (filterStatus) p.status = filterStatus;
+    if (filterPaymentStatus) p.paymentStatus = filterPaymentStatus;
+    return p;
+  }, [filterStatus, filterPaymentStatus]);
+
+  const {
+    data: returns,
+    loading,
+    search: searchTerm,
+    setSearch: setSearchTerm,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalCount,
+    totalPages,
+    refresh,
+  } = useServerPagination<SalesReturnDto>({ endpoint: '/salesreturns', defaultPageSize: 10, extraParams });
 
   /* select */
   const [selectAll, setSelectAll] = useState(false);
@@ -84,23 +103,20 @@ const SalesReturns: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  /* ---- Fetch ---- */
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [rRes, cRes, pRes] = await Promise.all([
-        api.get<SalesReturnDto[]>('/salesreturns'),
-        api.get<CustomerResult[]>('/customers'),
-        api.get<ProductResult[]>('/products'),
-      ]);
-      setReturns(rRes.data);
-      setCustomers(cRes.data);
-      setProducts(pRes.data);
-    } catch { /* ignore */ }
-    setLoading(false);
+  /* ---- Fetch dropdown data ---- */
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cRes, pRes] = await Promise.all([
+          api.get<CustomerResult[]>('/customers'),
+          api.get<ProductResult[]>('/products'),
+        ]);
+        setCustomers(cRes.data);
+        setProducts(pRes.data);
+      } catch { /* ignore */ }
+    })();
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (typeof (window as any).feather !== 'undefined') (window as any).feather.replace(); });
 
   /* ---- Click-away ---- */
@@ -113,26 +129,8 @@ const SalesReturns: React.FC = () => {
     return () => document.removeEventListener('mousedown', handle);
   }, []);
 
-  /* ---- Filters ---- */
-  const customerNames = [...new Set(returns.map(r => r.customerName).filter(Boolean))];
-
-  const filtered = returns
-    .filter((r) => {
-      const q = searchTerm.toLowerCase();
-      const matchSearch = !searchTerm || r.reference.toLowerCase().includes(q) || r.customerName.toLowerCase().includes(q) || r.productName.toLowerCase().includes(q);
-      const matchCustomer = !filterCustomer || r.customerName === filterCustomer;
-      const matchStatus = !filterStatus || r.status === filterStatus;
-      const matchPayment = !filterPaymentStatus || r.paymentStatus === filterPaymentStatus;
-      return matchSearch && matchCustomer && matchStatus && matchPayment;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'asc') return a.grandTotal - b.grandTotal;
-      if (sortBy === 'desc') return b.grandTotal - a.grandTotal;
-      return 0;
-    });
-
   /* ---- Select ---- */
-  const handleSelectAll = (checked: boolean) => { setSelectAll(checked); setSelectedIds(checked ? new Set(filtered.map(r => r.id)) : new Set()); };
+  const handleSelectAll = (checked: boolean) => { setSelectAll(checked); setSelectedIds(checked ? new Set(returns.map(r => r.id)) : new Set()); };
   const handleSelectOne = (id: number, checked: boolean) => { setSelectedIds(prev => { const n = new Set(prev); if (checked) n.add(id); else n.delete(id); return n; }); };
 
   /* ---- Product search (items) ---- */
@@ -220,14 +218,14 @@ const SalesReturns: React.FC = () => {
       if (editingId) await api.put(`/salesreturns/${editingId}`, payload);
       else await api.post('/salesreturns', payload);
       setShowModal(false);
-      fetchData();
+      refresh();
     } catch { /* ignore */ }
   };
 
   /* ---- Delete ---- */
   const confirmDelete = async () => {
     if (!deleteId) return;
-    try { await api.delete(`/salesreturns/${deleteId}`); setShowDeleteModal(false); setDeleteId(null); fetchData(); } catch { /* ignore */ }
+    try { await api.delete(`/salesreturns/${deleteId}`); setShowDeleteModal(false); setDeleteId(null); refresh(); } catch { /* ignore */ }
   };
 
   /* ====================== RENDER ====================== */
@@ -258,18 +256,6 @@ const SalesReturns: React.FC = () => {
             </div>
           </div>
           <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
-            {/* Customer filter */}
-            <div className="dropdown me-2">
-              <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
-                {filterCustomer || 'Customer'}
-              </a>
-              <ul className="dropdown-menu dropdown-menu-end p-3">
-                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterCustomer(''); }}>All</a></li>
-                {customerNames.map(c => (
-                  <li key={c}><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterCustomer(c); }}>{c}</a></li>
-                ))}
-              </ul>
-            </div>
             {/* Status filter */}
             <div className="dropdown me-2">
               <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
@@ -331,9 +317,9 @@ const SalesReturns: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
+                  {returns.length === 0 ? (
                     <tr><td colSpan={10} className="text-center py-4">No sales returns found</td></tr>
-                  ) : filtered.map(r => (
+                  ) : returns.map(r => (
                     <tr key={r.id}>
                       <td>
                         <label className="checkboxs"><input type="checkbox" checked={selectedIds.has(r.id)} onChange={e => handleSelectOne(r.id, e.target.checked)} /><span className="checkmarks"></span></label>
@@ -381,6 +367,16 @@ const SalesReturns: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Pagination */}
+      <ServerPagination
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       {/* ===================== Add / Edit Modal ===================== */}
       {showModal && (

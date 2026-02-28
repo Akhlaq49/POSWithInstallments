@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { InstallmentPlan, getInstallmentPlans, cancelInstallment } from '../../services/installmentService';
+import { InstallmentPlan, cancelInstallment } from '../../services/installmentService';
 import { mediaUrl, MEDIA_BASE_URL } from '../../services/api';
 import WhatsAppSendModal from '../../components/WhatsAppSendModal';
+import { useServerPagination } from '../../hooks/useServerPagination';
+import ServerPagination from '../../components/ServerPagination';
 
 const InstallmentPlans: React.FC = () => {
-  const [plans, setPlans] = useState<InstallmentPlan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectAll, setSelectAll] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -15,19 +14,25 @@ const InstallmentPlans: React.FC = () => {
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [whatsappPlan, setWhatsappPlan] = useState<InstallmentPlan | null>(null);
 
-  useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const data = await getInstallmentPlans();
-        setPlans(data);
-      } catch {
-        setPlans([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPlans();
-  }, []);
+  const extraParams = useMemo(() => {
+    const p: Record<string, string> = {};
+    if (statusFilter) p.status = statusFilter;
+    return p;
+  }, [statusFilter]);
+
+  const {
+    data: plans,
+    loading,
+    search: searchTerm,
+    setSearch: setSearchTerm,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalCount,
+    totalPages,
+    refresh,
+  } = useServerPagination<InstallmentPlan>({ endpoint: '/installments', defaultPageSize: 10, extraParams });
 
   useEffect(() => {
     if (typeof (window as any).feather !== 'undefined') {
@@ -53,7 +58,7 @@ const InstallmentPlans: React.FC = () => {
   const handleCancel = async () => {
     if (!cancelId) return;
     await cancelInstallment(cancelId);
-    setPlans((prev) => prev.map((p) => p.id === cancelId ? { ...p, status: 'cancelled' as const } : p));
+    refresh();
     setShowCancelModal(false);
     setCancelId(null);
   };
@@ -101,19 +106,6 @@ const InstallmentPlans: React.FC = () => {
     return <span className={`badge fw-medium fs-10 ${map[status] || 'bg-secondary'}`}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>;
   };
 
-  const filtered = plans.filter((p) => {
-    const q = searchTerm.toLowerCase();
-    const matchGuarantor = p.guarantors?.some(
-      (g) =>
-        g.name?.toLowerCase().includes(q) ||
-        g.phone?.toLowerCase().includes(q) ||
-        g.cnic?.toLowerCase().includes(q)
-    );
-    const matchSearch = !searchTerm || p.customerName.toLowerCase().includes(q) || p.productName.toLowerCase().includes(q) || matchGuarantor;
-    const matchStatus = !statusFilter || p.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
-
   return (
     <>
       {/* Page Header */}
@@ -143,7 +135,7 @@ const InstallmentPlans: React.FC = () => {
             <div className="card-body d-flex align-items-center justify-content-between">
               <div>
                 <p className="mb-1 text-muted">Total Plans</p>
-                <h4 className="fw-bold">{plans.length}</h4>
+                <h4 className="fw-bold">{totalCount}</h4>
               </div>
               <span className="rounded-circle d-inline-flex p-2 bg-primary-transparent"><i className="ti ti-file-text fs-24 text-primary"></i></span>
             </div>
@@ -235,7 +227,7 @@ const InstallmentPlans: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((plan) => (
+                  {plans.map((plan) => (
                     <tr key={plan.id}>
                       <td>
                         <label className="checkboxs"><input type="checkbox" checked={selectedIds.has(plan.id)} onChange={(e) => handleSelectOne(plan.id, e.target.checked)} /><span className="checkmarks"></span></label>
@@ -291,6 +283,15 @@ const InstallmentPlans: React.FC = () => {
             </div>
           )}
         </div>
+        <ServerPagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          loading={loading}
+        />
       </div>
 
       {/* Cancel Modal */}

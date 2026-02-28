@@ -14,8 +14,15 @@ public class UsersController : ControllerBase
     public UsersController(IUserService service) => _service = service;
 
     [HttpGet]
-    public async Task<ActionResult<List<UserDto>>> GetAll()
-        => Ok(await _service.GetAllAsync());
+    public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? pageSize, [FromQuery] string? search)
+    {
+        if (page.HasValue)
+        {
+            var query = new PaginationQuery { Page = page.Value, PageSize = pageSize ?? 10, Search = search };
+            return Ok(await _service.GetAllPagedAsync(query));
+        }
+        return Ok(await _service.GetAllAsync());
+    }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<UserDto>> GetById(int id)

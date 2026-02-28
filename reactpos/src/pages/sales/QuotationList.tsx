@@ -1,5 +1,7 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api, { mediaUrl } from '../../services/api';
+import { useServerPagination } from '../../hooks/useServerPagination';
+import ServerPagination from '../../components/ServerPagination';
 
 /* ---------- Types ---------- */
 interface QuotationItemDto {
@@ -43,17 +45,32 @@ const fmt = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigi
 
 /* ======================== Component ======================== */
 const QuotationList: React.FC = () => {
-  const [quotations, setQuotations] = useState<QuotationDto[]>([]);
-  const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState<CustomerResult[]>([]);
   const [products, setProducts] = useState<ProductResult[]>([]);
 
   /* filters */
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterProduct, setFilterProduct] = useState('');
-  const [filterCustomer, setFilterCustomer] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [sortBy, setSortBy] = useState('recent');
+
+  const extraParams = useMemo(() => {
+    const p: Record<string, string> = {};
+    if (filterStatus) p.status = filterStatus;
+    return p;
+  }, [filterStatus]);
+
+  const {
+    data: quotations,
+    loading,
+    search: searchTerm,
+    setSearch: setSearchTerm,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalCount,
+    totalPages,
+    refresh,
+  } = useServerPagination<QuotationDto>({ endpoint: '/quotations', defaultPageSize: 10, extraParams });
 
   /* select */
   const [selectAll, setSelectAll] = useState(false);
@@ -84,23 +101,20 @@ const QuotationList: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  /* ---- Fetch ---- */
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [qRes, cRes, pRes] = await Promise.all([
-        api.get<QuotationDto[]>('/quotations'),
-        api.get<CustomerResult[]>('/customers'),
-        api.get<ProductResult[]>('/products'),
-      ]);
-      setQuotations(qRes.data);
-      setCustomers(cRes.data);
-      setProducts(pRes.data);
-    } catch { /* ignore */ }
-    setLoading(false);
+  /* ---- Fetch dropdown data ---- */
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cRes, pRes] = await Promise.all([
+          api.get<CustomerResult[]>('/customers'),
+          api.get<ProductResult[]>('/products'),
+        ]);
+        setCustomers(cRes.data);
+        setProducts(pRes.data);
+      } catch { /* ignore */ }
+    })();
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (typeof (window as any).feather !== 'undefined') (window as any).feather.replace(); });
 
   /* ---- Click-away ---- */
@@ -113,27 +127,8 @@ const QuotationList: React.FC = () => {
     return () => document.removeEventListener('mousedown', handle);
   }, []);
 
-  /* ---- Filters ---- */
-  const productNames = [...new Set(quotations.map(q => q.productName).filter(Boolean))];
-  const customerNames = [...new Set(quotations.map(q => q.customerName).filter(Boolean))];
-
-  const filtered = quotations
-    .filter((q) => {
-      const s = searchTerm.toLowerCase();
-      const matchSearch = !searchTerm || q.reference.toLowerCase().includes(s) || q.customerName.toLowerCase().includes(s) || q.productName.toLowerCase().includes(s);
-      const matchProduct = !filterProduct || q.productName === filterProduct;
-      const matchCustomer = !filterCustomer || q.customerName === filterCustomer;
-      const matchStatus = !filterStatus || q.status === filterStatus;
-      return matchSearch && matchProduct && matchCustomer && matchStatus;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'asc') return a.grandTotal - b.grandTotal;
-      if (sortBy === 'desc') return b.grandTotal - a.grandTotal;
-      return 0;
-    });
-
   /* ---- Select ---- */
-  const handleSelectAll = (checked: boolean) => { setSelectAll(checked); setSelectedIds(checked ? new Set(filtered.map(q => q.id)) : new Set()); };
+  const handleSelectAll = (checked: boolean) => { setSelectAll(checked); setSelectedIds(checked ? new Set(quotations.map(q => q.id)) : new Set()); };
   const handleSelectOne = (id: number, checked: boolean) => { setSelectedIds(prev => { const n = new Set(prev); if (checked) n.add(id); else n.delete(id); return n; }); };
 
   /* ---- Product search (items) ---- */
@@ -236,14 +231,14 @@ const QuotationList: React.FC = () => {
       if (editingId) await api.put(`/quotations/${editingId}`, payload);
       else await api.post('/quotations', payload);
       setShowModal(false);
-      fetchData();
+      refresh();
     } catch { /* ignore */ }
   };
 
   /* ---- Delete ---- */
   const confirmDelete = async () => {
     if (!deleteId) return;
-    try { await api.delete(`/quotations/${deleteId}`); setShowDeleteModal(false); setDeleteId(null); fetchData(); } catch { /* ignore */ }
+    try { await api.delete(`/quotations/${deleteId}`); setShowDeleteModal(false); setDeleteId(null); refresh(); } catch { /* ignore */ }
   };
 
   /* ====================== RENDER ====================== */
@@ -274,30 +269,6 @@ const QuotationList: React.FC = () => {
             </div>
           </div>
           <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
-            {/* Product filter */}
-            <div className="dropdown me-2">
-              <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
-                {filterProduct || 'Product'}
-              </a>
-              <ul className="dropdown-menu dropdown-menu-end p-3">
-                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterProduct(''); }}>All</a></li>
-                {productNames.map(p => (
-                  <li key={p}><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterProduct(p); }}>{p}</a></li>
-                ))}
-              </ul>
-            </div>
-            {/* Customer filter */}
-            <div className="dropdown me-2">
-              <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
-                {filterCustomer || 'Customer'}
-              </a>
-              <ul className="dropdown-menu dropdown-menu-end p-3">
-                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterCustomer(''); }}>All</a></li>
-                {customerNames.map(c => (
-                  <li key={c}><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterCustomer(c); }}>{c}</a></li>
-                ))}
-              </ul>
-            </div>
             {/* Status filter */}
             <div className="dropdown me-2">
               <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
@@ -343,9 +314,9 @@ const QuotationList: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
+                  {quotations.length === 0 ? (
                     <tr><td colSpan={6} className="text-center py-4">No quotations found</td></tr>
-                  ) : filtered.map(q => (
+                  ) : quotations.map(q => (
                     <tr key={q.id}>
                       <td>
                         <label className="checkboxs"><input type="checkbox" checked={selectedIds.has(q.id)} onChange={e => handleSelectOne(q.id, e.target.checked)} /><span className="checkmarks"></span></label>
@@ -389,6 +360,16 @@ const QuotationList: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Pagination */}
+      <ServerPagination
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       {/* ===================== Add / Edit Modal ===================== */}
       {showModal && (

@@ -17,6 +17,37 @@ public class ProductService : IProductService
         _fileService = fileService;
     }
 
+    public async Task<PagedResult<ProductDto>> GetAllPagedAsync(PaginationQuery query)
+    {
+        var q = _db.Products.AsQueryable();
+
+        if (!string.IsNullOrEmpty(query.Search))
+        {
+            var s = query.Search.ToLower();
+            q = q.Where(p => p.ProductName.ToLower().Contains(s) ||
+                             (p.SKU != null && p.SKU.ToLower().Contains(s)) ||
+                             (p.Category != null && p.Category.ToLower().Contains(s)) ||
+                             (p.Brand != null && p.Brand.ToLower().Contains(s)));
+        }
+
+        q = q.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await q.CountAsync();
+        var entities = await q
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Include(p => p.Images)
+            .ToListAsync();
+
+        return new PagedResult<ProductDto>
+        {
+            Items = entities.Select(MapToDto).ToList(),
+            TotalCount = totalCount,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+    }
+
     public async Task<List<ProductDto>> GetAllAsync()
     {
         var products = await _db.Products

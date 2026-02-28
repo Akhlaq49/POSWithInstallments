@@ -30,10 +30,42 @@ public class PartiesController : ControllerBase
     /// GET api/parties?role=Supplier
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string role)
+    public async Task<IActionResult> GetAll([FromQuery] string role,
+        [FromQuery] int? page, [FromQuery] int? pageSize, [FromQuery] string? search)
     {
         if (string.IsNullOrEmpty(role) || !ValidRoles.Contains(role))
             return BadRequest("A valid role query parameter is required (Supplier, Biller, Store, Warehouse).");
+
+        if (page.HasValue)
+        {
+            var q = _db.Parties.Where(p => p.Role == role).AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                var s = search.ToLower();
+                q = q.Where(p => p.FullName.ToLower().Contains(s) ||
+                                 (p.Phone != null && p.Phone.Contains(s)) ||
+                                 (p.Email != null && p.Email.ToLower().Contains(s)) ||
+                                 (p.CompanyName != null && p.CompanyName.ToLower().Contains(s)) ||
+                                 (p.Code != null && p.Code.ToLower().Contains(s)));
+            }
+
+            q = q.OrderByDescending(p => p.CreatedAt);
+
+            var totalCount = await q.CountAsync();
+            var items = await q
+                .Skip((page.Value - 1) * (pageSize ?? 10))
+                .Take(pageSize ?? 10)
+                .ToListAsync();
+
+            return Ok(new PagedResult<PartyDto>
+            {
+                Items = items.Select(p => MapToDto(p)).ToList(),
+                TotalCount = totalCount,
+                Page = page.Value,
+                PageSize = pageSize ?? 10
+            });
+        }
 
         var list = await _db.Parties
             .Where(p => p.Role == role)

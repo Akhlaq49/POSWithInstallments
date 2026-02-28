@@ -1,5 +1,7 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api, { mediaUrl } from '../../services/api';
+import { useServerPagination } from '../../hooks/useServerPagination';
+import ServerPagination from '../../components/ServerPagination';
 
 /* ---------- Types ---------- */
 interface SaleItemDto {
@@ -54,16 +56,34 @@ const fmt = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigi
 
 /* ======================== Component ======================== */
 const OnlineOrders: React.FC = () => {
-  const [sales, setSales] = useState<SaleDto[]>([]);
-  const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState<CustomerResult[]>([]);
   const [products, setProducts] = useState<ProductResult[]>([]);
 
   /* filters */
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState('');
   const [sortBy, setSortBy] = useState('recent');
+
+  const extraParams = useMemo(() => {
+    const p: Record<string, string> = { source: 'online' };
+    if (filterStatus) p.status = filterStatus;
+    if (filterPaymentStatus) p.paymentStatus = filterPaymentStatus;
+    return p;
+  }, [filterStatus, filterPaymentStatus]);
+
+  const {
+    data: sales,
+    loading,
+    search: searchTerm,
+    setSearch: setSearchTerm,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalCount,
+    totalPages,
+    refresh,
+  } = useServerPagination<SaleDto>({ endpoint: '/sales', defaultPageSize: 10, extraParams });
 
   /* select */
   const [selectAll, setSelectAll] = useState(false);
@@ -102,23 +122,20 @@ const OnlineOrders: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  /* ---- Fetch ---- */
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [sRes, cRes, pRes] = await Promise.all([
-        api.get<SaleDto[]>('/sales?source=online'),
-        api.get<CustomerResult[]>('/customers'),
-        api.get<ProductResult[]>('/products'),
-      ]);
-      setSales(sRes.data);
-      setCustomers(cRes.data);
-      setProducts(pRes.data);
-    } catch { /* ignore */ }
-    setLoading(false);
+  /* ---- Fetch dropdown data ---- */
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cRes, pRes] = await Promise.all([
+          api.get<CustomerResult[]>('/customers'),
+          api.get<ProductResult[]>('/products'),
+        ]);
+        setCustomers(cRes.data);
+        setProducts(pRes.data);
+      } catch { /* ignore */ }
+    })();
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (typeof (window as any).feather !== 'undefined') (window as any).feather.replace(); });
 
   /* ---- Click-away ---- */
@@ -131,23 +148,8 @@ const OnlineOrders: React.FC = () => {
     return () => document.removeEventListener('mousedown', handle);
   }, []);
 
-  /* ---- Filters ---- */
-  const filtered = sales
-    .filter((s) => {
-      const q = searchTerm.toLowerCase();
-      const matchSearch = !searchTerm || s.reference.toLowerCase().includes(q) || s.customerName.toLowerCase().includes(q);
-      const matchStatus = !filterStatus || s.status === filterStatus;
-      const matchPayment = !filterPaymentStatus || s.paymentStatus === filterPaymentStatus;
-      return matchSearch && matchStatus && matchPayment;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'asc') return a.grandTotal - b.grandTotal;
-      if (sortBy === 'desc') return b.grandTotal - a.grandTotal;
-      return 0;
-    });
-
   /* ---- Select ---- */
-  const handleSelectAll = (checked: boolean) => { setSelectAll(checked); setSelectedIds(checked ? new Set(filtered.map((s) => s.id)) : new Set()); };
+  const handleSelectAll = (checked: boolean) => { setSelectAll(checked); setSelectedIds(checked ? new Set(sales.map((s) => s.id)) : new Set()); };
   const handleSelectOne = (id: number, checked: boolean) => { setSelectedIds((prev) => { const n = new Set(prev); if (checked) n.add(id); else n.delete(id); return n; }); };
 
   /* ---- Product search ---- */
@@ -226,14 +228,14 @@ const OnlineOrders: React.FC = () => {
       if (editingId) await api.put(`/sales/${editingId}`, payload);
       else await api.post('/sales', { ...payload, source: 'online' });
       setShowModal(false);
-      fetchData();
+      refresh();
     } catch { /* ignore */ }
   };
 
   /* ---- Delete ---- */
   const confirmDelete = async () => {
     if (!deleteId) return;
-    try { await api.delete(`/sales/${deleteId}`); setShowDeleteModal(false); setDeleteId(null); fetchData(); } catch { /* ignore */ }
+    try { await api.delete(`/sales/${deleteId}`); setShowDeleteModal(false); setDeleteId(null); refresh(); } catch { /* ignore */ }
   };
 
   /* ---- Detail modal ---- */
@@ -263,7 +265,7 @@ const OnlineOrders: React.FC = () => {
       if (editingPaymentId) await api.put(`/sales/${paymentSaleId}/payments/${editingPaymentId}`, paymentForm);
       else await api.post(`/sales/${paymentSaleId}/payments`, paymentForm);
       setShowPaymentFormModal(false);
-      fetchData();
+      refresh();
       const res = await api.get<SaleDto>(`/sales/${paymentSaleId}`);
       setPaymentsSale(res.data);
     } catch { /* ignore */ }
@@ -272,7 +274,7 @@ const OnlineOrders: React.FC = () => {
   const deletePayment = async (saleId: number, paymentId: number) => {
     try {
       await api.delete(`/sales/${saleId}/payments/${paymentId}`);
-      fetchData();
+      refresh();
       const res = await api.get<SaleDto>(`/sales/${saleId}`);
       setPaymentsSale(res.data);
     } catch { /* ignore */ }
@@ -365,9 +367,9 @@ const OnlineOrders: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
+                  {sales.length === 0 ? (
                     <tr><td colSpan={11} className="text-center py-4">No sales found</td></tr>
-                  ) : filtered.map((s) => (
+                  ) : sales.map((s) => (
                     <tr key={s.id}>
                       <td>
                         <label className="checkboxs"><input type="checkbox" checked={selectedIds.has(s.id)} onChange={(e) => handleSelectOne(s.id, e.target.checked)} /><span className="checkmarks"></span></label>
@@ -412,6 +414,16 @@ const OnlineOrders: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Pagination */}
+      <ServerPagination
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       {/* ===================== Add / Edit Sale Modal ===================== */}
       {showModal && (

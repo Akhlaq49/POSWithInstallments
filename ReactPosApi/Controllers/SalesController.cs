@@ -14,8 +14,15 @@ public class SalesController : ControllerBase
     public SalesController(ISaleService service) => _service = service;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? source = null)
-        => Ok(await _service.GetAllAsync(source));
+    public async Task<IActionResult> GetAll([FromQuery] string? source = null, [FromQuery] int? page = null, [FromQuery] int? pageSize = null, [FromQuery] string? search = null, [FromQuery] string? status = null, [FromQuery] string? paymentStatus = null)
+    {
+        if (page.HasValue)
+        {
+            var query = new PaginationQuery { Page = page.Value, PageSize = pageSize ?? 10, Search = search, Status = status };
+            return Ok(await _service.GetAllPagedAsync(source, query, paymentStatus));
+        }
+        return Ok(await _service.GetAllAsync(source));
+    }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)

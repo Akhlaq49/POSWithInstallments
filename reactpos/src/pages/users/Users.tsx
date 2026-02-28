@@ -1,17 +1,26 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState } from 'react';
 import { userService, UserDto, CreateUserPayload, UpdateUserPayload } from '../../services/userService';
+import { useServerPagination } from '../../hooks/useServerPagination';
+import ServerPagination from '../../components/ServerPagination';
 
 const ROLES = ['Admin', 'Manager', 'Salesman', 'Supervisor', 'Store Keeper', 'Delivery Biker', 'Maintenance', 'Quality Analyst', 'Accountant', 'Purchase', 'User'];
 
 const Users: React.FC = () => {
-  // ── Data state ──
-  const [users, setUsers] = useState<UserDto[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // ── Search & filter ──
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'inactive'>('');
+  const {
+    data: users,
+    loading,
+    search,
+    setSearch,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalCount,
+    totalPages,
+    refresh,
+  } = useServerPagination<UserDto>({ endpoint: '/users', defaultPageSize: 10 });
 
   // ── Add modal ──
   const [showAdd, setShowAdd] = useState(false);
@@ -34,30 +43,6 @@ const Users: React.FC = () => {
   const [deleteName, setDeleteName] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // ── Fetch users ──
-  const fetchUsers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await userService.getAll();
-      setUsers(data);
-      setError('');
-    } catch {
-      setError('Failed to load users.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
-
-  // ── Filtered users ──
-  const filtered = users.filter((u) => {
-    const q = search.toLowerCase();
-    const matchesSearch = !q || u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.phone || '').includes(q) || u.role.toLowerCase().includes(q);
-    const matchesStatus = !statusFilter || (statusFilter === 'active' ? u.isActive : !u.isActive);
-    return matchesSearch && matchesStatus;
-  });
-
   // ── Add user ──
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +64,7 @@ const Users: React.FC = () => {
       await userService.create(addForm);
       setShowAdd(false);
       resetAddForm();
-      fetchUsers();
+      refresh();
     } catch (err: any) {
       setAddError(err.response?.data?.message || 'Failed to add user.');
     } finally {
@@ -124,7 +109,7 @@ const Users: React.FC = () => {
       if (!payload.password) delete payload.password;
       await userService.update(editId, payload);
       setShowEdit(false);
-      fetchUsers();
+      refresh();
     } catch (err: any) {
       setEditError(err.response?.data?.message || 'Failed to update user.');
     } finally {
@@ -145,7 +130,7 @@ const Users: React.FC = () => {
     try {
       await userService.delete(deleteId);
       setShowDelete(false);
-      fetchUsers();
+      refresh();
     } catch {
       setError('Failed to delete user.');
     } finally {
@@ -165,7 +150,7 @@ const Users: React.FC = () => {
         </div>
         <ul className="table-top-head">
           <li>
-            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Refresh" onClick={(e) => { e.preventDefault(); fetchUsers(); }}>
+            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Refresh" onClick={(e) => { e.preventDefault(); refresh(); }}>
               <i className="ti ti-refresh"></i>
             </a>
           </li>
@@ -200,23 +185,7 @@ const Users: React.FC = () => {
               />
             </div>
           </div>
-          <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
-            <div className="dropdown">
-              <a
-                href="#"
-                className="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                data-bs-toggle="dropdown"
-                onClick={(e) => e.preventDefault()}
-              >
-                {statusFilter ? (statusFilter === 'active' ? 'Active' : 'Inactive') : 'Status'}
-              </a>
-              <ul className="dropdown-menu dropdown-menu-end p-3">
-                <li><a href="#" className="dropdown-item rounded-1" onClick={(e) => { e.preventDefault(); setStatusFilter(''); }}>All</a></li>
-                <li><a href="#" className="dropdown-item rounded-1" onClick={(e) => { e.preventDefault(); setStatusFilter('active'); }}>Active</a></li>
-                <li><a href="#" className="dropdown-item rounded-1" onClick={(e) => { e.preventDefault(); setStatusFilter('inactive'); }}>Inactive</a></li>
-              </ul>
-            </div>
-          </div>
+
         </div>
         <div className="card-body p-0">
           {loading ? (
@@ -240,16 +209,16 @@ const Users: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
+                  {users.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="text-center py-4 text-muted">
-                        {search || statusFilter ? 'No users match your filters.' : 'No users found.'}
+                        {search ? 'No users match your search.' : 'No users found.'}
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((user, idx) => (
+                    users.map((user, idx) => (
                       <tr key={user.id}>
-                        <td>{idx + 1}</td>
+                        <td>{(page - 1) * pageSize + idx + 1}</td>
                         <td>
                           <div className="d-flex align-items-center">
                             <span className="avatar avatar-md me-2 bg-primary-transparent text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center">
@@ -299,6 +268,16 @@ const Users: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Pagination */}
+      <ServerPagination
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       {/* ══════ Add User Modal ══════ */}
       {showAdd && (

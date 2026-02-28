@@ -1,18 +1,31 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getProducts, deleteProduct, getCategories, getBrands, ProductResponse, DropdownOption } from '../../services/productService';
+import { deleteProduct, getCategories, getBrands, ProductResponse, DropdownOption } from '../../services/productService';
 import { mediaUrl } from '../../services/api';
+import { useServerPagination } from '../../hooks/useServerPagination';
+import ServerPagination from '../../components/ServerPagination';
 
 const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
 const ProductList: React.FC = () => {
-  const [products, setProducts] = useState<ProductResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [brandFilter, setBrandFilter] = useState('');
   const [selectAll, setSelectAll] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [categoryOptions, setCategoryOptions] = useState<DropdownOption[]>([]);
+  const [brandOptions, setBrandOptions] = useState<DropdownOption[]>([]);
+
+  const {
+    data: products,
+    loading,
+    search: searchTerm,
+    setSearch: setSearchTerm,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalCount,
+    totalPages,
+    refresh,
+  } = useServerPagination<ProductResponse>({ endpoint: '/products', defaultPageSize: 10 });
   const [categoryOptions, setCategoryOptions] = useState<DropdownOption[]>([]);
   const [brandOptions, setBrandOptions] = useState<DropdownOption[]>([]);
 
@@ -22,23 +35,14 @@ const ProductList: React.FC = () => {
   const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDropdowns = async () => {
       try {
-        const [prods, cats, brands] = await Promise.all([
-          getProducts(),
-          getCategories(),
-          getBrands(),
-        ]);
-        setProducts(prods);
+        const [cats, brands] = await Promise.all([getCategories(), getBrands()]);
         setCategoryOptions(cats);
         setBrandOptions(brands);
-      } catch {
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
+      } catch { /* ignore */ }
     };
-    fetchData();
+    fetchDropdowns();
   }, []);
 
   useEffect(() => {
@@ -49,8 +53,8 @@ const ProductList: React.FC = () => {
 
   const handleSelectAll = useCallback((checked: boolean) => {
     setSelectAll(checked);
-    setSelectedIds(checked ? new Set(filtered.map((p) => p.id)) : new Set());
-  }, []);
+    setSelectedIds(checked ? new Set(products.map((p) => p.id)) : new Set());
+  }, [products]);
 
   const handleSelectOne = useCallback((id: string, checked: boolean) => {
     setSelectedIds((prev) => {
@@ -66,7 +70,7 @@ const ProductList: React.FC = () => {
     if (!deleteId) return;
     try {
       await deleteProduct(deleteId);
-      setProducts((prev) => prev.filter((p) => p.id !== deleteId));
+      refresh();
       setShowDeleteModal(false);
       setDeleteId(null);
     } catch (err: any) {
@@ -74,14 +78,6 @@ const ProductList: React.FC = () => {
       setDeleteError(msg);
     }
   };
-
-  const filtered = useMemo(() => products.filter((p) => {
-    const q = searchTerm.toLowerCase();
-    const matchSearch = !searchTerm || p.productName.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
-    const matchCategory = !categoryFilter || p.category === categoryFilter;
-    const matchBrand = !brandFilter || p.brand === brandFilter;
-    return matchSearch && matchCategory && matchBrand;
-  }), [products, searchTerm, categoryFilter, brandFilter]);
 
   return (
     <>
@@ -175,10 +171,10 @@ const ProductList: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
+                  {products.length === 0 ? (
                     <tr><td colSpan={9} className="text-center py-4 text-muted">No products found.</td></tr>
                   ) : (
-                    filtered.map((p) => (
+                    products.map((p) => (
                       <tr key={p.id}>
                         <td>
                           <label className="checkboxs"><input type="checkbox" checked={selectedIds.has(p.id)} onChange={(e) => handleSelectOne(p.id, e.target.checked)} /><span className="checkmarks"></span></label>
@@ -220,6 +216,15 @@ const ProductList: React.FC = () => {
             </div>
           )}
         </div>
+        <ServerPagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          loading={loading}
+        />
       </div>
 
       {/* Delete Confirmation Modal */}

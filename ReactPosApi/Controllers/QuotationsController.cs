@@ -18,8 +18,18 @@ public class QuotationsController : ControllerBase
         [FromQuery] string? product,
         [FromQuery] string? customer,
         [FromQuery] string? status,
-        [FromQuery] string? sort)
-        => Ok(await _service.GetAllAsync(product, customer, status, sort));
+        [FromQuery] string? sort,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? search)
+    {
+        if (page.HasValue)
+        {
+            var query = new PaginationQuery { Page = page.Value, PageSize = pageSize ?? 10, Search = search, Status = status };
+            return Ok(await _service.GetAllPagedAsync(query));
+        }
+        return Ok(await _service.GetAllAsync(product, customer, status, sort));
+    }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)

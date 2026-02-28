@@ -18,6 +18,44 @@ public class InstallmentService : IInstallmentService
 
     // ── Queries ────────────────────────────────────────────
 
+    public async Task<PagedResult<InstallmentPlanDto>> GetAllPagedAsync(PaginationQuery query)
+    {
+        var q = _db.InstallmentPlans.AsQueryable();
+
+        if (!string.IsNullOrEmpty(query.Search))
+        {
+            var s = query.Search.ToLower();
+            q = q.Where(p => p.Customer!.FullName.ToLower().Contains(s) ||
+                             (p.Product != null && p.Product.ProductName.ToLower().Contains(s)) ||
+                             p.PlanGuarantors.Any(g => g.Party!.FullName.ToLower().Contains(s) ||
+                                                       (g.Party.Phone != null && g.Party.Phone.Contains(s)) ||
+                                                       (g.Party.Cnic != null && g.Party.Cnic.Contains(s))));
+        }
+
+        if (!string.IsNullOrEmpty(query.Status))
+            q = q.Where(p => p.Status == query.Status);
+
+        q = q.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await q.CountAsync();
+        var plans = await q
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Include(p => p.Customer)
+            .Include(p => p.Product).ThenInclude(pr => pr!.Images)
+            .Include(p => p.Schedule.OrderBy(s => s.InstallmentNo))
+            .Include(p => p.PlanGuarantors).ThenInclude(pg => pg.Party)
+            .ToListAsync();
+
+        return new PagedResult<InstallmentPlanDto>
+        {
+            Items = plans.Select(MapToDto).ToList(),
+            TotalCount = totalCount,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+    }
+
     public async Task<List<InstallmentPlanDto>> GetAllAsync()
     {
         var plans = await _db.InstallmentPlans

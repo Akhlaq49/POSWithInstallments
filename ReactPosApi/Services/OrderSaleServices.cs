@@ -21,6 +21,42 @@ public class SaleService : ISaleService
             .Select(s => MapToDto(s)).ToListAsync();
     }
 
+    public async Task<PagedResult<SaleDto>> GetAllPagedAsync(string? source, PaginationQuery query, string? paymentStatus = null)
+    {
+        var q = _db.Sales.AsQueryable();
+        if (!string.IsNullOrEmpty(source)) q = q.Where(s => s.Source == source);
+
+        if (!string.IsNullOrEmpty(query.Search))
+        {
+            var s = query.Search.ToLower();
+            q = q.Where(x => x.Reference.ToLower().Contains(s) || x.CustomerName.ToLower().Contains(s));
+        }
+
+        if (!string.IsNullOrEmpty(query.Status))
+            q = q.Where(x => x.Status == query.Status);
+
+        if (!string.IsNullOrEmpty(paymentStatus))
+            q = q.Where(x => x.PaymentStatus == paymentStatus);
+
+        q = q.OrderByDescending(s => s.CreatedAt);
+
+        var totalCount = await q.CountAsync();
+        var entities = await q
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .ToListAsync();
+
+        return new PagedResult<SaleDto>
+        {
+            Items = entities.Select(MapToDto).ToList(),
+            TotalCount = totalCount,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+    }
+
     public async Task<SaleDto?> GetByIdAsync(int id)
     {
         var s = await _db.Sales.Include(s => s.Items).Include(s => s.Payments).FirstOrDefaultAsync(s => s.Id == id);
@@ -306,6 +342,49 @@ public class SalesReturnService : ISalesReturnService
     private readonly AppDbContext _db;
     public SalesReturnService(AppDbContext db) => _db = db;
 
+    public async Task<PagedResult<SalesReturnDto>> GetAllPagedAsync(PaginationQuery query, string? paymentStatus = null)
+    {
+        var q = _db.SalesReturns.AsQueryable();
+
+        if (!string.IsNullOrEmpty(query.Search))
+        {
+            var s = query.Search.ToLower();
+            q = q.Where(r => r.CustomerName.ToLower().Contains(s) || r.Reference.ToLower().Contains(s));
+        }
+
+        if (!string.IsNullOrEmpty(query.Status))
+            q = q.Where(r => r.Status == query.Status);
+
+        if (!string.IsNullOrEmpty(paymentStatus))
+            q = q.Where(r => r.PaymentStatus == paymentStatus);
+
+        q = q.OrderByDescending(r => r.Id);
+
+        var totalCount = await q.CountAsync();
+        var entities = await q
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
+
+        return new PagedResult<SalesReturnDto>
+        {
+            Items = entities.Select(r => new SalesReturnDto
+            {
+                Id = r.Id, Reference = r.Reference, CustomerId = r.CustomerId,
+                CustomerName = r.CustomerName, CustomerImage = r.CustomerImage,
+                ProductId = r.ProductId, ProductName = r.ProductName, ProductImage = r.ProductImage,
+                OrderTax = r.OrderTax, Discount = r.Discount, Shipping = r.Shipping,
+                GrandTotal = r.GrandTotal, Paid = r.Paid, Due = r.Due,
+                Status = r.Status, PaymentStatus = r.PaymentStatus,
+                ReturnDate = r.ReturnDate.ToString("dd MMM yyyy"),
+                CreatedAt = r.CreatedAt.ToString("dd MMM yyyy")
+            }).ToList(),
+            TotalCount = totalCount,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+    }
+
     public async Task<List<SalesReturnDto>> GetAllAsync(string? customer, string? status, string? paymentStatus, string? sort)
     {
         var q = _db.SalesReturns.AsQueryable();
@@ -423,6 +502,47 @@ public class QuotationService : IQuotationService
 {
     private readonly AppDbContext _db;
     public QuotationService(AppDbContext db) => _db = db;
+
+    public async Task<PagedResult<QuotationDto>> GetAllPagedAsync(PaginationQuery query)
+    {
+        var q = _db.Quotations.AsQueryable();
+
+        if (!string.IsNullOrEmpty(query.Search))
+        {
+            var s = query.Search.ToLower();
+            q = q.Where(x => x.CustomerName.ToLower().Contains(s) ||
+                             x.ProductName.ToLower().Contains(s) ||
+                             x.Reference.ToLower().Contains(s));
+        }
+
+        if (!string.IsNullOrEmpty(query.Status))
+            q = q.Where(x => x.Status == query.Status);
+
+        q = q.OrderByDescending(x => x.Id);
+
+        var totalCount = await q.CountAsync();
+        var entities = await q
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
+
+        return new PagedResult<QuotationDto>
+        {
+            Items = entities.Select(x => new QuotationDto
+            {
+                Id = x.Id, Reference = x.Reference, CustomerId = x.CustomerId,
+                CustomerName = x.CustomerName, CustomerImage = x.CustomerImage,
+                ProductId = x.ProductId, ProductName = x.ProductName, ProductImage = x.ProductImage,
+                OrderTax = x.OrderTax, Discount = x.Discount, Shipping = x.Shipping,
+                GrandTotal = x.GrandTotal, Status = x.Status, Description = x.Description,
+                QuotationDate = x.QuotationDate.ToString("dd MMM yyyy"),
+                CreatedAt = x.CreatedAt.ToString("dd MMM yyyy")
+            }).ToList(),
+            TotalCount = totalCount,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+    }
 
     public async Task<List<QuotationDto>> GetAllAsync(string? product, string? customer, string? status, string? sort)
     {

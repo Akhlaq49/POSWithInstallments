@@ -18,6 +18,45 @@ public class CustomerService : ICustomerService
         _fileService = fileService;
     }
 
+    public async Task<PagedResult<CustomerDto>> GetAllPagedAsync(PaginationQuery query)
+    {
+        var q = _db.Parties.Where(p => p.Role == "Customer").AsQueryable();
+
+        if (!string.IsNullOrEmpty(query.Search))
+        {
+            var s = query.Search.ToLower();
+            q = q.Where(p => p.FullName.ToLower().Contains(s) ||
+                             (p.Phone != null && p.Phone.Contains(s)) ||
+                             (p.Email != null && p.Email.ToLower().Contains(s)) ||
+                             (p.Cnic != null && p.Cnic.Contains(s)) ||
+                             (p.SO != null && p.SO.ToLower().Contains(s)) ||
+                             (p.City != null && p.City.ToLower().Contains(s)));
+        }
+
+        if (!string.IsNullOrEmpty(query.Status))
+            q = q.Where(p => p.Status == query.Status);
+
+        q = q.OrderByDescending(p => p.CreatedAt);
+
+        var totalCount = await q.CountAsync();
+        var items = await q.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToListAsync();
+
+        var dtos = new List<CustomerDto>();
+        foreach (var c in items)
+        {
+            var miscBalance = await _miscService.GetBalanceAsync(c.Id);
+            dtos.Add(MapToDto(c, miscBalance));
+        }
+
+        return new PagedResult<CustomerDto>
+        {
+            Items = dtos,
+            TotalCount = totalCount,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+    }
+
     public async Task<List<CustomerDto>> GetAllAsync()
     {
         var list = await _db.Parties

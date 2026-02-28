@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { MEDIA_BASE_URL } from '../../services/api';
 import {
   Customer,
-  getCustomers,
   createCustomer,
   updateCustomer,
   deleteCustomer,
@@ -10,16 +9,35 @@ import {
 } from '../../services/customerService';
 import { useFieldVisibility } from '../../utils/useFieldVisibility';
 import WhatsAppSendModal from '../../components/WhatsAppSendModal';
+import { useServerPagination } from '../../hooks/useServerPagination';
+import ServerPagination from '../../components/ServerPagination';
 
 const emptyForm = { name: '', so: '', cnic: '', phone: '', email: '', address: '', city: '', status: 'active' as const };
 
 const Customers: React.FC = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { isVisible } = useFieldVisibility('Customer');
+
+  const extraParams = useMemo(() => {
+    const p: Record<string, string> = {};
+    if (statusFilter) p.status = statusFilter;
+    return p;
+  }, [statusFilter]);
+
+  const {
+    data: customers,
+    loading,
+    search,
+    setSearch,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalCount,
+    totalPages,
+    refresh,
+  } = useServerPagination<Customer>({ endpoint: '/customers', defaultPageSize: 10, extraParams });
 
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -36,54 +54,18 @@ const Customers: React.FC = () => {
   const [whatsappCustomer, setWhatsappCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
-    fetchCustomers();
-  }, []);
-
-  useEffect(() => {
     if (typeof (window as any).feather !== 'undefined') {
       (window as any).feather.replace();
     }
   });
 
-  const fetchCustomers = async () => {
-    setLoading(true);
-    try {
-      const data = await getCustomers();
-      setCustomers(data);
-    } catch {
-      setCustomers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filtered = useMemo(() => {
-    let list = customers;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          c.phone.toLowerCase().includes(q) ||
-          c.email.toLowerCase().includes(q) ||
-          c.city.toLowerCase().includes(q) ||
-          (c.cnic || '').toLowerCase().includes(q) ||
-          (c.so || '').toLowerCase().includes(q)
-      );
-    }
-    if (statusFilter) {
-      list = list.filter((c) => c.status === statusFilter);
-    }
-    return list;
-  }, [customers, search, statusFilter]);
-
-  const allSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id));
+  const allSelected = customers.length > 0 && customers.every((c) => selectedIds.has(c.id));
 
   const toggleSelectAll = () => {
     if (allSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filtered.map((c) => c.id)));
+      setSelectedIds(new Set(customers.map((c) => c.id)));
     }
   };
 
@@ -128,7 +110,7 @@ const Customers: React.FC = () => {
       if (pictureFile) {
         created = await uploadCustomerPicture(created.id, pictureFile);
       }
-      setCustomers((prev) => [created, ...prev]);
+      refresh();
       setShowAddModal(false);
     } catch {
       /* ignore */
@@ -145,7 +127,7 @@ const Customers: React.FC = () => {
       if (pictureFile) {
         updated = await uploadCustomerPicture(editId, pictureFile);
       }
-      setCustomers((prev) => prev.map((c) => (c.id === editId ? updated : c)));
+      refresh();
       setShowEditModal(false);
     } catch {
       /* ignore */
@@ -158,7 +140,7 @@ const Customers: React.FC = () => {
     setSaving(true);
     try {
       await deleteCustomer(deleteId);
-      setCustomers((prev) => prev.filter((c) => c.id !== deleteId));
+      refresh();
       setShowDeleteModal(false);
     } catch {
       /* ignore */
@@ -173,7 +155,7 @@ const Customers: React.FC = () => {
       for (const id of selectedIds) {
         await deleteCustomer(id);
       }
-      setCustomers((prev) => prev.filter((c) => !selectedIds.has(c.id)));
+      refresh();
       setSelectedIds(new Set());
     } catch {
       /* ignore */
@@ -302,13 +284,13 @@ const Customers: React.FC = () => {
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-            <span className="badge bg-primary fs-12">{filtered.length} customer{filtered.length !== 1 ? 's' : ''}</span>
+            <span className="badge bg-primary fs-12">{totalCount} customer{totalCount !== 1 ? 's' : ''}</span>
           </div>
         </div>
         <div className="card-body p-0">
           {loading ? (
             <div className="text-center p-5"><div className="spinner-border text-primary"></div></div>
-          ) : filtered.length === 0 ? (
+          ) : customers.length === 0 ? (
             <div className="text-center p-5 text-muted">{search || statusFilter ? 'No customers match your filters.' : 'No customers yet. Add your first customer!'}</div>
           ) : (
             <div className="table-responsive">
@@ -328,7 +310,7 @@ const Customers: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((c) => (
+                  {customers.map((c) => (
                     <tr key={c.id}>
                       <td>
                         <label className="checkboxs"><input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleSelect(c.id)} /><span className="checkmarks"></span></label>
@@ -367,6 +349,15 @@ const Customers: React.FC = () => {
             </div>
           )}
         </div>
+        <ServerPagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          loading={loading}
+        />
       </div>
 
       {/* Add Customer Modal */}

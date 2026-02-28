@@ -1,54 +1,38 @@
-﻿import React, { useState, useEffect } from 'react';
-import { getParties, createParty, updateParty, deleteParty, Party, CreatePartyPayload } from '../../services/partyService';
+﻿import React, { useState } from 'react';
+import { createParty, updateParty, deleteParty, Party, CreatePartyPayload } from '../../services/partyService';
 import { showSuccess, showError } from '../../utils/alertUtils';
+import { useServerPagination } from '../../hooks/useServerPagination';
+import ServerPagination from '../../components/ServerPagination';
 
 const ROLE = 'Supplier';
 
 const Suppliers: React.FC = () => {
-  const [items, setItems] = useState<Party[]>([]);
-  const [filtered, setFiltered] = useState<Party[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterCountry, setFilterCountry] = useState('');
-  const [sortBy, setSortBy] = useState<'recent' | 'asc' | 'desc'>('recent');
+  const {
+    data: items,
+    loading,
+    search: searchTerm,
+    setSearch: setSearchTerm,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalCount,
+    totalPages,
+    refresh,
+  } = useServerPagination<Party>({ endpoint: '/parties', defaultPageSize: 10, extraParams: { role: ROLE } });
+
   const [selectAll, setSelectAll] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
   const emptyForm: CreatePartyPayload = { fullName: '', lastName: '', email: '', phone: '', address: '', city: '', state: '', country: '', postalCode: '', code: '', role: ROLE, status: 'active', isActive: true };
   const [form, setForm] = useState<CreatePartyPayload>({ ...emptyForm });
 
-  useEffect(() => { loadData(); }, []);
-  useEffect(() => { applyFilters(); }, [items, searchTerm, filterStatus, filterCountry, sortBy]);
-
-  const loadData = async () => {
-    setLoading(true);
-    try { setItems(await getParties(ROLE)); } catch { showError('Failed to load suppliers'); }
-    finally { setLoading(false); }
-  };
-
-  const applyFilters = () => {
-    let result = items;
-    if (searchTerm) { const q = searchTerm.toLowerCase(); result = result.filter(i => i.fullName.toLowerCase().includes(q) || (i.code || '').toLowerCase().includes(q) || (i.email || '').toLowerCase().includes(q)); }
-    if (filterStatus) result = result.filter(i => i.status === filterStatus);
-    if (filterCountry) result = result.filter(i => i.country === filterCountry);
-    if (sortBy === 'asc') result = [...result].sort((a, b) => a.fullName.localeCompare(b.fullName));
-    else if (sortBy === 'desc') result = [...result].sort((a, b) => b.fullName.localeCompare(a.fullName));
-    setFiltered(result);
-  };
-
-  const countries = [...new Set(items.map(i => i.country).filter(Boolean))];
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const handleSelectAll = (checked: boolean) => { setSelectAll(checked); setSelectedIds(checked ? new Set(paginated.map(i => i.id)) : new Set()); };
-  const handleSelectOne = (id: number, checked: boolean) => { const next = new Set(selectedIds); if (checked) next.add(id); else next.delete(id); setSelectedIds(next); setSelectAll(next.size === paginated.length); };
+  const handleSelectAll = (checked: boolean) => { setSelectAll(checked); setSelectedIds(checked ? new Set(items.map(i => i.id)) : new Set()); };
+  const handleSelectOne = (id: number, checked: boolean) => { const next = new Set(selectedIds); if (checked) next.add(id); else next.delete(id); setSelectedIds(next); setSelectAll(next.size === items.length); };
 
   const openAddModal = () => { setEditingId(null); setForm({ ...emptyForm }); setShowModal(true); };
   const openEditModal = (p: Party) => {
@@ -59,13 +43,13 @@ const Suppliers: React.FC = () => {
 
   const handleSave = async () => {
     if (!form.fullName) { showError('First Name is required'); return; }
-    try { if (editingId) await updateParty(editingId, form); else await createParty(form); setShowModal(false); showSuccess(editingId ? 'Supplier updated' : 'Supplier created'); loadData(); }
+    try { if (editingId) await updateParty(editingId, form); else await createParty(form); setShowModal(false); showSuccess(editingId ? 'Supplier updated' : 'Supplier created'); refresh(); }
     catch { showError('Failed to save supplier'); }
   };
 
   const confirmDelete = async () => {
     if (!deleteId) return;
-    try { await deleteParty(deleteId); setShowDeleteModal(false); setDeleteId(null); showSuccess('Supplier deleted'); loadData(); }
+    try { await deleteParty(deleteId); setShowDeleteModal(false); setDeleteId(null); showSuccess('Supplier deleted'); refresh(); }
     catch { showError('Failed to delete'); }
   };
 
@@ -90,30 +74,6 @@ const Suppliers: React.FC = () => {
               <input type="text" className="form-control" placeholder="Search" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
           </div>
-          <div className="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
-            <div className="dropdown me-2">
-              <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">{filterCountry || 'Country'}</a>
-              <ul className="dropdown-menu dropdown-menu-end p-3">
-                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterCountry(''); }}>All</a></li>
-                {countries.map(c => <li key={c}><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterCountry(c!); }}>{c}</a></li>)}
-              </ul>
-            </div>
-            <div className="dropdown me-2">
-              <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">{filterStatus ? (filterStatus === 'active' ? 'Active' : 'Inactive') : 'Status'}</a>
-              <ul className="dropdown-menu dropdown-menu-end p-3">
-                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterStatus(''); }}>All</a></li>
-                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterStatus('active'); }}>Active</a></li>
-                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setFilterStatus('inactive'); }}>Inactive</a></li>
-              </ul>
-            </div>
-            <div className="dropdown">
-              <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">Sort By: {sortBy === 'asc' ? 'Ascending' : sortBy === 'desc' ? 'Descending' : 'Recently Added'}</a>
-              <ul className="dropdown-menu dropdown-menu-end p-3">
-                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setSortBy('recent'); }}>Recently Added</a></li>
-                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setSortBy('asc'); }}>Ascending</a></li>
-                <li><a className="dropdown-item rounded-1" href="#" onClick={e => { e.preventDefault(); setSortBy('desc'); }}>Descending</a></li>
-              </ul>
-            </div>
           </div>
         </div>
 
@@ -128,7 +88,7 @@ const Suppliers: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginated.length === 0 ? <tr><td colSpan={8} className="text-center py-4">No suppliers found</td></tr> : paginated.map(p => (
+                  {items.length === 0 ? <tr><td colSpan={8} className="text-center py-4">No suppliers found</td></tr> : items.map(p => (
                     <tr key={p.id}>
                       <td><label className="checkboxs"><input type="checkbox" checked={selectedIds.has(p.id)} onChange={e => handleSelectOne(p.id, e.target.checked)} /><span className="checkmarks"></span></label></td>
                       <td>{p.code}</td>
@@ -150,6 +110,16 @@ const Suppliers: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Pagination */}
+      <ServerPagination
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       {/* Add/Edit Modal */}
       {showModal && (

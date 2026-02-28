@@ -5,6 +5,7 @@ namespace ReactPosApi.Services;
 public interface ISaleService
 {
     Task<List<SaleDto>> GetAllAsync(string? source);
+    Task<PagedResult<SaleDto>> GetAllPagedAsync(string? source, PaginationQuery query, string? paymentStatus = null);
     Task<SaleDto?> GetByIdAsync(int id);
     Task<object> CreateAsync(CreateSaleDto dto);
     Task<object?> UpdateAsync(int id, CreateSaleDto dto);
@@ -27,6 +28,7 @@ public interface IInvoiceService
 public interface ISalesReturnService
 {
     Task<List<SalesReturnDto>> GetAllAsync(string? customer, string? status, string? paymentStatus, string? sort);
+    Task<PagedResult<SalesReturnDto>> GetAllPagedAsync(PaginationQuery query, string? paymentStatus = null);
     Task<SalesReturnDto?> GetByIdAsync(int id);
     Task<object> CreateAsync(CreateSalesReturnDto dto);
     Task<object?> UpdateAsync(int id, CreateSalesReturnDto dto);
@@ -36,6 +38,7 @@ public interface ISalesReturnService
 public interface IQuotationService
 {
     Task<List<QuotationDto>> GetAllAsync(string? product, string? customer, string? status, string? sort);
+    Task<PagedResult<QuotationDto>> GetAllPagedAsync(PaginationQuery query);
     Task<QuotationDto?> GetByIdAsync(int id);
     Task<object> CreateAsync(CreateQuotationDto dto);
     Task<object?> UpdateAsync(int id, CreateQuotationDto dto);
