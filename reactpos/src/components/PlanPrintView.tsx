@@ -290,8 +290,6 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
                         <th style={sTh}>#</th>
                         <th style={sTh}>Due Date</th>
                         <th style={sTh}>EMI</th>
-                        <th style={sTh}>Principal</th>
-                        <th style={sTh}>Interest</th>
                         <th style={sTh}>Paid</th>
                         <th style={sTh}>Balance</th>
                         <th style={sTh}>Status</th>
@@ -304,8 +302,6 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
                         <td style={sTd}>—</td>
                         <td style={sTd}>{plan.startDate}</td>
                         <td style={{ ...sTd, fontWeight: 600 }}>Rs {fmt(plan.downPayment)}</td>
-                        <td style={sTd}>Rs {fmt(plan.downPayment)}</td>
-                        <td style={sTd}>—</td>
                         <td style={{ ...sTd, color: '#28a745', fontWeight: 700 }}>Rs {fmt(plan.downPayment)}</td>
                         <td style={sTd}>Rs {fmt(plan.financedAmount)}</td>
                         <td style={sTd}>
@@ -321,8 +317,6 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
                             <td style={{ ...sTd, fontWeight: 600 }}>{e.installmentNo}</td>
                             <td style={sTd}>{e.dueDate}</td>
                             <td style={{ ...sTd, fontWeight: 600 }}>Rs {fmt2(e.emiAmount)}</td>
-                            <td style={sTd}>Rs {fmt2(e.principal)}</td>
-                            <td style={{ ...sTd, color: '#dc3545' }}>Rs {fmt2(e.interest)}</td>
                             <td style={{ ...sTd, color: paidAmt > 0 ? '#28a745' : '#999', fontWeight: paidAmt > 0 ? 700 : 400 }}>
                               {paidAmt > 0 ? `Rs ${fmt2(paidAmt)}` : '—'}
                             </td>
@@ -341,8 +335,6 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
                       <tr style={{ background: '#f5f5f5', fontWeight: 700 }}>
                         <td style={{ ...sTd, fontWeight: 700 }} colSpan={2}>TOTAL</td>
                         <td style={{ ...sTd, fontWeight: 700 }}>Rs {fmt2(plan.schedule.reduce((s, e) => s + e.emiAmount, 0))}</td>
-                        <td style={{ ...sTd, fontWeight: 700 }}>Rs {fmt2(plan.schedule.reduce((s, e) => s + e.principal, 0))}</td>
-                        <td style={{ ...sTd, fontWeight: 700, color: '#dc3545' }}>Rs {fmt2(plan.schedule.reduce((s, e) => s + e.interest, 0))}</td>
                         <td style={{ ...sTd, fontWeight: 700, color: '#28a745' }}>Rs {fmt2(plan.schedule.filter(e => e.status === 'paid' || e.status === 'partial').reduce((s, e) => s + (e.actualPaidAmount || 0) + (e.miscAdjustedAmount || 0), 0))}</td>
                         <td style={sTd} colSpan={3}></td>
                       </tr>

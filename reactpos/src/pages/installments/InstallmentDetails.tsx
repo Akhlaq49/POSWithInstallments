@@ -395,8 +395,6 @@ const InstallmentDetails: React.FC = () => {
                       <th>Due Date</th>
                       <th>EMI Amount</th>
                       <th>Paid</th>
-                      <th>Principal</th>
-                      <th>Interest</th>
                       <th>Balance</th>
                       <th>Status</th>
                       <th>Paid Date</th>
@@ -410,8 +408,6 @@ const InstallmentDetails: React.FC = () => {
                       <td>{plan.startDate}</td>
                       <td className="fw-medium">Rs {fmt(plan.downPayment)}</td>
                       <td className="text-success">Rs {fmt(plan.downPayment)}</td>
-                      <td>Rs {fmt(plan.downPayment)}</td>
-                      <td>-</td>
                       <td>Rs {fmt(plan.financedAmount)}</td>
                       <td><span className="badge bg-success fw-medium fs-10">Down Payment</span></td>
                       <td>{plan.startDate}</td>
@@ -432,8 +428,6 @@ const InstallmentDetails: React.FC = () => {
                             <small className="text-info d-block"><i className="ti ti-wallet me-1"></i>Rs {fmt(entry.miscAdjustedAmount)} from Misc</small>
                           )}
                         </td>
-                        <td>Rs {fmt(entry.principal)}</td>
-                        <td className="text-danger">Rs {fmt(entry.interest)}</td>
                         <td>Rs {fmt(entry.balance)}</td>
                         <td>{statusBadgeEntry(entry.status)}</td>
                         <td>{entry.paidDate || '-'}</td>

@@ -1044,8 +1044,6 @@ const CreateInstallment: React.FC = () => {
                                 <th>#</th>
                                 <th>Due Date</th>
                                 <th>EMI</th>
-                                <th>Principal</th>
-                                <th>Interest</th>
                                 <th>Balance</th>
                               </tr>
                             </thead>
@@ -1055,8 +1053,6 @@ const CreateInstallment: React.FC = () => {
                                   <td>{entry.installmentNo}</td>
                                   <td>{entry.dueDate}</td>
                                   <td className="fw-medium">{fmt(entry.emiAmount)}</td>
-                                  <td>{fmt(entry.principal)}</td>
-                                  <td className="text-danger">{fmt(entry.interest)}</td>
                                   <td>{fmt(entry.balance)}</td>
                                 </tr>
                               ))}
@@ -1065,8 +1061,6 @@ const CreateInstallment: React.FC = () => {
                               <tr className="fw-bold">
                                 <td colSpan={2}>Total</td>
                                 <td>{fmt(schedule.reduce((s, e) => s + e.emiAmount, 0))}</td>
-                                <td>{fmt(schedule.reduce((s, e) => s + e.principal, 0))}</td>
-                                <td className="text-danger">{fmt(schedule.reduce((s, e) => s + e.interest, 0))}</td>
                                 <td>-</td>
                               </tr>
                             </tfoot>
