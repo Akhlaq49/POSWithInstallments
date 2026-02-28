@@ -11,7 +11,7 @@ import {
 import { useFieldVisibility } from '../../utils/useFieldVisibility';
 import WhatsAppSendModal from '../../components/WhatsAppSendModal';
 
-const emptyForm = { name: '', so: '', cnic: '', phone: '', email: '', address: '', city: '', status: 'active' as const };
+const emptyForm: Omit<Customer, 'id' | 'picture' | 'miscBalance'> = { name: '', so: '', cnic: '', phone: '', email: '', address: '', city: '', status: 'active' };
 
 const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -241,7 +241,7 @@ const Customers: React.FC = () => {
       {isVisible('status') && (
       <div className="col-lg-6 mb-3">
         <label className="form-label">Status</label>
-        <select className="form-select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as 'active' | 'inactive' })}>
+        <select className="form-select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value === 'active' ? 'active' : 'inactive' })}>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>

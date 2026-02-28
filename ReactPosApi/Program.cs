@@ -98,7 +98,7 @@ builder.Services.AddCors(options =>
                 "http://localhost:5173",
                 "http://localhost:3000",
                 "http://localhost:4173",
-                "http://192.168.1.8:3000",
+                "http://192.168.1.10:3000",
                 "http://192.168.1.8:5173"
             )
             .AllowAnyHeader()
@@ -109,11 +109,10 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Remove the environment check
+app.UseDeveloperExceptionPage(); // <-- always enabled
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseCors("AllowReactApp");
 app.UseStaticFiles(); // serve wwwroot/uploads

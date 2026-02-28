@@ -1,12 +1,11 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getEmployees, deleteEmployee, getDepartments, getDesignations, Employee, Department, Designation as DesignationType } from '../../services/hrmService';
+import { getEmployees, deleteEmployee, getDepartments, getDesignations, Employee, Designation as DesignationType } from '../../services/hrmService';
 import { showSuccess, showError } from '../../utils/alertUtils';
 
 const EmployeesGrid: React.FC = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<Employee[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [designations, setDesignations] = useState<DesignationType[]>([]);
   const [filtered, setFiltered] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
@@ -21,8 +20,8 @@ const EmployeesGrid: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [emps, depts, desigs] = await Promise.all([getEmployees(), getDepartments(), getDesignations()]);
-      setItems(emps); setDepartments(depts); setDesignations(desigs);
+      const [emps, , desigs] = await Promise.all([getEmployees(), getDepartments(), getDesignations()]);
+      setItems(emps); setDesignations(desigs);
     } catch { showError('Failed to load employees'); }
     finally { setLoading(false); }
   };

@@ -20,8 +20,6 @@ export const showError = (message: string, title: string = 'Error'): Promise<voi
 export const showConfirm = (
   title: string,
   message: string = '',
-  confirmText: string = 'Yes',
-  cancelText: string = 'No'
 ): Promise<{ isConfirmed: boolean }> => {
   return new Promise((resolve) => {
     const confirmed = confirm(`${title}\n${message}`);

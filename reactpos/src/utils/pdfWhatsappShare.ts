@@ -191,7 +191,7 @@ export async function sendTextViaWhatsAppCloudApi(
   message: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const result = await sendWhatsAppText(phoneNumber, message);
+    await sendWhatsAppText(phoneNumber, message);
     return { success: true, error: undefined };
   } catch (err: any) {
     return { success: false, error: err?.response?.data?.error || err?.message || 'Unknown error' };
@@ -210,7 +210,7 @@ export async function sendDocViaWhatsAppCloudApi(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const blob = await generatePdfFromElement(element, filename, options);
-    const result = await sendWhatsAppDocument(phoneNumber, blob, `${filename}.pdf`, caption);
+    await sendWhatsAppDocument(phoneNumber, blob, `${filename}.pdf`, caption);
     return { success: true, error: undefined };
   } catch (err: any) {
     return { success: false, error: err?.response?.data?.error || err?.message || 'Unknown error' };

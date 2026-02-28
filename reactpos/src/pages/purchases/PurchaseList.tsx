@@ -183,9 +183,7 @@ const PurchaseList: React.FC = () => {
   const handleDeletePurchase = async (id: number) => {
     const confirmed = await showConfirm(
       'Delete Purchase',
-      'Are you sure you want to delete this purchase?',
-      'Delete',
-      'Cancel'
+      'Are you sure you want to delete this purchase?'
     );
 
     if (confirmed.isConfirmed) {
