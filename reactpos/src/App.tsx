@@ -338,17 +338,17 @@ function App() {
           <Route path="/" element={<Navigate to="/admin-dashboard-2" replace />} />
           
           {/* Dashboard */}
-          {/* <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} /> */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/admin-dashboard-2" element={<Dashboard />} />
-          {/* <Route path="/sales-dashboard" element={<SalesDashboard />} /> */}
+          <Route path="/sales-dashboard" element={<SalesDashboard />} />
 
           {/* Super Admin */}
-          {/* <Route path="/companies" element={<Companies />} />
+          <Route path="/companies" element={<Companies />} />
           <Route path="/subscription" element={<Subscription />} />
           <Route path="/packages" element={<Packages />} />
           <Route path="/domain" element={<Domain />} />
-          <Route path="/purchase-transaction" element={<PurchaseTransaction />} /> */}
+          <Route path="/purchase-transaction" element={<PurchaseTransaction />} />
 
           {/* Inventory */}
           <Route path="/product-list" element={<ProductList />} />
