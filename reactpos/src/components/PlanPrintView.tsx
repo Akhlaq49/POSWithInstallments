@@ -346,27 +346,36 @@ const PlanPrintView: React.FC<PlanPrintViewProps> = ({ plan, onClose }) => {
                 <div style={{ marginBottom: 18 }}>
                   <div style={sTitle}>PAYMENT RECORD</div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                    <colgroup>
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '16%' }} />
+                      <col style={{ width: '16%' }} />
+                      <col style={{ width: '16%' }} />
+                      <col style={{ width: '16%' }} />
+                      <col style={{ width: '16%' }} />
+                    </colgroup>
                     <thead>
                       <tr>
-                        <th style={sTh}>#</th>
-                        <th style={sTh}>Date</th>
-                        <th style={sTh}>Amount Received</th>
-                        <th style={sTh}>Payment Method</th>
-                        <th style={sTh}>Received By</th>
-                        <th style={sTh}>Signature</th>
-                        <th style={sTh}>Remarks</th>
+                        <th style={{ ...sTh, whiteSpace: 'normal' }}>#</th>
+                        <th style={{ ...sTh, whiteSpace: 'normal' }}>Date</th>
+                        <th style={{ ...sTh, whiteSpace: 'normal' }}>Amount Received</th>
+                        <th style={{ ...sTh, whiteSpace: 'normal' }}>Payment Method</th>
+                        <th style={{ ...sTh, whiteSpace: 'normal' }}>Received By</th>
+                        <th style={{ ...sTh, whiteSpace: 'normal' }}>Signature</th>
+                        <th style={{ ...sTh, whiteSpace: 'normal' }}>Remarks</th>
                       </tr>
                     </thead>
                     <tbody>
                       {Array.from({ length: 12 }, (_, i) => (
                         <tr key={`empty-${i}`}>
                           <td style={{ ...sTd, fontWeight: 600 }}>{i + 1}</td>
-                          <td style={{ ...sTd, minWidth: 90, height: 28 }}>&nbsp;</td>
-                          <td style={{ ...sTd, minWidth: 100 }}>&nbsp;</td>
-                          <td style={{ ...sTd, minWidth: 90 }}>&nbsp;</td>
-                          <td style={{ ...sTd, minWidth: 90 }}>&nbsp;</td>
-                          <td style={{ ...sTd, minWidth: 90 }}>&nbsp;</td>
-                          <td style={{ ...sTd, minWidth: 100 }}>&nbsp;</td>
+                          <td style={{ ...sTd, height: 28 }}>&nbsp;</td>
+                          <td style={sTd}>&nbsp;</td>
+                          <td style={sTd}>&nbsp;</td>
+                          <td style={sTd}>&nbsp;</td>
+                          <td style={sTd}>&nbsp;</td>
+                          <td style={sTd}>&nbsp;</td>
                         </tr>
                       ))}
                     </tbody>
