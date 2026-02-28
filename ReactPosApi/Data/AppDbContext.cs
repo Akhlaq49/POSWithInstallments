@@ -268,11 +268,11 @@ public class AppDbContext : DbContext
             e.HasOne(s => s.BillingAddress)
              .WithMany()
              .HasForeignKey(s => s.BillingAddressId)
-             .OnDelete(DeleteBehavior.SetNull);
+             .OnDelete(DeleteBehavior.NoAction);
             e.HasOne(s => s.ShippingAddress)
              .WithMany()
              .HasForeignKey(s => s.ShippingAddressId)
-             .OnDelete(DeleteBehavior.SetNull);
+             .OnDelete(DeleteBehavior.NoAction);
             e.Property(s => s.GrandTotal).HasColumnType("decimal(18,2)");
             e.Property(s => s.Paid).HasColumnType("decimal(18,2)");
             e.Property(s => s.Due).HasColumnType("decimal(18,2)");

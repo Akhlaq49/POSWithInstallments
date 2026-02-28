@@ -1121,14 +1121,12 @@ namespace ReactPosApi.Migrations
                         name: "FK_Sales_PartyAddresses_BillingAddressId",
                         column: x => x.BillingAddressId,
                         principalTable: "PartyAddresses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Sales_PartyAddresses_ShippingAddressId",
                         column: x => x.ShippingAddressId,
                         principalTable: "PartyAddresses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(

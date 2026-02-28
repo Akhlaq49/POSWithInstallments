@@ -2707,7 +2707,7 @@ namespace ReactPosApi.Migrations
                     b.HasOne("ReactPosApi.Models.PartyAddress", "BillingAddress")
                         .WithMany()
                         .HasForeignKey("BillingAddressId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("ReactPosApi.Models.Party", "Customer")
                         .WithMany()
@@ -2717,7 +2717,7 @@ namespace ReactPosApi.Migrations
                     b.HasOne("ReactPosApi.Models.PartyAddress", "ShippingAddress")
                         .WithMany()
                         .HasForeignKey("ShippingAddressId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("BillingAddress");
 
