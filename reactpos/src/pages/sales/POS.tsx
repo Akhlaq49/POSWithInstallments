@@ -126,6 +126,15 @@ const POS: React.FC = () => {
 
   const clearCart = useCallback(() => setCart([]), []);
 
+  /* totals */
+  const subTotal = useMemo(
+    () => cart.reduce((s, c) => s + c.product.price * c.qty, 0),
+    [cart],
+  );
+  const taxRate = 0.15;
+  const taxAmount = Math.round(subTotal * taxRate);
+  const grandTotal = subTotal + taxAmount;
+
   /* ── submit sale ── */
   const handlePay = useCallback(async () => {
     if (cart.length === 0 || submitting) return;
@@ -177,15 +186,6 @@ const POS: React.FC = () => {
       setSubmitting(false);
     }
   }, [cart, submitting, customers, selectedCustomer, userName, subTotal, paymentMethod]);
-
-  /* totals */
-  const subTotal = useMemo(
-    () => cart.reduce((s, c) => s + c.product.price * c.qty, 0),
-    [cart],
-  );
-  const taxRate = 0.15;
-  const taxAmount = Math.round(subTotal * taxRate);
-  const grandTotal = subTotal + taxAmount;
 
   /* ───── render ───── */
   if (loading)

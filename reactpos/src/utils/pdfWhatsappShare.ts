@@ -113,7 +113,7 @@ export async function shareViaWhatsApp(
   const normalized = phoneNumber ? normalizePhone(phoneNumber) : '';
 
   // Try Web Share API with files (mobile + Chrome 93+ / Edge with file sharing support)
-  const canShareFiles = navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
+  const canShareFiles = typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
   if (canShareFiles) {
     try {
       await navigator.share({
@@ -199,7 +199,7 @@ export async function sendTextViaWhatsAppCloudApi(
   message: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const result = await sendWhatsAppText(phoneNumber, message);
+    await sendWhatsAppText(phoneNumber, message);
     return { success: true, error: undefined };
   } catch (err: any) {
     return { success: false, error: err?.response?.data?.error || err?.message || 'Unknown error' };
@@ -219,7 +219,7 @@ export async function sendDocViaWhatsAppCloudApi(
   try {
     const blob = await generatePdfFromElement(element, filename, options);
     const normalizedPhone = normalizePhone(phoneNumber);
-    const result = await sendWhatsAppDocument(normalizedPhone, blob, `${filename}.pdf`, caption);
+    await sendWhatsAppDocument(normalizedPhone, blob, `${filename}.pdf`, caption);
     return { success: true, error: undefined };
   } catch (err: any) {
     return { success: false, error: err?.response?.data?.error || err?.message || 'Unknown error' };

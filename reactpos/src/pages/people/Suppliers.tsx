@@ -18,7 +18,7 @@ const Suppliers: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage] = useState(1);
   const itemsPerPage = 10;
 
   const emptyForm: CreatePartyPayload = { fullName: '', lastName: '', email: '', phone: '', address: '', city: '', state: '', country: '', postalCode: '', code: '', role: ROLE, status: 'active', isActive: true };
@@ -44,7 +44,6 @@ const Suppliers: React.FC = () => {
   };
 
   const countries = [...new Set(items.map(i => i.country).filter(Boolean))];
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleSelectAll = (checked: boolean) => { setSelectAll(checked); setSelectedIds(checked ? new Set(paginated.map(i => i.id)) : new Set()); };

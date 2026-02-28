@@ -27,7 +27,7 @@ const fmt = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigi
 const Invoice: React.FC = () => {
   const [invoices, setInvoices] = useState<InvoiceDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [customers, setCustomers] = useState<CustomerResult[]>([]);
+  const [, setCustomers] = useState<CustomerResult[]>([]);
 
   /* filters */
   const [searchTerm, setSearchTerm] = useState('');

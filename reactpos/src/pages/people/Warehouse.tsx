@@ -17,7 +17,7 @@ const Warehouse: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage] = useState(1);
   const itemsPerPage = 10;
 
   const emptyForm: CreatePartyPayload = { fullName: '', contactPerson: '', email: '', phone: '', phoneWork: '', address: '', city: '', state: '', country: '', postalCode: '', role: ROLE, status: 'active', isActive: true };
@@ -41,7 +41,6 @@ const Warehouse: React.FC = () => {
     setFiltered(result);
   };
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleSelectAll = (checked: boolean) => { setSelectAll(checked); setSelectedIds(checked ? new Set(paginated.map(i => i.id)) : new Set()); };

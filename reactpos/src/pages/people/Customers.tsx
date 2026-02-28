@@ -11,7 +11,7 @@ import {
 import { useFieldVisibility } from '../../utils/useFieldVisibility';
 import WhatsAppSendModal from '../../components/WhatsAppSendModal';
 
-const emptyForm = { name: '', so: '', cnic: '', phone: '', email: '', address: '', city: '', status: 'active' as const };
+const emptyForm: { name: string; so: string; cnic: string; phone: string; email: string; address: string; city: string; status: 'active' | 'inactive' } = { name: '', so: '', cnic: '', phone: '', email: '', address: '', city: '', status: 'active' };
 
 const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);

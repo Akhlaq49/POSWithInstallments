@@ -101,7 +101,7 @@ const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
       const file = new File([blob], pdfFilename, { type: 'application/pdf' });
 
       // Try Web Share API with files — only if browser actually supports file sharing
-      const canShareFiles = navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
+      const canShareFiles = typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
       if (canShareFiles) {
         try {
           await navigator.share({

@@ -6,7 +6,7 @@ import { showSuccess, showError } from '../../utils/alertUtils';
 const EmployeesGrid: React.FC = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<Employee[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const [, setDepartments] = useState<Department[]>([]);
   const [designations, setDesignations] = useState<DesignationType[]>([]);
   const [filtered, setFiltered] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
