@@ -64,9 +64,11 @@ builder.Services.AddScoped<IFinanceReportService, FinanceReportService>();
 // WhatsApp Cloud API
 builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 
-// EF Core - SQL Server
+// EF Core - MySQL (Pomelo)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseMySql(connectionString, serverVersion));
 
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"]!;

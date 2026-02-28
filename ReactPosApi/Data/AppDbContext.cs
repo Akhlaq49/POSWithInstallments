@@ -117,7 +117,6 @@ public class AppDbContext : DbContext
         {
             e.HasIndex(p => new { p.Email, p.Role })
              .IsUnique()
-             .HasFilter("[Email] IS NOT NULL")
              .HasDatabaseName("IX_Parties_Email_Role");
             e.Property(p => p.Role).HasDefaultValue("Customer");
             e.Property(p => p.Status).HasDefaultValue("active");
