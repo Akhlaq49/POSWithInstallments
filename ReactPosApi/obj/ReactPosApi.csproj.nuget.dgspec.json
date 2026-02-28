@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "d:\\boarddesigner\\POS\\POSWithInstallments\\ReactPosApi\\ReactPosApi.csproj": {}
+    "D:\\boarddesigner\\POS\\POSWithInstallments\\ReactPosApi\\ReactPosApi.csproj": {}
   },
   "projects": {
-    "d:\\boarddesigner\\POS\\POSWithInstallments\\ReactPosApi\\ReactPosApi.csproj": {
+    "D:\\boarddesigner\\POS\\POSWithInstallments\\ReactPosApi\\ReactPosApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "d:\\boarddesigner\\POS\\POSWithInstallments\\ReactPosApi\\ReactPosApi.csproj",
+        "projectUniqueName": "D:\\boarddesigner\\POS\\POSWithInstallments\\ReactPosApi\\ReactPosApi.csproj",
         "projectName": "ReactPosApi",
-        "projectPath": "d:\\boarddesigner\\POS\\POSWithInstallments\\ReactPosApi\\ReactPosApi.csproj",
+        "projectPath": "D:\\boarddesigner\\POS\\POSWithInstallments\\ReactPosApi\\ReactPosApi.csproj",
         "packagesPath": "C:\\Users\\Akhlaq\\.nuget\\packages\\",
-        "outputPath": "d:\\boarddesigner\\POS\\POSWithInstallments\\ReactPosApi\\obj\\",
+        "outputPath": "D:\\boarddesigner\\POS\\POSWithInstallments\\ReactPosApi\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Akhlaq\\AppData\\Roaming\\NuGet\\NuGet.Config"
