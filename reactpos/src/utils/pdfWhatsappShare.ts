@@ -5,6 +5,7 @@ import {
   sendWhatsAppText,
   sendWhatsAppDocument,
   getWhatsAppConfig,
+  uploadSharePdf,
 } from '../services/whatsappService';
 
 /**
@@ -111,8 +112,9 @@ export async function shareViaWhatsApp(
   const file = new File([blob], pdfFilename, { type: 'application/pdf' });
   const normalized = phoneNumber ? normalizePhone(phoneNumber) : '';
 
-  // Try Web Share API first — skip canShare check, just try directly
-  if (navigator.share) {
+  // Try Web Share API with files (mobile + Chrome 93+ / Edge with file sharing support)
+  const canShareFiles = navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
+  if (canShareFiles) {
     try {
       await navigator.share({
         title: filename,
@@ -122,27 +124,32 @@ export async function shareViaWhatsApp(
       return;
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
-      console.log('Web Share API failed, using fallback:', err?.message);
+      console.log('Web Share API failed, using upload fallback:', err?.message);
     }
   }
 
-  // Fallback: download PDF + copy message to clipboard + open WhatsApp Web
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = pdfFilename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-
+  // Primary fallback: upload PDF to server → get public URL → send via wa.me with link in message
+  let messageWithLink = message;
   try {
-    await navigator.clipboard.writeText(message);
-  } catch { /* clipboard not available */ }
+    const uploaded = await uploadSharePdf(blob, pdfFilename);
+    messageWithLink = `${message}\n\n📎 Download Plan PDF:\n${uploaded.url}`;
+  } catch (uploadErr) {
+    console.warn('PDF upload failed, falling back to local download:', uploadErr);
+    // If upload fails: download locally
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = pdfFilename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 
+  // Open wa.me with message (includes PDF link if upload succeeded)
   const whatsappUrl = normalized
-    ? `https://web.whatsapp.com/send?phone=${normalized}`
-    : `https://web.whatsapp.com/`;
+    ? `https://wa.me/${normalized}?text=${encodeURIComponent(messageWithLink)}`
+    : `https://wa.me/?text=${encodeURIComponent(messageWithLink)}`;
   window.open(whatsappUrl, '_blank');
 }
 
@@ -162,8 +169,9 @@ export async function sendViaWhatsAppCloudApi(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const blob = await generatePdfFromElement(element, filename, options);
+    const normalizedPhone = normalizePhone(phoneNumber);
     const result = await sendWhatsAppTextAndDocument(
-      phoneNumber,
+      normalizedPhone,
       message,
       blob,
       `${filename}.pdf`,
@@ -210,7 +218,8 @@ export async function sendDocViaWhatsAppCloudApi(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const blob = await generatePdfFromElement(element, filename, options);
-    const result = await sendWhatsAppDocument(phoneNumber, blob, `${filename}.pdf`, caption);
+    const normalizedPhone = normalizePhone(phoneNumber);
+    const result = await sendWhatsAppDocument(normalizedPhone, blob, `${filename}.pdf`, caption);
     return { success: true, error: undefined };
   } catch (err: any) {
     return { success: false, error: err?.response?.data?.error || err?.message || 'Unknown error' };

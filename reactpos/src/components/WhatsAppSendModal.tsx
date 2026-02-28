@@ -4,7 +4,7 @@ import {
   normalizePhone,
   generatePdfFromElement,
 } from '../utils/pdfWhatsappShare';
-import { sendWhatsAppTextAndDocument } from '../services/whatsappService';
+import { sendWhatsAppTextAndDocument, uploadSharePdf } from '../services/whatsappService';
 
 /** Optional full repayment schedule to render in PDF */
 export interface PlanScheduleEntry {
@@ -89,7 +89,7 @@ const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
 
   const normalized = normalizePhone(phoneNumber);
 
-  /** Generate PDF and share directly via OS share sheet → WhatsApp attaches the file */
+  /** Generate PDF, upload to server, send download link via wa.me */
   const handleOpenWhatsApp = async () => {
     const el = pdfContentRef.current;
     if (!el) return;
@@ -100,9 +100,9 @@ const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
       const pdfFilename = `${recipientName.replace(/\s+/g, '-')}-plan.pdf`;
       const file = new File([blob], pdfFilename, { type: 'application/pdf' });
 
-      // Try Web Share API first — works on mobile + Chrome 93+ / Edge desktop
-      // Skip canShare() check because some browsers support sharing but return false for canShare
-      if (navigator.share) {
+      // Try Web Share API with files — only if browser actually supports file sharing
+      const canShareFiles = navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
+      if (canShareFiles) {
         try {
           await navigator.share({
             title: recipientName,
@@ -112,35 +112,37 @@ const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
           return; // Successfully shared
         } catch (err: any) {
           if (err?.name === 'AbortError') return; // user cancelled
-          // Browser doesn't support file sharing or something else failed — fall through
-          console.log('Web Share API failed, using fallback:', err?.message);
+          console.log('Web Share API failed, using upload fallback:', err?.message);
         }
       }
 
-      // Fallback: download PDF + copy message to clipboard + open WhatsApp Web directly
-      // Step 1: Auto-download the PDF
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = pdfFilename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      // Step 2: Copy message to clipboard
+      // Fallback: upload PDF to server → get public URL → open wa.me with link in message
+      let messageWithLink = message;
+      let uploaded = false;
       try {
-        await navigator.clipboard.writeText(message);
-      } catch { /* clipboard not available, user will type */ }
+        const result = await uploadSharePdf(blob, pdfFilename);
+        messageWithLink = `${message}\n\n📎 Download Plan PDF:\n${result.url}`;
+        uploaded = true;
+      } catch (uploadErr) {
+        console.warn('PDF upload failed, falling back to local download:', uploadErr);
+        // Last resort: auto-download the PDF locally
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = pdfFilename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
 
-      // Step 3: Open WhatsApp Web directly with the contact
+      // Open wa.me with contact + message (includes PDF link if upload succeeded)
       const whatsappUrl = normalized
-        ? `https://web.whatsapp.com/send?phone=${normalized}`
-        : `https://web.whatsapp.com/`;
+        ? `https://wa.me/${normalized}?text=${encodeURIComponent(messageWithLink)}`
+        : `https://wa.me/?text=${encodeURIComponent(messageWithLink)}`;
       window.open(whatsappUrl, '_blank');
 
-      // Show step-by-step instructions
-      setDownloadHint(true);
+      setDownloadHint(!uploaded); // only show manual attach hint if upload failed
     } catch (err) {
       console.error('WhatsApp share error:', err);
       setCloudResult({ success: false, error: 'Failed to generate PDF. Try again.' });
@@ -208,13 +210,12 @@ const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
           )}
 
           {downloadHint && (
-            <div className="alert alert-success mb-0 py-2 rounded-0 small">
-              <div className="fw-bold mb-1"><i className="ti ti-check me-1"></i>PDF Downloaded & Message Copied!</div>
-              <div>WhatsApp Web is opening. Follow these steps:</div>
+            <div className="alert alert-warning mb-0 py-2 rounded-0 small">
+              <div className="fw-bold mb-1"><i className="ti ti-download me-1"></i>PDF Downloaded (server upload failed)</div>
+              <div>WhatsApp is opening. To attach the PDF manually:</div>
               <ol className="mb-0 ps-3 mt-1" style={{ fontSize: 12 }}>
-                <li>Click the <i className="ti ti-paperclip"></i> <strong>attach</strong> icon in WhatsApp Web</li>
+                <li>Click the <i className="ti ti-paperclip"></i> <strong>attach</strong> icon in WhatsApp</li>
                 <li>Select <strong>Document</strong> and choose the downloaded PDF</li>
-                <li>Paste the message with <strong>Ctrl+V</strong></li>
                 <li>Press <strong>Send</strong></li>
               </ol>
             </div>
