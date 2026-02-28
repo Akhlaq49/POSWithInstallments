@@ -108,6 +108,13 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Default port 5000 (can be overridden via ASPNETCORE_URLS env variable)
+if (!builder.Configuration.GetSection("ASPNETCORE_URLS").Exists() &&
+    string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+{
+    builder.WebHost.UseUrls("http://0.0.0.0:5000");
+}
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -149,5 +156,4 @@ using (var scope = app.Services.CreateScope())
     formFieldConfigService.SeedDefaultsAsync().GetAwaiter().GetResult();
 }
 
-// Change default port to 3001 to match frontend's VITE_API_BASE_URL
-app.Run("http://0.0.0.0:5000");
+app.Run();
